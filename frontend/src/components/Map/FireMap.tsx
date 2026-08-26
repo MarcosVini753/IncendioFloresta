@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
-import maplibregl, { type GeoJSONSource, type Map } from 'maplibre-gl'
+import { Map as MapLibreMap, NavigationControl, Popup, type GeoJSONSource, type MapLayerMouseEvent } from 'maplibre-gl'
 import type { FeatureCollection, Point } from 'geojson'
 import { mockCells } from '../../data/risk.mock'
 import type { LayerType } from '../../types/fire'
@@ -15,7 +15,7 @@ const LAYER_ID = 'prototype-cells-layer'
 
 export function FireMap({ layer, selectedDate }: FireMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const mapRef = useRef<Map | null>(null)
+  const mapRef = useRef<MapLibreMap | null>(null)
   const layerRef = useRef<LayerType>(layer)
   const dateRef = useRef(selectedDate)
 
@@ -46,15 +46,15 @@ export function FireMap({ layer, selectedDate }: FireMapProps) {
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
 
-    const map = new maplibregl.Map({
+    const map = new MapLibreMap({
       container: containerRef.current,
       style: 'https://demotiles.maplibre.org/style.json',
       center: [-70.3, -9.3],
       zoom: 5.2,
-      attributionControl: true,
+      attributionControl: {},
     })
 
-    map.addControl(new maplibregl.NavigationControl(), 'top-right')
+    map.addControl(new NavigationControl(), 'top-right')
 
     map.on('load', () => {
       map.addSource(SOURCE_ID, {
@@ -92,7 +92,7 @@ export function FireMap({ layer, selectedDate }: FireMapProps) {
         map.getCanvas().style.cursor = ''
       })
 
-      map.on('click', LAYER_ID, (event) => {
+      map.on('click', LAYER_ID, (event: MapLayerMouseEvent) => {
         const feature = event.features?.[0]
         if (!feature || feature.geometry.type !== 'Point') return
 
@@ -108,7 +108,7 @@ export function FireMap({ layer, selectedDate }: FireMapProps) {
 
         const indexLabel = currentLayer === 'risk' ? 'Risco' : 'Perigo'
 
-        new maplibregl.Popup()
+        new Popup()
           .setLngLat(coordinates)
           .setHTML(
             `<strong>${cell.name}</strong><br/>` +
