@@ -1,46 +1,55 @@
 import { useEffect, useMemo, useRef } from 'react'
-import { Map as MapLibreMap, NavigationControl, Popup, type GeoJSONSource, type MapLayerMouseEvent } from 'maplibre-gl'
-import type { FeatureCollection, Point } from 'geojson'
-import { mockCells } from '../../data/risk.mock'
-import type { LayerType } from '../../types/fire'
+import {
+  Map as MapLibreMap,
+  NavigationControl,
+  Popup,
+  type GeoJSONSource,
+  type MapLayerMouseEvent,
+} from 'maplibre-gl'
+import type { Feature, FeatureCollection, MultiPolygon, Polygon } from 'geojson'
+import type { LayerType, PrototypeCell } from '../../types/fire'
 import { MapLegend } from '../Legend/MapLegend'
 
 interface FireMapProps {
   layer: LayerType
   selectedDate: string
+  cells: PrototypeCell[]
+  boundary: Feature<Polygon | MultiPolygon>
+  bounds: [[number, number], [number, number]]
 }
 
-const SOURCE_ID = 'prototype-cells'
-const LAYER_ID = 'prototype-cells-layer'
+const CELLS_SOURCE_ID = 'prototype-cells'
+const CELLS_FILL_LAYER_ID = 'prototype-cells-fill'
+const CELLS_LINE_LAYER_ID = 'prototype-cells-line'
+const ACRE_SOURCE_ID = 'acre-boundary'
+const ACRE_OUTLINE_LAYER_ID = 'acre-outline'
 
-export function FireMap({ layer, selectedDate }: FireMapProps) {
+export function FireMap({ layer, selectedDate, cells, boundary, bounds }: FireMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const layerRef = useRef<LayerType>(layer)
   const dateRef = useRef(selectedDate)
+  const cellsRef = useRef(cells)
 
   layerRef.current = layer
   dateRef.current = selectedDate
+  cellsRef.current = cells
 
-  const geojson = useMemo<FeatureCollection<Point>>(
+  const geojson = useMemo<FeatureCollection<Polygon | MultiPolygon>>(
     () => ({
       type: 'FeatureCollection',
-      features: mockCells.map((cell) => ({
+      features: cells.map((cell) => ({
         type: 'Feature',
-        geometry: {
-          type: 'Point',
-          coordinates: cell.coordinates,
-        },
+        geometry: cell.geometry,
         properties: {
           id: cell.id,
-          name: cell.name,
           risk: cell.risk,
-          danger: cell.danger[selectedDate] ?? 0,
-          value: layer === 'risk' ? cell.risk : cell.danger[selectedDate] ?? 0,
+          danger: cell.danger[selectedDate],
+          value: layer === 'risk' ? cell.risk : cell.danger[selectedDate],
         },
       })),
     }),
-    [layer, selectedDate],
+    [cells, layer, selectedDate],
   )
 
   useEffect(() => {
@@ -57,24 +66,27 @@ export function FireMap({ layer, selectedDate }: FireMapProps) {
     map.addControl(new NavigationControl(), 'top-right')
 
     map.on('load', () => {
-      map.addSource(SOURCE_ID, {
+      map.addSource(ACRE_SOURCE_ID, {
+        type: 'geojson',
+        data: boundary,
+      })
+
+      map.addSource(CELLS_SOURCE_ID, {
         type: 'geojson',
         data: geojson,
       })
 
       map.addLayer({
-        id: LAYER_ID,
-        type: 'circle',
-        source: SOURCE_ID,
+        id: CELLS_FILL_LAYER_ID,
+        type: 'fill',
+        source: CELLS_SOURCE_ID,
         paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 11, 8, 24],
-          'circle-opacity': 0.78,
-          'circle-stroke-width': 2,
-          'circle-stroke-color': '#ffffff',
-          'circle-color': [
+          'fill-color': [
             'interpolate',
             ['linear'],
-            ['get', 'value'],
+            ['coalesce', ['get', 'value'], -1],
+            -1,
+            '#9ca3af',
             0,
             '#1a9850',
             0.5,
@@ -82,39 +94,65 @@ export function FireMap({ layer, selectedDate }: FireMapProps) {
             1,
             '#d73027',
           ],
+          'fill-opacity': 0.72,
         },
       })
 
-      map.on('mouseenter', LAYER_ID, () => {
+      map.addLayer({
+        id: CELLS_LINE_LAYER_ID,
+        type: 'line',
+        source: CELLS_SOURCE_ID,
+        paint: {
+          'line-color': 'rgba(255, 255, 255, 0.78)',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.45, 8, 1],
+        },
+      })
+
+      map.addLayer({
+        id: ACRE_OUTLINE_LAYER_ID,
+        type: 'line',
+        source: ACRE_SOURCE_ID,
+        paint: {
+          'line-color': '#173f32',
+          'line-width': 2.4,
+          'line-opacity': 0.95,
+        },
+      })
+
+      map.fitBounds(bounds, {
+        padding: 44,
+        duration: 0,
+      })
+
+      map.on('mouseenter', CELLS_FILL_LAYER_ID, () => {
         map.getCanvas().style.cursor = 'pointer'
       })
-      map.on('mouseleave', LAYER_ID, () => {
+
+      map.on('mouseleave', CELLS_FILL_LAYER_ID, () => {
         map.getCanvas().style.cursor = ''
       })
 
-      map.on('click', LAYER_ID, (event: MapLayerMouseEvent) => {
+      map.on('click', CELLS_FILL_LAYER_ID, (event: MapLayerMouseEvent) => {
         const feature = event.features?.[0]
-        if (!feature || feature.geometry.type !== 'Point') return
+        const cellId = feature?.properties?.id as string | undefined
+        if (!cellId) return
 
-        const coordinates = feature.geometry.coordinates as [number, number]
-        const currentLayer = layerRef.current
-        const cell = mockCells.find((item) => item.id === feature.properties?.id)
+        const cell = cellsRef.current.find((item) => item.id === cellId)
         if (!cell) return
 
+        const currentLayer = layerRef.current
         const value =
-          currentLayer === 'risk'
-            ? cell.risk
-            : cell.danger[dateRef.current] ?? 0
-
+          currentLayer === 'risk' ? cell.risk : cell.danger[dateRef.current]
         const indexLabel = currentLayer === 'risk' ? 'Risco' : 'Perigo'
+        const formattedValue = value == null ? 'Sem dado' : value.toFixed(2)
 
-        new Popup()
-          .setLngLat(coordinates)
+        new Popup({ closeButton: true })
+          .setLngLat(event.lngLat)
           .setHTML(
-            `<strong>${cell.name}</strong><br/>` +
-              `Longitude: ${coordinates[0].toFixed(4)}<br/>` +
-              `Latitude: ${coordinates[1].toFixed(4)}<br/>` +
-              `${indexLabel}: ${value.toFixed(2)}`,
+            `<strong>${cell.id}</strong><br/>` +
+              `Longitude: ${cell.centroid[0].toFixed(4)}<br/>` +
+              `Latitude: ${cell.centroid[1].toFixed(4)}<br/>` +
+              `${indexLabel}: ${formattedValue}`,
           )
           .addTo(map)
       })
@@ -129,7 +167,7 @@ export function FireMap({ layer, selectedDate }: FireMapProps) {
   }, [])
 
   useEffect(() => {
-    const source = mapRef.current?.getSource(SOURCE_ID) as GeoJSONSource | undefined
+    const source = mapRef.current?.getSource(CELLS_SOURCE_ID) as GeoJSONSource | undefined
     source?.setData(geojson)
   }, [geojson])
 
@@ -137,7 +175,9 @@ export function FireMap({ layer, selectedDate }: FireMapProps) {
     <div className="map-shell">
       <div ref={containerRef} className="map-container" />
       <MapLegend layer={layer} />
-      <div className="map-prototype-note">Visualização demonstrativa · não usar para decisão operacional</div>
+      <div className="map-prototype-note">
+        Malha demonstrativa · resolução não corresponde à base científica final
+      </div>
     </div>
   )
 }

@@ -13,6 +13,7 @@ import type { TimeSeriesPoint } from '../../types/fire'
 interface TimeSeriesChartProps {
   data: TimeSeriesPoint[]
   selectedDate: string
+  title?: string
 }
 
 function shortDate(value: string) {
@@ -23,13 +24,13 @@ function shortDate(value: string) {
   }).format(new Date(`${value}T00:00:00Z`))
 }
 
-export function TimeSeriesChart({ data, selectedDate }: TimeSeriesChartProps) {
+export function TimeSeriesChart({ data, selectedDate, title }: TimeSeriesChartProps) {
   return (
     <section className="chart-card">
       <div className="section-heading">
         <div>
           <span className="eyebrow">Série temporal</span>
-          <h2>Perigo médio demonstrativo</h2>
+          <h2>{title ?? 'Perigo médio demonstrativo — Acre'}</h2>
         </div>
         <span className="prototype-badge">Dados simulados</span>
       </div>

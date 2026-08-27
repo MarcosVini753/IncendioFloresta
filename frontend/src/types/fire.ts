@@ -1,11 +1,15 @@
+import type { MultiPolygon, Polygon } from 'geojson'
+
 export type LayerType = 'risk' | 'danger' | 'alert'
 
-export interface MockCell {
+export type CellGeometry = Polygon | MultiPolygon
+
+export interface PrototypeCell {
   id: string
-  name: string
-  coordinates: [number, number]
+  centroid: [number, number]
+  geometry: CellGeometry
   risk: number
-  danger: Record<string, number>
+  danger: Record<string, number | null>
 }
 
 export interface TimeSeriesPoint {
