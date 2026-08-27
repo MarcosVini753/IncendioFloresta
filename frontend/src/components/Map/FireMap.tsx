@@ -16,24 +16,37 @@ interface FireMapProps {
   cells: PrototypeCell[]
   boundary: Feature<Polygon | MultiPolygon>
   bounds: [[number, number], [number, number]]
+  selectedCellId: string | null
+  onCellSelect: (cellId: string) => void
 }
 
 const CELLS_SOURCE_ID = 'prototype-cells'
 const CELLS_FILL_LAYER_ID = 'prototype-cells-fill'
 const CELLS_LINE_LAYER_ID = 'prototype-cells-line'
+const SELECTED_CELL_LAYER_ID = 'prototype-selected-cell'
 const ACRE_SOURCE_ID = 'acre-boundary'
 const ACRE_OUTLINE_LAYER_ID = 'acre-outline'
 
-export function FireMap({ layer, selectedDate, cells, boundary, bounds }: FireMapProps) {
+export function FireMap({
+  layer,
+  selectedDate,
+  cells,
+  boundary,
+  bounds,
+  selectedCellId,
+  onCellSelect,
+}: FireMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const layerRef = useRef<LayerType>(layer)
   const dateRef = useRef(selectedDate)
   const cellsRef = useRef(cells)
+  const onCellSelectRef = useRef(onCellSelect)
 
   layerRef.current = layer
   dateRef.current = selectedDate
   cellsRef.current = cells
+  onCellSelectRef.current = onCellSelect
 
   const geojson = useMemo<FeatureCollection<Polygon | MultiPolygon>>(
     () => ({
@@ -109,6 +122,18 @@ export function FireMap({ layer, selectedDate, cells, boundary, bounds }: FireMa
       })
 
       map.addLayer({
+        id: SELECTED_CELL_LAYER_ID,
+        type: 'line',
+        source: CELLS_SOURCE_ID,
+        filter: ['==', ['get', 'id'], '__none__'],
+        paint: {
+          'line-color': '#102a43',
+          'line-width': 3.4,
+          'line-opacity': 1,
+        },
+      })
+
+      map.addLayer({
         id: ACRE_OUTLINE_LAYER_ID,
         type: 'line',
         source: ACRE_SOURCE_ID,
@@ -140,9 +165,10 @@ export function FireMap({ layer, selectedDate, cells, boundary, bounds }: FireMa
         const cell = cellsRef.current.find((item) => item.id === cellId)
         if (!cell) return
 
+        onCellSelectRef.current(cellId)
+
         const currentLayer = layerRef.current
-        const value =
-          currentLayer === 'risk' ? cell.risk : cell.danger[dateRef.current]
+        const value = currentLayer === 'risk' ? cell.risk : cell.danger[dateRef.current]
         const indexLabel = currentLayer === 'risk' ? 'Risco' : 'Perigo'
         const formattedValue = value == null ? 'Sem dado' : value.toFixed(2)
 
@@ -170,6 +196,17 @@ export function FireMap({ layer, selectedDate, cells, boundary, bounds }: FireMa
     const source = mapRef.current?.getSource(CELLS_SOURCE_ID) as GeoJSONSource | undefined
     source?.setData(geojson)
   }, [geojson])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map?.getLayer(SELECTED_CELL_LAYER_ID)) return
+
+    map.setFilter(SELECTED_CELL_LAYER_ID, [
+      '==',
+      ['get', 'id'],
+      selectedCellId ?? '__none__',
+    ])
+  }, [selectedCellId])
 
   return (
     <div className="map-shell">
