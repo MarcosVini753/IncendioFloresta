@@ -1,0 +1,1502 @@
+{
+  "type": "FeatureCollection",
+  "metadata": {
+    "fonte": "Programa Queimadas/INPE",
+    "fonte_url": "https://terrabrasilis.dpi.inpe.br/queimadas/portal/dados-abertos/",
+    "arquivo_origem": "focos_diario_br_20260804.csv",
+    "estado": "Acre",
+    "gerado_em_utc": "2026-09-04T20:59:59.499921+00:00",
+    "quantidade_focos": 62,
+    "data_referencia": "2026-08-04"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -69.57484,
+          -10.92379
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 06:01:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "ASSIS BRASIL",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.0,
+        "risco_fogo": 1.0,
+        "frp": 0.3
+      },
+      "id": "7942e3a3-c95e-3bd6-8812-53ceb6f99334"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -72.70777,
+          -9.12437
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 17:41:00",
+        "satelite": "NOAA-21",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "MARECHAL THAUMATURGO",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.0,
+        "risco_fogo": 0.4,
+        "frp": 10.4
+      },
+      "id": "1d61d422-6905-37b6-a327-5d184494a47a"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.29354,
+          -7.65977
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 17:41:00",
+        "satelite": "NOAA-21",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "MÂNCIO LIMA",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.35,
+        "risco_fogo": 0.15,
+        "frp": 12.5
+      },
+      "id": "70461e4a-2c2f-33e8-8b51-004ddaa6c2ca"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -66.82479,
+          -9.83895
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 17:41:00",
+        "satelite": "NOAA-21",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "ACRELÂNDIA",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.0,
+        "risco_fogo": 0.73,
+        "frp": 5.1
+      },
+      "id": "9645f502-3274-32cd-9677-ba4bf0f3070b"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.29765,
+          -7.6603
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 17:41:00",
+        "satelite": "NOAA-21",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "MÂNCIO LIMA",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.35,
+        "risco_fogo": 0.15,
+        "frp": 11.9
+      },
+      "id": "7d8e5da2-b4d5-3a4b-a09d-02409493141f"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.29596,
+          -7.65891
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 17:41:00",
+        "satelite": "NOAA-21",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "MÂNCIO LIMA",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.34,
+        "risco_fogo": 0.15,
+        "frp": 16.5
+      },
+      "id": "1b318029-d04b-31fd-835f-cd862363a960"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -72.19099,
+          -9.07498
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 17:41:00",
+        "satelite": "NOAA-21",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "MARECHAL THAUMATURGO",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.39,
+        "risco_fogo": 0.16,
+        "frp": 5.9
+      },
+      "id": "0950575b-d9ed-3cd5-960f-94e87b3d6d3b"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.2982,
+          -7.6574
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:00:00",
+        "satelite": "GOES-19",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "MÂNCIO LIMA",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.32,
+        "risco_fogo": 0.15,
+        "frp": 59.9
+      },
+      "id": "e7672f08-54a7-3e5b-b58d-187e61a25dd7"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.31712,
+          -9.45664
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "FEIJÓ",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 4,
+        "precipitacao": 2.06,
+        "risco_fogo": 0.16,
+        "frp": 3.0
+      },
+      "id": "c95faa24-33a5-39cf-80dd-f5ddd6ca4daa"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -72.5722,
+          -7.9585
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "CRUZEIRO DO SUL",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.0,
+        "risco_fogo": 0.34,
+        "frp": 3.9
+      },
+      "id": "fd7542a5-f7f5-3d93-b72a-be7739a52ad1"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -72.94367,
+          -9.19737
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "MARECHAL THAUMATURGO",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.0,
+        "risco_fogo": 0.32,
+        "frp": 7.2
+      },
+      "id": "779d669f-65cf-322a-887d-e2f4d71178ce"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -68.79478,
+          -10.17732
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "RIO BRANCO",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 0,
+        "precipitacao": 0.1,
+        "risco_fogo": 0.37,
+        "frp": 1.9
+      },
+      "id": "2e961246-70e2-30e4-937e-cbb04d6767b2"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -72.80999,
+          -8.27101
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "PORTO WALTER",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 5,
+        "precipitacao": 0.0,
+        "risco_fogo": 0.49,
+        "frp": 8.8
+      },
+      "id": "ce26dfb3-5238-33be-84bb-f7fe6f894b74"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -68.52397,
+          -10.66934
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "XAPURI",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.44,
+        "risco_fogo": 1.0,
+        "frp": 2.9
+      },
+      "id": "bd1503f1-17ce-3739-bc61-a9a624dcbcee"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -68.51678,
+          -10.69212
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "XAPURI",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.65,
+        "risco_fogo": 0.85,
+        "frp": 2.6
+      },
+      "id": "8b03f1f7-152e-3730-86c1-fd0ae70993cb"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -66.82529,
+          -9.84091
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "ACRELÂNDIA",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.0,
+        "risco_fogo": 0.76,
+        "frp": 3.4
+      },
+      "id": "4040e834-a17a-3f3e-b603-e73748f9c474"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -66.82474,
+          -9.84438
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "ACRELÂNDIA",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.0,
+        "risco_fogo": 0.73,
+        "frp": 3.4
+      },
+      "id": "ce66c1aa-9d83-32a7-8b87-b48b899b3c14"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -70.70691,
+          -8.58721
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "FEIJÓ",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 0,
+        "precipitacao": 0.29,
+        "risco_fogo": 0.16,
+        "frp": 59.9
+      },
+      "id": "b5213cdf-1031-365b-8f92-2af9c89ef848"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.93506,
+          -9.04355
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "JORDÃO",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 0,
+        "precipitacao": 0.2,
+        "risco_fogo": 0.21,
+        "frp": 38.5
+      },
+      "id": "4d58d345-9dc4-34b0-a2f6-706197bb22d6"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.2252,
+          -8.2422
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "CRUZEIRO DO SUL",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 1,
+        "precipitacao": 0.47,
+        "risco_fogo": 0.27,
+        "frp": 19.2
+      },
+      "id": "900f38c8-91aa-3109-be1c-ea76adf39b3b"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -72.71106,
+          -9.12201
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "MARECHAL THAUMATURGO",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.0,
+        "risco_fogo": 0.4,
+        "frp": 33.2
+      },
+      "id": "4baa3cbf-48bb-3552-9978-5c6cee6a88cf"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -66.96799,
+          -9.96827
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "ACRELÂNDIA",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 1,
+        "precipitacao": 0.98,
+        "risco_fogo": 1.0,
+        "frp": 6.5
+      },
+      "id": "eb39734b-7b62-3e5e-8312-6e880b17147d"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -68.79488,
+          -10.53212
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "XAPURI",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 3,
+        "precipitacao": 0.3,
+        "risco_fogo": 0.71,
+        "frp": 7.8
+      },
+      "id": "af900d1d-5eb3-3288-befa-8a79b862fe1c"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -68.79892,
+          -10.52933
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "XAPURI",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 3,
+        "precipitacao": 0.3,
+        "risco_fogo": 0.72,
+        "frp": 7.8
+      },
+      "id": "c9c2e2b8-4747-3636-82fa-5696ac5b8e53"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -72.77298,
+          -7.69023
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "CRUZEIRO DO SUL",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.0,
+        "risco_fogo": 0.58,
+        "frp": 3.2
+      },
+      "id": "be6e22c7-4174-350e-b4b7-304b47a6c316"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -72.46043,
+          -8.93441
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "MARECHAL THAUMATURGO",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.21,
+        "risco_fogo": 0.33,
+        "frp": 8.0
+      },
+      "id": "047738d9-c6c3-3cb7-b0df-88c3dfa2d118"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -68.67554,
+          -10.58128
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "XAPURI",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 3,
+        "precipitacao": 0.2,
+        "risco_fogo": 0.52,
+        "frp": 31.5
+      },
+      "id": "207319eb-61cd-349a-8e22-8479d437909e"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -68.5245,
+          -10.66601
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "XAPURI",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.41,
+        "risco_fogo": 1.0,
+        "frp": 2.4
+      },
+      "id": "652b2d82-0311-3abc-909c-862481848c2a"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -72.19081,
+          -9.07715
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "MARECHAL THAUMATURGO",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.39,
+        "risco_fogo": 0.16,
+        "frp": 4.8
+      },
+      "id": "05ca9b89-cb7c-3208-97df-86546cede3ca"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -70.70741,
+          -8.58381
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "FEIJÓ",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 0,
+        "precipitacao": 0.3,
+        "risco_fogo": 0.16,
+        "frp": 64.8
+      },
+      "id": "ebc1b44e-478b-3fdd-bba4-94cc13c1edaa"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -72.9528,
+          -7.87576
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "RODRIGUES ALVES",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.2,
+        "risco_fogo": 0.8,
+        "frp": 40.8
+      },
+      "id": "8083cc50-6a98-3c87-894e-afffd756a25a"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.15117,
+          -7.41922
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:17:00",
+        "satelite": "NPP-375",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "MÂNCIO LIMA",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.0,
+        "risco_fogo": 0.3,
+        "frp": 8.6
+      },
+      "id": "40aedfd3-0260-39df-ba1b-271c6ff041e4"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -70.7147,
+          -8.5817
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:30:00",
+        "satelite": "GOES-19",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "FEIJÓ",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 0,
+        "precipitacao": 0.3,
+        "risco_fogo": 0.16,
+        "frp": 71.8
+      },
+      "id": "622b5dbc-ebdf-3a1d-84ef-eefccc8a8464"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -70.6963,
+          -8.5817
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:30:00",
+        "satelite": "GOES-19",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "FEIJÓ",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 1,
+        "precipitacao": 0.26,
+        "risco_fogo": 0.17,
+        "frp": 61.6
+      },
+      "id": "c8e11818-09a9-32a9-9daf-4f13808d63ae"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -68.52324,
+          -10.66591
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:36:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "XAPURI",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.41,
+        "risco_fogo": 1.0,
+        "frp": 9.2
+      },
+      "id": "1655c951-82bb-36e2-a925-0c1b1ce5b90b"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -68.67385,
+          -10.57926
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:36:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "XAPURI",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 3,
+        "precipitacao": 0.2,
+        "risco_fogo": 0.51,
+        "frp": 10.4
+      },
+      "id": "67498837-2947-3063-9cac-a7ad827f1c6a"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -68.79829,
+          -10.52892
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:36:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "XAPURI",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.3,
+        "risco_fogo": 0.69,
+        "frp": 11.0
+      },
+      "id": "8c4f33ad-d426-37a6-82dc-04c2ed996e3a"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -68.7974,
+          -10.5282
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:36:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "XAPURI",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 3,
+        "precipitacao": 0.3,
+        "risco_fogo": 0.65,
+        "frp": 8.2
+      },
+      "id": "1f168c67-81d8-38de-a7e6-c9883fc82b5b"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -68.79665,
+          -10.53257
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:36:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "XAPURI",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 3,
+        "precipitacao": 0.3,
+        "risco_fogo": 0.78,
+        "frp": 8.2
+      },
+      "id": "058e139f-ef2a-30d9-983b-a1cede55cb7d"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -68.52242,
+          -10.67034
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:36:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "XAPURI",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.45,
+        "risco_fogo": 1.0,
+        "frp": 5.1
+      },
+      "id": "8ef7ce67-f19c-3e42-a5bc-2705372181b3"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -68.79406,
+          -10.52817
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:36:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "XAPURI",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 3,
+        "precipitacao": 0.3,
+        "risco_fogo": 0.6,
+        "frp": 5.3
+      },
+      "id": "daf6b6d3-0ad4-3c7a-90cd-fc269ba2f3e0"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -68.6782,
+          -10.58002
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:36:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "XAPURI",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 3,
+        "precipitacao": 0.2,
+        "risco_fogo": 0.52,
+        "frp": 10.4
+      },
+      "id": "718192ef-71f1-324c-94a8-2d25183acd97"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -68.89255,
+          -10.4093
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:36:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "XAPURI",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 3,
+        "precipitacao": 0.41,
+        "risco_fogo": 0.47,
+        "frp": 4.9
+      },
+      "id": "28aba5ef-f037-3522-821e-24897040ba34"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -68.7933,
+          -10.53253
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:36:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "XAPURI",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 3,
+        "precipitacao": 0.3,
+        "risco_fogo": 0.67,
+        "frp": 5.3
+      },
+      "id": "e01650df-9022-3ed6-9f06-194d3489520d"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -66.82292,
+          -9.84331
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:36:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "ACRELÂNDIA",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.0,
+        "risco_fogo": 0.64,
+        "frp": 5.1
+      },
+      "id": "0fc94a64-391f-3861-ab62-975804ae1b06"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.31538,
+          -9.45584
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:38:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "FEIJÓ",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 3,
+        "precipitacao": 2.05,
+        "risco_fogo": 0.17,
+        "frp": 5.8
+      },
+      "id": "65ddfc68-b51a-3771-bfca-7893d3def48f"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -72.3432,
+          -7.67003
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:38:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "CRUZEIRO DO SUL",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.3,
+        "risco_fogo": 0.04,
+        "frp": 2.5
+      },
+      "id": "a9a4b886-27b7-3eb5-9a53-35a4130eda54"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.93668,
+          -9.04587
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:38:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "JORDÃO",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 0,
+        "precipitacao": 0.2,
+        "risco_fogo": 0.21,
+        "frp": 13.6
+      },
+      "id": "8d113703-46a1-3d6c-95a5-43908b507509"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -70.70712,
+          -8.58271
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:38:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "FEIJÓ",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 0,
+        "precipitacao": 0.3,
+        "risco_fogo": 0.16,
+        "frp": 14.3
+      },
+      "id": "e02c8882-a54b-32e5-839f-c3a1b9e2df43"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -71.99691,
+          -9.23166
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:38:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "JORDÃO",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 0,
+        "precipitacao": 0.2,
+        "risco_fogo": 0.13,
+        "frp": 4.7
+      },
+      "id": "1d3de2ed-34ed-323b-8d13-2b1c19629637"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.29778,
+          -7.6609
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:38:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "MÂNCIO LIMA",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.36,
+        "risco_fogo": 0.15,
+        "frp": 5.1
+      },
+      "id": "b617747a-d609-3556-a9f9-dcf0fb52a8a4"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.22556,
+          -8.24024
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:38:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "CRUZEIRO DO SUL",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 1,
+        "precipitacao": 0.48,
+        "risco_fogo": 0.27,
+        "frp": 32.6
+      },
+      "id": "a140a1b5-a7c1-37da-aa86-d7ba33e14c46"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -70.68755,
+          -9.02816
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:38:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "FEIJÓ",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.1,
+        "risco_fogo": 0.28,
+        "frp": 2.3
+      },
+      "id": "a7cb0cc0-31b2-312c-a224-93d5be442f82"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -72.46259,
+          -8.9361
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:38:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "MARECHAL THAUMATURGO",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.2,
+        "risco_fogo": 0.33,
+        "frp": 17.7
+      },
+      "id": "94e317c1-b67b-3330-a30a-39d6fc15d358"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -70.70402,
+          -8.58429
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:38:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "FEIJÓ",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 0,
+        "precipitacao": 0.3,
+        "risco_fogo": 0.17,
+        "frp": 91.1
+      },
+      "id": "a8fedbcd-6bba-38df-a15e-7376640f2f7e"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -72.70897,
+          -9.12383
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:38:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "MARECHAL THAUMATURGO",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.0,
+        "risco_fogo": 0.4,
+        "frp": 16.2
+      },
+      "id": "b9deb37f-9b94-3ad4-a182-253b6ff3a72a"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -72.95103,
+          -7.87357
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:38:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "RODRIGUES ALVES",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.2,
+        "risco_fogo": 0.86,
+        "frp": 28.4
+      },
+      "id": "f0665a09-f662-3de2-ab0e-941dd4301329"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -72.91994,
+          -9.1797
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:38:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "MARECHAL THAUMATURGO",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.0,
+        "risco_fogo": 0.38,
+        "frp": 3.8
+      },
+      "id": "ad0798ed-2d40-364c-829d-e8811a818747"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.29387,
+          -7.66028
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:38:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "MÂNCIO LIMA",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.35,
+        "risco_fogo": 0.15,
+        "frp": 5.1
+      },
+      "id": "0c2d596b-9471-3af3-97df-95d024fc966d"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -72.44358,
+          -7.92976
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:38:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "CRUZEIRO DO SUL",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 2,
+        "precipitacao": 0.03,
+        "risco_fogo": 0.35,
+        "frp": 33.5
+      },
+      "id": "fa0ace8f-a6d4-3292-8be1-a0c06c367fa2"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -72.76855,
+          -8.32246
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 18:38:00",
+        "satelite": "NOAA-20",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "PORTO WALTER",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 3,
+        "precipitacao": 0.1,
+        "risco_fogo": 0.55,
+        "frp": 2.5
+      },
+      "id": "2fa60226-80ac-3b83-8191-d0cadc318255"
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -67.1976,
+          -9.963
+        ]
+      },
+      "properties": {
+        "fonte": "Programa Queimadas/INPE",
+        "data_hora_gmt": "2026-08-04 20:50:00",
+        "satelite": "GOES-19",
+        "pais": "Brasil",
+        "estado": "ACRE",
+        "municipio": "SENADOR GUIOMARD",
+        "bioma": "Amazônia",
+        "dias_sem_chuva": 0,
+        "precipitacao": 1.68,
+        "risco_fogo": 0.38,
+        "frp": 90.6
+      },
+      "id": "c08536de-e7e4-379e-8177-c6bebd355adc"
+    }
+  ]
+}

@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import sys
 import unicodedata
 from datetime import datetime, timezone
@@ -81,6 +82,8 @@ INVALID_MINUS_999_PROPERTIES = {
     "precipitacao",
     "risco_fogo",
 }
+
+INPUT_DATE_PATTERN = re.compile(r"focos_diario_br_(\d{4})(\d{2})(\d{2})\.csv$")
 
 
 class InputDataError(RuntimeError):
@@ -205,6 +208,19 @@ def is_acre(value: str | None) -> bool:
     return normalized in {"ac", "acre"}
 
 
+def reference_date_from_filename(input_path: Path) -> str | None:
+    match = INPUT_DATE_PATTERN.fullmatch(input_path.name)
+    if not match:
+        return None
+
+    year, month, day = match.groups()
+
+    try:
+        return datetime(int(year), int(month), int(day)).date().isoformat()
+    except ValueError:
+        return None
+
+
 def make_feature(
     row: dict[str, str],
     fields: dict[str, str | None],
@@ -303,16 +319,22 @@ def convert_csv(input_path: Path, output_path: Path) -> tuple[int, int, int]:
 
             features.append(feature)
 
+    metadata = {
+        "fonte": "Programa Queimadas/INPE",
+        "fonte_url": INPE_OPEN_DATA_URL,
+        "arquivo_origem": input_path.name,
+        "estado": "Acre",
+        "gerado_em_utc": datetime.now(timezone.utc).isoformat(),
+        "quantidade_focos": len(features),
+    }
+
+    reference_date = reference_date_from_filename(input_path)
+    if reference_date:
+        metadata["data_referencia"] = reference_date
+
     collection = {
         "type": "FeatureCollection",
-        "metadata": {
-            "fonte": "Programa Queimadas/INPE",
-            "fonte_url": INPE_OPEN_DATA_URL,
-            "arquivo_origem": input_path.name,
-            "estado": "Acre",
-            "gerado_em_utc": datetime.now(timezone.utc).isoformat(),
-            "quantidade_focos": len(features),
-        },
+        "metadata": metadata,
         "features": features,
     }
 
