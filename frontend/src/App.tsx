@@ -4,9 +4,17 @@ import { LayerSelector } from './components/LayerSelector/LayerSelector'
 import { TimeSlider } from './components/Timeline/TimeSlider'
 import { TimeSeriesChart } from './components/Chart/TimeSeriesChart'
 import { CellDetails } from './components/CellDetails/CellDetails'
+import { HotspotLayerControl } from './components/HotspotControl/HotspotLayerControl'
 import { dangerDates } from './data/danger.mock'
+import { loadInpeHotspots } from './data/inpeHotspots'
 import { loadPrototypeGrid, type PrototypeGridData } from './data/prototypeGrid'
 import type { LayerType, TimeSeriesPoint } from './types/fire'
+import type { InpeHotspotCollection } from './types/inpe'
+
+function formatReferenceDate(value: string | undefined) {
+  const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : null
+}
 
 export default function App() {
   const [selectedLayer, setSelectedLayer] = useState<LayerType>('risk')
@@ -14,6 +22,9 @@ export default function App() {
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null)
   const [grid, setGrid] = useState<PrototypeGridData | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [hotspots, setHotspots] = useState<InpeHotspotCollection | null>(null)
+  const [showHotspots, setShowHotspots] = useState(true)
+  const [hotspotsError, setHotspotsError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -30,6 +41,28 @@ export default function App() {
 
     return () => {
       cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    let cancelled = false
+
+    loadInpeHotspots(controller.signal)
+      .then((result) => {
+        if (!cancelled) setHotspots(result)
+      })
+      .catch((error: unknown) => {
+        if (!cancelled && !(error instanceof DOMException && error.name === 'AbortError')) {
+          setHotspotsError(
+            error instanceof Error ? error.message : 'Erro ao carregar os focos do INPE.',
+          )
+        }
+      })
+
+    return () => {
+      cancelled = true
+      controller.abort()
     }
   }, [])
 
@@ -64,18 +97,32 @@ export default function App() {
     ? `Perigo demonstrativo — ${selectedCell.id}`
     : 'Perigo médio demonstrativo — Acre'
 
+  const hotspotReferenceDate = formatReferenceDate(
+    hotspots?.metadata.data_referencia ?? hotspots?.features[0]?.properties.data_hora_gmt ?? undefined,
+  )
+
   return (
     <main className="app-shell">
       <header className="app-header">
         <div>
           <span className="eyebrow">Protótipo v0.2</span>
           <h1>Monitoramento de Incêndios Florestais — Acre</h1>
-          <p>Exploração inicial da visualização espacial e temporal de risco e perigo.</p>
+          <p>Índices demonstrativos com sobreposição de focos de calor observados pelo INPE.</p>
         </div>
-        <span className="prototype-badge">Dados demonstrativos</span>
+        <span className="prototype-badge">Índices demonstrativos · focos INPE reais</span>
       </header>
 
-      <LayerSelector value={selectedLayer} onChange={setSelectedLayer} />
+      <div className="map-controls">
+        <LayerSelector value={selectedLayer} onChange={setSelectedLayer} />
+        <HotspotLayerControl
+          checked={showHotspots}
+          count={hotspots?.features.length ?? null}
+          referenceDate={hotspotReferenceDate}
+          loading={!hotspots && !hotspotsError}
+          error={hotspotsError}
+          onChange={setShowHotspots}
+        />
+      </div>
 
       {grid ? (
         <section className="map-workspace">
@@ -88,6 +135,8 @@ export default function App() {
               bounds={grid.bounds}
               selectedCellId={selectedCellId}
               onCellSelect={setSelectedCellId}
+              hotspots={hotspots}
+              showHotspots={showHotspots}
             />
           </div>
           <CellDetails
