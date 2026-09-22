@@ -1,34 +1,36 @@
-# Frontend — Protótipo v0.2
+# Frontend — suscetibilidade experimental do Acre
 
-Protótipo interativo para validar a experiência de visualização espacial e temporal do sistema de monitoramento de incêndios florestais no Acre.
+Interface React + TypeScript + MapLibre para visualizar a suscetibilidade histórica
+experimental e, de forma independente, os focos de calor reais do INPE.
 
-## Escopo desta versão
+## Produto exibido
 
-- React + TypeScript + Vite.
-- Mapa interativo com MapLibre GL JS.
-- Mesmo mapa alternando entre as camadas de Risco e Perigo.
-- Risco tratado como camada estática.
-- Perigo com navegação temporal por slider e botões anterior/próximo.
-- Série temporal sincronizada com a data selecionada.
-- Sobreposição independente dos focos de calor do Programa Queimadas/INPE.
-- Agrupamento dos focos em zoom distante e expansão do grupo ao clicar.
-- Popup dos focos com data/hora, satélite, município, bioma e variáveis associadas.
-- Clique nas células demonstrativas para visualizar coordenadas e índice.
-- Alerta reservado para uma etapa futura.
-- Risco e Perigo usam dados simulados e não devem orientar decisões operacionais.
-- Os focos do INPE são detecções orbitais, não incêndios confirmados.
+O frontend carrega e valida o manifesto e o GeoJSON gerados pelo pipeline científico.
+A visualização estadual usa 212 células de aproximadamente `0,28°`, recortadas pelo
+limite do Acre. Cada valor é a média das células científicas originais de cerca de
+`893 × 598 m` contidas naquele setor.
 
-## Preparar os focos do INPE
+Os quatro modelos disponíveis são:
 
-A partir da raiz do repositório:
+- GradBoost, selecionado inicialmente pela melhor validação espacial registrada;
+- Random Forest;
+- Regressão logística;
+- Fuzzy k-NN com `k=29`.
 
-```bash
-python3 scripts/prepare_inpe_hotspots.py
+Todos produzem `relative_score` no intervalo `[0, 1]`. Esses escores não são
+probabilidades calibradas nem devem orientar decisões operacionais. Perigo diário e
+Alerta não são exibidos porque ainda não existe um produto temporal web validado.
+
+## Sincronização do produto
+
+A única cópia versionada fica em:
+
+```text
+incendio/produtos/suscetibilidade/v1/
 ```
 
-Se o ambiente disponibilizar o alias `python` para Python 3, ele também pode ser usado. O conversor seleciona o `focos_diario_br_*.csv` mais recente em `data/raw/inpe/`, filtra o Acre e grava `frontend/public/data/inpe/focos_ac.geojson`.
-
-O arquivo versionado nesta entrega é um recorte de **04/08/2026**. A interface mantém essa data visível e não sincroniza os focos com o slider demonstrativo de Perigo.
+Os scripts `predev` e `prebuild` copiam automaticamente esse diretório para
+`frontend/public/data/susceptibility/`. A cópia pública é gerada e ignorada pelo Git.
 
 ## Executar localmente
 
@@ -38,30 +40,31 @@ npm install
 npm run dev
 ```
 
-Para validar o build:
+Para validar a compilação e confirmar que o produto entrou em `dist`:
 
 ```bash
 npm run build
-npm run preview
+find dist/data/susceptibility -type f
 ```
 
-Durante o aceite manual, confirme:
+## Focos de calor do INPE
 
-1. Risco e Perigo continuam alternando normalmente.
-2. O controle **Focos de calor — INPE** exibe `04/08/2026 · 62 focos no Acre`.
-3. O controle oculta e reexibe pontos, agrupamentos e a legenda específica.
-4. Clicar em um agrupamento aproxima o mapa.
-5. Clicar em um foco individual abre os atributos do INPE.
-6. Alternar Risco/Perigo mantém a sobreposição ativa.
-7. O console do navegador não apresenta erros.
+O conversor escolhe o CSV diário mais recente e atualiza o GeoJSON versionado:
 
-## Publicação na Vercel
+```bash
+python3 scripts/prepare_inpe_hotspots.py
+```
 
-Ao conectar este repositório à Vercel, configure `frontend` como **Root Directory**. A definição final de API, banco de dados e infraestrutura WebGIS fica fora do escopo deste protótipo.
+Os focos são detecções orbitais, não incêndios confirmados. Data de referência,
+toggle, clustering e popup permanecem independentes do modelo de suscetibilidade.
 
-## Próximas etapas
+## Aceite manual
 
-1. Validar layout e fluxo com o orientador.
-2. Refinar a camada demonstrativa para representar melhor células/grades.
-3. Experimentar um GeoTIFF/COG pequeno em uma prova técnica separada.
-4. Definir o contrato de dados somente quando o frontend e o pipeline estiverem mais claros.
+1. O mapa abre com GradBoost e permite trocar instantaneamente entre quatro modelos.
+2. Não há controles ativos de Perigo ou Alerta.
+3. Uma célula selecionada mostra os quatro escores, a média e a contagem de fontes.
+4. A legenda permanece fixa de 0 a 1.
+5. Os focos INPE podem ser ocultados, agrupados e inspecionados sem alterar o produto.
+6. Manifesto, GeoJSON e limite respondem com HTTP 200 e o console não apresenta erros.
+
+Ao conectar o repositório à Vercel, use `frontend` como **Root Directory**.
