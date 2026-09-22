@@ -26,9 +26,14 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
+*.Identifier
+*:Zone.Identifier
 
 # Python (future backend)
 __pycache__/
 *.pyc
 .venv/
 venv/
+
+# Produtos sincronizados a partir da copia canonica em incendio/produtos
+frontend/public/data/susceptibility/

@@ -1,0 +1,35 @@
+# Ambientes e caches Python
+.venv/
+venv/
+venv_tf/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+.python-version
+
+# Insumos cientificos locais e resultados intermediarios pesados
+*.tif
+*.tiff
+*.xlsx
+*.xls
+*.parquet
+*.joblib
+*.png
+CSVsF1Score/
+resultados/
+
+# Metadados de download do Windows
+*.Identifier
+*:Zone.Identifier
+
+# Sistema e IDEs
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
