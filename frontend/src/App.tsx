@@ -1,12 +1,18 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CellDetails } from './components/CellDetails/CellDetails'
 import { HotspotLayerControl } from './components/HotspotControl/HotspotLayerControl'
 import { FireMap } from './components/Map/FireMap'
 import { ModelSelector } from './components/ModelSelector/ModelSelector'
 import { loadInpeHotspots } from './data/inpeHotspots'
+import { loadNativeGridProduct } from './data/nativeSusceptibility'
 import { loadSusceptibilityProduct } from './data/susceptibility'
 import type { InpeHotspotCollection } from './types/inpe'
-import type { SusceptibilityModelId, SusceptibilityProduct } from './types/susceptibility'
+import type {
+  NativeGridProduct,
+  SelectedSusceptibilityCell,
+  SusceptibilityModelId,
+  SusceptibilityProduct,
+} from './types/susceptibility'
 
 function formatReferenceDate(value: string | undefined) {
   const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})/)
@@ -16,11 +22,13 @@ function formatReferenceDate(value: string | undefined) {
 export default function App() {
   const [product, setProduct] = useState<SusceptibilityProduct | null>(null)
   const [selectedModel, setSelectedModel] = useState<SusceptibilityModelId>('gradboost')
-  const [selectedCellId, setSelectedCellId] = useState<string | null>(null)
+  const [selectedCell, setSelectedCell] = useState<SelectedSusceptibilityCell | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [hotspots, setHotspots] = useState<InpeHotspotCollection | null>(null)
   const [showHotspots, setShowHotspots] = useState(true)
   const [hotspotsError, setHotspotsError] = useState<string | null>(null)
+  const [nativeProduct, setNativeProduct] = useState<NativeGridProduct | null>(null)
+  const [nativeIndexError, setNativeIndexError] = useState<string | null>(null)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -41,6 +49,20 @@ export default function App() {
 
   useEffect(() => {
     const controller = new AbortController()
+    loadNativeGridProduct(controller.signal)
+      .then(setNativeProduct)
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+          setNativeIndexError(
+            error instanceof Error ? error.message : 'Erro ao carregar a grade científica original.',
+          )
+        }
+      })
+    return () => controller.abort()
+  }, [])
+
+  useEffect(() => {
+    const controller = new AbortController()
     loadInpeHotspots(controller.signal)
       .then(setHotspots)
       .catch((error: unknown) => {
@@ -53,10 +75,7 @@ export default function App() {
     return () => controller.abort()
   }, [])
 
-  const selectedCell = useMemo(
-    () => product?.cells.features.find((feature) => feature.properties.id === selectedCellId) ?? null,
-    [product, selectedCellId],
-  )
+  const selectedCellId = selectedCell?.feature.properties.id ?? null
   const activeModel = product?.manifest.models.find((model) => model.id === selectedModel)
   const hotspotReferenceDate = formatReferenceDate(
     hotspots?.metadata.data_referencia ?? hotspots?.features[0]?.properties.data_hora_gmt ?? undefined,
@@ -107,16 +126,18 @@ export default function App() {
                 boundary={product.boundary}
                 bounds={product.bounds}
                 selectedCellId={selectedCellId}
-                onCellSelect={setSelectedCellId}
+                onCellSelect={setSelectedCell}
                 hotspots={hotspots}
                 showHotspots={showHotspots}
+                nativeProduct={nativeProduct}
+                nativeIndexError={nativeIndexError}
               />
             </div>
             <CellDetails
               cell={selectedCell}
               model={selectedModel}
               manifest={product.manifest}
-              onClear={() => setSelectedCellId(null)}
+              onClear={() => setSelectedCell(null)}
             />
           </section>
           <section className="scientific-product-note">

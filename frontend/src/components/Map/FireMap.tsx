@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Feature, FeatureCollection, MultiPolygon, Point, Polygon } from 'geojson'
 import {
   Map as MapLibreMap,
@@ -8,10 +8,19 @@ import {
   type MapLayerMouseEvent,
 } from 'maplibre-gl'
 import { scoreForModel } from '../../data/susceptibility'
+import {
+  loadNativeSector,
+  NativeSectorCache,
+  selectNativeSectors,
+} from '../../data/nativeSusceptibility'
 import type { InpeHotspotCollection, InpeHotspotProperties } from '../../types/inpe'
 import type {
   AggregatedCellCollection,
   AggregatedCellProperties,
+  NativeCellCollection,
+  NativeCellProperties,
+  NativeGridProduct,
+  SelectedSusceptibilityCell,
   SusceptibilityModelId,
 } from '../../types/susceptibility'
 import { MapLegend } from '../Legend/MapLegend'
@@ -23,21 +32,30 @@ interface FireMapProps {
   boundary: Feature<Polygon | MultiPolygon>
   bounds: [[number, number], [number, number]]
   selectedCellId: string | null
-  onCellSelect: (cellId: string) => void
+  onCellSelect: (cell: SelectedSusceptibilityCell | null) => void
   hotspots: InpeHotspotCollection | null
   showHotspots: boolean
+  nativeProduct: NativeGridProduct | null
+  nativeIndexError: string | null
 }
 
 const CELLS_SOURCE_ID = 'susceptibility-cells'
 const CELLS_FILL_LAYER_ID = 'susceptibility-cells-fill'
 const CELLS_LINE_LAYER_ID = 'susceptibility-cells-line'
 const SELECTED_CELL_LAYER_ID = 'susceptibility-selected-cell'
+const NATIVE_SOURCE_ID = 'native-susceptibility-cells'
+const NATIVE_FILL_LAYER_ID = 'native-susceptibility-fill'
+const NATIVE_LINE_LAYER_ID = 'native-susceptibility-line'
+const NATIVE_SELECTED_LAYER_ID = 'native-susceptibility-selected'
 const ACRE_SOURCE_ID = 'acre-boundary'
 const ACRE_OUTLINE_LAYER_ID = 'acre-outline'
 const INPE_SOURCE_ID = 'inpe-hotspots'
 const INPE_CLUSTER_LAYER_ID = 'inpe-clusters'
 const INPE_CLUSTER_COUNT_LAYER_ID = 'inpe-cluster-count'
 const INPE_UNCLUSTERED_LAYER_ID = 'inpe-unclustered-points'
+const NATIVE_ZOOM = 8.5
+
+const EMPTY_NATIVE: NativeCellCollection = { type: 'FeatureCollection', features: [] }
 
 const EMPTY_HOTSPOTS: FeatureCollection<Point, InpeHotspotProperties> = {
   type: 'FeatureCollection',
@@ -99,6 +117,29 @@ function buildCellPopup(
   </div>`
 }
 
+function buildNativePopup(
+  properties: NativeCellProperties,
+  model: SusceptibilityModelId,
+  modelLabel: string,
+) {
+  return `<div class="susceptibility-popup">
+    <strong>${escapeHtml(properties.id)}</strong>
+    <span>Grade X ${properties.grid_x} · Y ${properties.grid_y}</span>
+    <span>${escapeHtml(modelLabel)}: ${scoreForModel(properties, model).toFixed(3)}</span>
+    <span>Célula científica original · sem agregação</span>
+  </div>`
+}
+
+function nativeWithValue(collection: NativeCellCollection, model: SusceptibilityModelId) {
+  return {
+    ...collection,
+    features: collection.features.map((feature) => ({
+      ...feature,
+      properties: { ...feature.properties, value: scoreForModel(feature.properties, model) },
+    })),
+  } as NativeCellCollection
+}
+
 export function FireMap({
   model,
   modelLabel,
@@ -109,6 +150,8 @@ export function FireMap({
   onCellSelect,
   hotspots,
   showHotspots,
+  nativeProduct,
+  nativeIndexError,
 }: FireMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
@@ -118,7 +161,16 @@ export function FireMap({
   const onCellSelectRef = useRef(onCellSelect)
   const hotspotsRef = useRef(hotspots)
   const showHotspotsRef = useRef(showHotspots)
+  const nativeProductRef = useRef(nativeProduct)
+  const nativeVisibleRef = useRef<NativeCellCollection>(EMPTY_NATIVE)
+  const nativeCacheRef = useRef(new NativeSectorCache(32))
+  const nativeAbortRef = useRef<AbortController | null>(null)
+  const refreshNativeRef = useRef<(() => void) | null>(null)
   const popupRef = useRef<Popup | null>(null)
+  const [nativeMode, setNativeMode] = useState(false)
+  const [nativeLoading, setNativeLoading] = useState(false)
+  const [nativeError, setNativeError] = useState<string | null>(null)
+  const [nativeCellCount, setNativeCellCount] = useState(0)
 
   modelRef.current = model
   modelLabelRef.current = modelLabel
@@ -126,6 +178,7 @@ export function FireMap({
   onCellSelectRef.current = onCellSelect
   hotspotsRef.current = hotspots
   showHotspotsRef.current = showHotspots
+  nativeProductRef.current = nativeProduct
 
   const geojson = useMemo<AggregatedCellCollection>(
     () => ({
@@ -158,6 +211,7 @@ export function FireMap({
         : 'none'
       map.addSource(ACRE_SOURCE_ID, { type: 'geojson', data: boundary })
       map.addSource(CELLS_SOURCE_ID, { type: 'geojson', data: geojson })
+      map.addSource(NATIVE_SOURCE_ID, { type: 'geojson', data: EMPTY_NATIVE })
       map.addSource(INPE_SOURCE_ID, {
         type: 'geojson',
         data: hotspotsRef.current ?? EMPTY_HOTSPOTS,
@@ -193,6 +247,37 @@ export function FireMap({
         source: CELLS_SOURCE_ID,
         filter: ['==', ['get', 'id'], '__none__'],
         paint: { 'line-color': '#102a43', 'line-width': 3.4, 'line-opacity': 1 },
+      })
+      map.addLayer({
+        id: NATIVE_FILL_LAYER_ID,
+        type: 'fill',
+        source: NATIVE_SOURCE_ID,
+        layout: { visibility: 'none' },
+        paint: {
+          'fill-color': [
+            'interpolate', ['linear'], ['coalesce', ['get', 'value'], -1],
+            -1, '#9ca3af', 0, '#1a9850', 0.5, '#fee08b', 1, '#d73027',
+          ],
+          'fill-opacity': 0.76,
+        },
+      })
+      map.addLayer({
+        id: NATIVE_LINE_LAYER_ID,
+        type: 'line',
+        source: NATIVE_SOURCE_ID,
+        layout: { visibility: 'none' },
+        paint: {
+          'line-color': 'rgba(255, 255, 255, 0.72)',
+          'line-width': ['interpolate', ['linear'], ['zoom'], NATIVE_ZOOM, 0.2, 12, 0.8],
+        },
+      })
+      map.addLayer({
+        id: NATIVE_SELECTED_LAYER_ID,
+        type: 'line',
+        source: NATIVE_SOURCE_ID,
+        filter: ['==', ['get', 'id'], '__none__'],
+        layout: { visibility: 'none' },
+        paint: { 'line-color': '#102a43', 'line-width': 3, 'line-opacity': 1 },
       })
       map.addLayer({
         id: INPE_CLUSTER_LAYER_ID,
@@ -243,7 +328,7 @@ export function FireMap({
       })
       map.fitBounds(bounds, { padding: 44, duration: 0 })
 
-      for (const layerId of [CELLS_FILL_LAYER_ID, INPE_CLUSTER_LAYER_ID, INPE_UNCLUSTERED_LAYER_ID]) {
+      for (const layerId of [CELLS_FILL_LAYER_ID, NATIVE_FILL_LAYER_ID, INPE_CLUSTER_LAYER_ID, INPE_UNCLUSTERED_LAYER_ID]) {
         map.on('mouseenter', layerId, () => { map.getCanvas().style.cursor = 'pointer' })
         map.on('mouseleave', layerId, () => { map.getCanvas().style.cursor = '' })
       }
@@ -278,17 +363,122 @@ export function FireMap({
         const id = event.features?.[0]?.properties?.id as string | undefined
         const cell = cellsRef.current.features.find((feature) => feature.properties.id === id)
         if (!cell) return
-        onCellSelectRef.current(cell.properties.id)
+        onCellSelectRef.current({ kind: 'aggregated', feature: cell })
         popupRef.current?.remove()
         popupRef.current = new Popup({ closeButton: true })
           .setLngLat(event.lngLat)
           .setHTML(buildCellPopup(cell.properties, modelRef.current, modelLabelRef.current))
           .addTo(map)
       })
+
+      map.on('click', NATIVE_FILL_LAYER_ID, (event: MapLayerMouseEvent) => {
+        const hotspotFeatures = map.queryRenderedFeatures(event.point, {
+          layers: [INPE_CLUSTER_LAYER_ID, INPE_UNCLUSTERED_LAYER_ID],
+        })
+        if (hotspotFeatures.length) return
+        const id = event.features?.[0]?.properties?.id as string | undefined
+        const cell = nativeVisibleRef.current.features.find((feature) => feature.properties.id === id)
+        if (!cell) return
+        onCellSelectRef.current({ kind: 'native', feature: cell })
+        popupRef.current?.remove()
+        popupRef.current = new Popup({ closeButton: true })
+          .setLngLat(event.lngLat)
+          .setHTML(buildNativePopup(cell.properties, modelRef.current, modelLabelRef.current))
+          .addTo(map)
+      })
+
+      const setNativeVisibility = (visible: boolean) => {
+        const aggregatedVisibility = visible ? 'none' : 'visible'
+        const nativeVisibility = visible ? 'visible' : 'none'
+        for (const layerId of [CELLS_FILL_LAYER_ID, CELLS_LINE_LAYER_ID, SELECTED_CELL_LAYER_ID]) {
+          map.setLayoutProperty(layerId, 'visibility', aggregatedVisibility)
+        }
+        for (const layerId of [NATIVE_FILL_LAYER_ID, NATIVE_LINE_LAYER_ID, NATIVE_SELECTED_LAYER_ID]) {
+          map.setLayoutProperty(layerId, 'visibility', nativeVisibility)
+        }
+      }
+
+      const refreshNative = () => {
+        nativeAbortRef.current?.abort()
+        if (map.getZoom() < NATIVE_ZOOM) {
+          setNativeVisibility(false)
+          nativeVisibleRef.current = EMPTY_NATIVE
+          const nativeSource = map.getSource(NATIVE_SOURCE_ID) as GeoJSONSource
+          nativeSource.setData(EMPTY_NATIVE)
+          setNativeMode(false)
+          setNativeLoading(false)
+          setNativeError(null)
+          setNativeCellCount(0)
+          return
+        }
+
+        const product = nativeProductRef.current
+        if (!product) {
+          setNativeVisibility(false)
+          setNativeMode(false)
+          setNativeLoading(false)
+          setNativeError('A grade científica original ainda não está disponível.')
+          return
+        }
+
+        setNativeVisibility(true)
+        setNativeMode(true)
+        setNativeLoading(true)
+        setNativeError(null)
+        const controller = new AbortController()
+        nativeAbortRef.current = controller
+        const view = map.getBounds()
+        const viewport: [number, number, number, number] = [
+          view.getWest(), view.getSouth(), view.getEast(), view.getNorth(),
+        ]
+        const visibleEntries = selectNativeSectors(product.index, viewport)
+        const visibleIds = new Set(visibleEntries.map((entry) => entry.id))
+        const requestedEntries = selectNativeSectors(
+          product.index,
+          viewport,
+          product.index.sector_step_degrees,
+        )
+
+        void Promise.allSettled(
+          requestedEntries.map(async (entry) => {
+            const cached = nativeCacheRef.current.get(entry.id)
+            if (cached) return { entry, collection: cached }
+            const collection = await loadNativeSector(entry, controller.signal)
+            nativeCacheRef.current.set(entry.id, collection)
+            return { entry, collection }
+          }),
+        ).then((results) => {
+          if (controller.signal.aborted) return
+          const features = results.flatMap((result) => {
+            if (result.status !== 'fulfilled' || !visibleIds.has(result.value.entry.id)) return []
+            return result.value.collection.features
+          })
+          const failedVisible = results.some(
+            (result, index) =>
+              result.status === 'rejected' && visibleIds.has(requestedEntries[index].id),
+          )
+          const collection: NativeCellCollection = { type: 'FeatureCollection', features }
+          nativeVisibleRef.current = collection
+          const nativeSource = map.getSource(NATIVE_SOURCE_ID) as GeoJSONSource
+          nativeSource.setData(nativeWithValue(collection, modelRef.current))
+          setNativeCellCount(features.length)
+          setNativeLoading(false)
+          setNativeError(
+            failedVisible ? 'Alguns setores visíveis não puderam ser carregados.' : null,
+          )
+        })
+      }
+
+      refreshNativeRef.current = refreshNative
+      map.on('movestart', () => nativeAbortRef.current?.abort())
+      map.on('moveend', refreshNative)
+      refreshNative()
     })
 
     mapRef.current = map
     return () => {
+      nativeAbortRef.current?.abort()
+      refreshNativeRef.current = null
       popupRef.current?.remove()
       map.remove()
       mapRef.current = null
@@ -299,6 +489,15 @@ export function FireMap({
     const source = mapRef.current?.getSource(CELLS_SOURCE_ID) as GeoJSONSource | undefined
     source?.setData(geojson)
   }, [geojson])
+
+  useEffect(() => {
+    const source = mapRef.current?.getSource(NATIVE_SOURCE_ID) as GeoJSONSource | undefined
+    if (source) source.setData(nativeWithValue(nativeVisibleRef.current, model))
+  }, [model])
+
+  useEffect(() => {
+    refreshNativeRef.current?.()
+  }, [nativeProduct])
 
   useEffect(() => {
     const source = mapRef.current?.getSource(INPE_SOURCE_ID) as GeoJSONSource | undefined
@@ -320,6 +519,9 @@ export function FireMap({
     if (map?.getLayer(SELECTED_CELL_LAYER_ID)) {
       map.setFilter(SELECTED_CELL_LAYER_ID, ['==', ['get', 'id'], selectedCellId ?? '__none__'])
     }
+    if (map?.getLayer(NATIVE_SELECTED_LAYER_ID)) {
+      map.setFilter(NATIVE_SELECTED_LAYER_ID, ['==', ['get', 'id'], selectedCellId ?? '__none__'])
+    }
   }, [selectedCellId])
 
   return (
@@ -327,7 +529,13 @@ export function FireMap({
       <div ref={containerRef} className="map-container" />
       <MapLegend modelLabel={modelLabel} showHotspots={showHotspots && Boolean(hotspots?.features.length)} />
       <div className="map-prototype-note">
-        Visualização agregada em setores de 0,28° · grade original ≈ 893 × 598 m
+        {nativeMode
+          ? nativeLoading
+            ? 'Carregando setores da grade científica original…'
+            : nativeError || `${nativeCellCount.toLocaleString('pt-BR')} células científicas visíveis · sem agregação`
+          : nativeIndexError
+            ? `Grade científica indisponível: ${nativeIndexError}`
+            : 'Visualização agregada em 0,28° · aproxime até o zoom 8,5 para visualizar a grade científica original'}
       </div>
     </div>
   )

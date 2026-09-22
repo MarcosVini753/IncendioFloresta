@@ -25,7 +25,7 @@ function isModelId(value: unknown): value is SusceptibilityModelId {
   return typeof value === 'string' && SUSCEPTIBILITY_MODEL_IDS.includes(value as SusceptibilityModelId)
 }
 
-function validateManifest(value: unknown): SusceptibilityManifest {
+export function validateManifest(value: unknown): SusceptibilityManifest {
   if (!isRecord(value)) throw new Error('Manifesto de suscetibilidade inválido.')
   if (value.schema_version !== '1.0' || value.product !== 'wildfire_susceptibility') {
     throw new Error('Contrato do produto de suscetibilidade não é compatível com o frontend.')

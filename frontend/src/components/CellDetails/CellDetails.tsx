@@ -1,12 +1,12 @@
 import { scoreForModel } from '../../data/susceptibility'
 import type {
-  AggregatedCellFeature,
+  SelectedSusceptibilityCell,
   SusceptibilityManifest,
   SusceptibilityModelId,
 } from '../../types/susceptibility'
 
 interface CellDetailsProps {
-  cell: AggregatedCellFeature | null
+  cell: SelectedSusceptibilityCell | null
   model: SusceptibilityModelId
   manifest: SusceptibilityManifest
   onClear: () => void
@@ -35,7 +35,7 @@ export function CellDetails({ cell, model, manifest, onClear }: CellDetailsProps
     )
   }
 
-  const properties = cell.properties
+  const properties = cell.feature.properties
   const activeModel = manifest.models.find((candidate) => candidate.id === model)
   const activeScore = scoreForModel(properties, model)
 
@@ -43,7 +43,9 @@ export function CellDetails({ cell, model, manifest, onClear }: CellDetailsProps
     <aside className="cell-details">
       <div className="cell-details-header">
         <div>
-          <span className="eyebrow">Célula agregada</span>
+          <span className="eyebrow">
+            {cell.kind === 'native' ? 'Célula científica original' : 'Célula agregada'}
+          </span>
           <h2>{properties.id}</h2>
         </div>
         <button type="button" className="clear-selection" onClick={onClear}>
@@ -67,13 +69,20 @@ export function CellDetails({ cell, model, manifest, onClear }: CellDetailsProps
       </dl>
 
       <dl className="cell-metrics">
-        <div>
-          <dt>Células científicas</dt>
-          <dd>{properties.n_source_cells.toLocaleString('pt-BR')}</dd>
-        </div>
+        {cell.kind === 'native' ? (
+          <>
+            <div><dt>Índice X</dt><dd>{cell.feature.properties.grid_x}</dd></div>
+            <div><dt>Índice Y</dt><dd>{cell.feature.properties.grid_y}</dd></div>
+          </>
+        ) : (
+          <div>
+            <dt>Células científicas</dt>
+            <dd>{cell.feature.properties.n_source_cells.toLocaleString('pt-BR')}</dd>
+          </div>
+        )}
         <div>
           <dt>Agregação</dt>
-          <dd>Média</dd>
+          <dd>{cell.kind === 'native' ? 'Nenhuma' : 'Média'}</dd>
         </div>
         <div>
           <dt>Latitude</dt>
@@ -86,8 +95,10 @@ export function CellDetails({ cell, model, manifest, onClear }: CellDetailsProps
       </dl>
 
       <p className="cell-details-note">
-        Coordenada representativa: média dos centroides-fonte. Resolução original aproximada:{' '}
-        {Math.round(manifest.original_grid.cell_width_m)} ×{' '}
+        {cell.kind === 'native'
+          ? 'Centroide da célula original.'
+          : 'Coordenada representativa: média dos centroides-fonte.'}{' '}
+        Dimensões aproximadas: {Math.round(manifest.original_grid.cell_width_m)} ×{' '}
         {Math.round(manifest.original_grid.cell_height_m)} m.
       </p>
     </aside>

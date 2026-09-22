@@ -47,6 +47,19 @@ npm run build
 find dist/data/susceptibility -type f
 ```
 
+Na branch `experiment/native-susceptibility-grid`, execute também:
+
+```bash
+npm test
+```
+
+Essa branch mantém a camada agregada abaixo do zoom `8,5`. A partir desse nível,
+carrega os setores que intersectam a viewport e uma margem de pré-busca, cancela
+requisições superadas por novos movimentos e mantém um cache LRU de até 32 setores.
+Somente as células dos setores visíveis entram na fonte ativa do MapLibre; ao afastar,
+o mapa retorna automaticamente à representação agregada. Não há deploy dedicado para
+o experimento nesta etapa.
+
 ## Focos de calor do INPE
 
 O conversor escolhe o CSV diário mais recente e atualiza o GeoJSON versionado:
