@@ -64,3 +64,12 @@ Os valores têm semântica `relative_score`; não são probabilidades calibradas
 Na branch experimental, o mesmo exportador aceita `--native --reuse-scores`. Ele cria
 `native_sharded_grid/index.json` e um GeoJSON por setor, com IDs
 `AC-Y<Y>-X<X>`. Essa representação evita um arquivo monolítico com 307 mil polígonos.
+
+Para auditar os dois produtos já gerados sem recalcular modelos:
+
+```bash
+.venv/bin/python exportar_suscetibilidade.py --validate-only
+```
+
+A validação percorre todos os setores, rejeita setores vazios, confirma os quatro
+escores em `[0, 1]` e exige exatamente 307.410 IDs únicos.

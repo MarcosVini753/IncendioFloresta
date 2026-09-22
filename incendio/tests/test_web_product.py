@@ -74,6 +74,41 @@ class ExportedProductTest(unittest.TestCase):
             with self.assertRaisesRegex(FileNotFoundError, "Limite ausente"):
                 exporter.carregar_limite()
 
+    def test_native_grid_has_exactly_one_feature_per_id(self):
+        with (exporter.NATIVO / "index.json").open(encoding="utf-8") as stream:
+            index = json.load(stream)
+        ids = set()
+        total = 0
+        for entry in index["sectors"]:
+            with (exporter.NATIVO / entry["url"]).open(encoding="utf-8") as stream:
+                collection = json.load(stream)
+            self.assertGreater(len(collection["features"]), 0)
+            self.assertEqual(len(collection["features"]), entry["feature_count"])
+            for feature in collection["features"]:
+                cell_id = feature["properties"]["id"]
+                self.assertRegex(cell_id, r"^AC-Y-?\d+-X-?\d+$")
+                self.assertNotIn(cell_id, ids)
+                ids.add(cell_id)
+            total += len(collection["features"])
+        self.assertEqual(total, 307_410)
+        self.assertEqual(len(ids), 307_410)
+
+    def test_sampled_native_sectors_reproduce_aggregated_means(self):
+        with (exporter.NATIVO / "index.json").open(encoding="utf-8") as stream:
+            index = json.load(stream)
+        aggregated = {
+            feature["properties"]["id"]: feature["properties"]
+            for feature in self.collection["features"]
+        }
+        entries = index["sectors"][:: max(len(index["sectors"]) // 7, 1)][:7]
+        for entry in entries:
+            with (exporter.NATIVO / entry["url"]).open(encoding="utf-8") as stream:
+                features = json.load(stream)["features"]
+            self.assertEqual(len(features), aggregated[entry["id"]]["n_source_cells"])
+            for column in exporter.SCORE_COLUMNS:
+                mean = sum(feature["properties"][column] for feature in features) / len(features)
+                self.assertAlmostEqual(mean, aggregated[entry["id"]][column], places=6)
+
 
 if __name__ == "__main__":
     unittest.main()

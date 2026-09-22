@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import re
 import shutil
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -352,20 +353,20 @@ def exportar_agregado(scores: pd.DataFrame, boundary: dict[str, Any], generated_
     return features
 
 
-def native_geometry(x: float, y: float):
-    half_w, half_h = WIDTH_M / 2, HEIGHT_M / 2
-    xs = np.array([x - half_w, x + half_w, x + half_w, x - half_w, x - half_w])
-    ys = np.array([y - half_h, y - half_h, y + half_h, y + half_h, y - half_h])
-    lon, lat = geo.utm_para_lonlat(xs, ys)
-    return {
-        "type": "Polygon",
-        "coordinates": [[[ _round(px), _round(py)] for px, py in zip(lon, lat)]],
-    }
-
-
 def exportar_nativo(scores: pd.DataFrame, boundary: dict[str, Any], generated_at: str):
     bounds = geometry_bounds(boundary["geometry"])
     rows, columns = sector_indices(scores["lon"], scores["lat"], bounds)
+    half_w, half_h = WIDTH_M / 2, HEIGHT_M / 2
+    x_values = scores["x_g"].to_numpy(dtype=float)
+    y_values = scores["y_g2"].to_numpy(dtype=float)
+    corners = []
+    for offset_x, offset_y in (
+        (-half_w, -half_h),
+        (half_w, -half_h),
+        (half_w, half_h),
+        (-half_w, half_h),
+    ):
+        corners.append(geo.utm_para_lonlat(x_values + offset_x, y_values + offset_y))
     sectors: dict[str, list[dict[str, Any]]] = defaultdict(list)
     seen = set()
     for position, row in enumerate(scores.itertuples(index=False)):
@@ -383,12 +384,17 @@ def exportar_nativo(scores: pd.DataFrame, boundary: dict[str, Any], generated_at
         }
         for column in SCORE_COLUMNS:
             properties[column] = _round(getattr(row, column))
+        ring = [
+            [_round(corner_lon[position]), _round(corner_lat[position])]
+            for corner_lon, corner_lat in corners
+        ]
+        ring.append(ring[0].copy())
         sectors[sid].append(
             {
                 "type": "Feature",
                 "id": cell_id,
                 "properties": properties,
-                "geometry": native_geometry(float(row.x_g), float(row.y_g2)),
+                "geometry": {"type": "Polygon", "coordinates": [ring]},
             }
         )
     if len(seen) != 307_410:
@@ -459,6 +465,39 @@ def validar_produto_agregado() -> None:
     print("Validacao agregada aprovada: escores finitos em [0,1] e 307410 celulas-fonte.")
 
 
+def validar_produto_nativo() -> None:
+    with (NATIVO / "manifest.json").open(encoding="utf-8") as stream:
+        manifest = json.load(stream)
+    with (NATIVO / manifest["files"]["index"]).open(encoding="utf-8") as stream:
+        index = json.load(stream)
+    entries = index.get("sectors", [])
+    if not entries or len(entries) != manifest["counts"]["sectors"]:
+        raise ValueError("Indice nativo vazio ou com contagem de setores divergente.")
+    ids: set[str] = set()
+    total = 0
+    for entry in entries:
+        path = NATIVO / entry["url"]
+        with path.open(encoding="utf-8") as stream:
+            collection = json.load(stream)
+        features = collection.get("features", [])
+        if not features or len(features) != entry["feature_count"]:
+            raise ValueError(f"Setor vazio ou divergente: {entry['id']}")
+        for feature in features:
+            properties = feature["properties"]
+            cell_id = properties["id"]
+            if not re.fullmatch(r"AC-Y-?\d+-X-?\d+", cell_id) or cell_id in ids:
+                raise ValueError(f"ID nativo invalido ou duplicado: {cell_id}")
+            ids.add(cell_id)
+            for column in SCORE_COLUMNS:
+                score = properties[column]
+                if not math.isfinite(score) or not 0 <= score <= 1:
+                    raise ValueError(f"Escore nativo invalido: {cell_id}/{column}")
+        total += len(features)
+    if total != 307_410 or len(ids) != 307_410 or total != index["feature_count"]:
+        raise ValueError(f"Grade nativa incompleta ou duplicada: total={total}; unicos={len(ids)}")
+    print("Validacao nativa aprovada: 307410 IDs unicos, distribuidos uma unica vez.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--native", action="store_true", help="tambem exporta a grade nativa por setores")
@@ -467,6 +506,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.validate_only:
         validar_produto_agregado()
+        if (NATIVO / "manifest.json").exists():
+            validar_produto_nativo()
         return
     boundary = carregar_limite()
     est = carregar_estatica()
@@ -476,6 +517,7 @@ def main() -> None:
     validar_produto_agregado()
     if args.native:
         exportar_nativo(scores, boundary, generated_at)
+        validar_produto_nativo()
 
 
 if __name__ == "__main__":
