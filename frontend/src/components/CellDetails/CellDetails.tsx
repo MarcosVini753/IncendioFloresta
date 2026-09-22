@@ -1,78 +1,94 @@
-import type { LayerType, PrototypeCell } from '../../types/fire'
+import { scoreForModel } from '../../data/susceptibility'
+import type {
+  AggregatedCellFeature,
+  SusceptibilityManifest,
+  SusceptibilityModelId,
+} from '../../types/susceptibility'
 
 interface CellDetailsProps {
-  cell: PrototypeCell | null
-  layer: LayerType
-  selectedDate: string
+  cell: AggregatedCellFeature | null
+  model: SusceptibilityModelId
+  manifest: SusceptibilityManifest
   onClear: () => void
 }
 
-function formatDate(date: string) {
-  return new Intl.DateTimeFormat('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(`${date}T00:00:00Z`))
+function formatScore(value: number) {
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 3,
+    maximumFractionDigits: 3,
+  }).format(value)
 }
 
-export function CellDetails({ cell, layer, selectedDate, onClear }: CellDetailsProps) {
+export function CellDetails({ cell, model, manifest, onClear }: CellDetailsProps) {
   if (!cell) {
     return (
       <aside className="cell-details cell-details-empty">
         <div>
           <span className="eyebrow">Local selecionado</span>
           <h2>Nenhuma célula selecionada</h2>
-          <p>Clique em uma célula da malha para inspecionar seus valores e sua série temporal.</p>
+          <p>Clique em uma célula para comparar os quatro escores científicos agregados.</p>
         </div>
-        <span className="cell-details-hint">A seleção permanecerá ativa ao trocar a data ou a camada.</span>
+        <span className="cell-details-hint">
+          A seleção permanece ativa ao trocar o modelo exibido no mapa.
+        </span>
       </aside>
     )
   }
 
-  const value = layer === 'risk' ? cell.risk : cell.danger[selectedDate]
-  const indexLabel = layer === 'risk' ? 'Risco' : layer === 'danger' ? 'Perigo' : 'Alerta'
+  const properties = cell.properties
+  const activeModel = manifest.models.find((candidate) => candidate.id === model)
+  const activeScore = scoreForModel(properties, model)
 
   return (
     <aside className="cell-details">
       <div className="cell-details-header">
         <div>
-          <span className="eyebrow">Célula selecionada</span>
-          <h2>{cell.id}</h2>
+          <span className="eyebrow">Célula agregada</span>
+          <h2>{properties.id}</h2>
         </div>
         <button type="button" className="clear-selection" onClick={onClear}>
           Limpar
         </button>
       </div>
 
+      <div className="active-score">
+        <span>{activeModel?.label ?? model}</span>
+        <strong>{formatScore(activeScore)}</strong>
+        <small>escore relativo</small>
+      </div>
+
+      <dl className="model-score-list">
+        {manifest.models.map((candidate) => (
+          <div key={candidate.id} className={candidate.id === model ? 'active' : undefined}>
+            <dt>{candidate.label}</dt>
+            <dd>{formatScore(scoreForModel(properties, candidate.id))}</dd>
+          </div>
+        ))}
+      </dl>
+
       <dl className="cell-metrics">
         <div>
-          <dt>{indexLabel}</dt>
-          <dd>{value == null ? 'Sem dado' : value.toFixed(2)}</dd>
+          <dt>Células científicas</dt>
+          <dd>{properties.n_source_cells.toLocaleString('pt-BR')}</dd>
         </div>
-        {layer === 'danger' ? (
-          <div>
-            <dt>Data</dt>
-            <dd>{formatDate(selectedDate)}</dd>
-          </div>
-        ) : (
-          <div>
-            <dt>Temporalidade</dt>
-            <dd>Camada estática</dd>
-          </div>
-        )}
+        <div>
+          <dt>Agregação</dt>
+          <dd>Média</dd>
+        </div>
         <div>
           <dt>Latitude</dt>
-          <dd>{cell.centroid[1].toFixed(4)}</dd>
+          <dd>{properties.centroid[1].toFixed(4)}</dd>
         </div>
         <div>
           <dt>Longitude</dt>
-          <dd>{cell.centroid[0].toFixed(4)}</dd>
+          <dd>{properties.centroid[0].toFixed(4)}</dd>
         </div>
       </dl>
 
       <p className="cell-details-note">
-        Valores simulados para validação da interação. A malha não representa a resolução científica final.
+        Coordenada representativa: média dos centroides-fonte. Resolução original aproximada:{' '}
+        {Math.round(manifest.original_grid.cell_width_m)} ×{' '}
+        {Math.round(manifest.original_grid.cell_height_m)} m.
       </p>
     </aside>
   )

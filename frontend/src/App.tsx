@@ -1,15 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { FireMap } from './components/Map/FireMap'
-import { LayerSelector } from './components/LayerSelector/LayerSelector'
-import { TimeSlider } from './components/Timeline/TimeSlider'
-import { TimeSeriesChart } from './components/Chart/TimeSeriesChart'
 import { CellDetails } from './components/CellDetails/CellDetails'
 import { HotspotLayerControl } from './components/HotspotControl/HotspotLayerControl'
-import { dangerDates } from './data/danger.mock'
+import { FireMap } from './components/Map/FireMap'
+import { ModelSelector } from './components/ModelSelector/ModelSelector'
 import { loadInpeHotspots } from './data/inpeHotspots'
-import { loadPrototypeGrid, type PrototypeGridData } from './data/prototypeGrid'
-import type { LayerType, TimeSeriesPoint } from './types/fire'
+import { loadSusceptibilityProduct } from './data/susceptibility'
 import type { InpeHotspotCollection } from './types/inpe'
+import type { SusceptibilityModelId, SusceptibilityProduct } from './types/susceptibility'
 
 function formatReferenceDate(value: string | undefined) {
   const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})/)
@@ -17,86 +14,50 @@ function formatReferenceDate(value: string | undefined) {
 }
 
 export default function App() {
-  const [selectedLayer, setSelectedLayer] = useState<LayerType>('risk')
-  const [selectedDate, setSelectedDate] = useState(dangerDates[dangerDates.length - 1])
+  const [product, setProduct] = useState<SusceptibilityProduct | null>(null)
+  const [selectedModel, setSelectedModel] = useState<SusceptibilityModelId>('gradboost')
   const [selectedCellId, setSelectedCellId] = useState<string | null>(null)
-  const [grid, setGrid] = useState<PrototypeGridData | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [hotspots, setHotspots] = useState<InpeHotspotCollection | null>(null)
   const [showHotspots, setShowHotspots] = useState(true)
   const [hotspotsError, setHotspotsError] = useState<string | null>(null)
 
   useEffect(() => {
-    let cancelled = false
-
-    loadPrototypeGrid()
+    const controller = new AbortController()
+    loadSusceptibilityProduct(controller.signal)
       .then((result) => {
-        if (!cancelled) setGrid(result)
+        setProduct(result)
+        setSelectedModel(result.manifest.default_model)
       })
       .catch((error: unknown) => {
-        if (!cancelled) {
-          setLoadError(error instanceof Error ? error.message : 'Erro ao carregar a malha demonstrativa.')
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+          setLoadError(
+            error instanceof Error ? error.message : 'Erro ao carregar a suscetibilidade.',
+          )
         }
       })
-
-    return () => {
-      cancelled = true
-    }
+    return () => controller.abort()
   }, [])
 
   useEffect(() => {
     const controller = new AbortController()
-    let cancelled = false
-
     loadInpeHotspots(controller.signal)
-      .then((result) => {
-        if (!cancelled) setHotspots(result)
-      })
+      .then(setHotspots)
       .catch((error: unknown) => {
-        if (!cancelled && !(error instanceof DOMException && error.name === 'AbortError')) {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
           setHotspotsError(
             error instanceof Error ? error.message : 'Erro ao carregar os focos do INPE.',
           )
         }
       })
-
-    return () => {
-      cancelled = true
-      controller.abort()
-    }
+    return () => controller.abort()
   }, [])
 
   const selectedCell = useMemo(
-    () => grid?.cells.find((cell) => cell.id === selectedCellId) ?? null,
-    [grid, selectedCellId],
+    () => product?.cells.features.find((feature) => feature.properties.id === selectedCellId) ?? null,
+    [product, selectedCellId],
   )
-
-  const dangerSeries = useMemo<TimeSeriesPoint[]>(() => {
-    if (!grid) return []
-
-    if (selectedCell) {
-      return dangerDates.flatMap((date) => {
-        const value = selectedCell.danger[date]
-        return value == null ? [] : [{ date, value }]
-      })
-    }
-
-    return dangerDates.map((date) => {
-      const values = grid.cells
-        .map((cell) => cell.danger[date])
-        .filter((value): value is number => value != null)
-
-      return {
-        date,
-        value: values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1),
-      }
-    })
-  }, [grid, selectedCell])
-
-  const chartTitle = selectedCell
-    ? `Perigo demonstrativo — ${selectedCell.id}`
-    : 'Perigo médio demonstrativo — Acre'
-
+  const activeModel = product?.manifest.models.find((model) => model.id === selectedModel)
   const hotspotReferenceDate = formatReferenceDate(
     hotspots?.metadata.data_referencia ?? hotspots?.features[0]?.properties.data_hora_gmt ?? undefined,
   )
@@ -105,15 +66,26 @@ export default function App() {
     <main className="app-shell">
       <header className="app-header">
         <div>
-          <span className="eyebrow">Protótipo v0.2</span>
+          <span className="eyebrow">Produto científico experimental</span>
           <h1>Monitoramento de Incêndios Florestais — Acre</h1>
-          <p>Índices demonstrativos com sobreposição de focos de calor observados pelo INPE.</p>
+          <p>Suscetibilidade histórica agregada com focos de calor observados pelo INPE.</p>
         </div>
-        <span className="prototype-badge">Índices demonstrativos · focos INPE reais</span>
+        <span className="prototype-badge">Suscetibilidade experimental · focos INPE reais</span>
       </header>
 
       <div className="map-controls">
-        <LayerSelector value={selectedLayer} onChange={setSelectedLayer} />
+        {product ? (
+          <ModelSelector
+            value={selectedModel}
+            models={product.manifest.models}
+            onChange={setSelectedModel}
+          />
+        ) : (
+          <section className="control-group">
+            <span className="control-label">Modelo de suscetibilidade</span>
+            <span className="control-loading">Carregando produto…</span>
+          </section>
+        )}
         <HotspotLayerControl
           checked={showHotspots}
           count={hotspots?.features.length ?? null}
@@ -124,60 +96,58 @@ export default function App() {
         />
       </div>
 
-      {grid ? (
-        <section className="map-workspace">
-          <div className="map-section">
-            <FireMap
-              layer={selectedLayer}
-              selectedDate={selectedDate}
-              cells={grid.cells}
-              boundary={grid.boundary}
-              bounds={grid.bounds}
-              selectedCellId={selectedCellId}
-              onCellSelect={setSelectedCellId}
-              hotspots={hotspots}
-              showHotspots={showHotspots}
+      {product && activeModel ? (
+        <>
+          <section className="map-workspace">
+            <div className="map-section">
+              <FireMap
+                model={selectedModel}
+                modelLabel={activeModel.label}
+                cells={product.cells}
+                boundary={product.boundary}
+                bounds={product.bounds}
+                selectedCellId={selectedCellId}
+                onCellSelect={setSelectedCellId}
+                hotspots={hotspots}
+                showHotspots={showHotspots}
+              />
+            </div>
+            <CellDetails
+              cell={selectedCell}
+              model={selectedModel}
+              manifest={product.manifest}
+              onClear={() => setSelectedCellId(null)}
             />
-          </div>
-          <CellDetails
-            cell={selectedCell}
-            layer={selectedLayer}
-            selectedDate={selectedDate}
-            onClear={() => setSelectedCellId(null)}
-          />
-        </section>
+          </section>
+          <section className="scientific-product-note">
+            <div>
+              <span className="eyebrow">Leitura correta</span>
+              <strong>Escores relativos de suscetibilidade, não probabilidades calibradas</strong>
+            </div>
+            <p>
+              Período-fonte {product.manifest.source_period}. Cada célula visível reúne, por média
+              aritmética, células científicas de aproximadamente 893 × 598 m. O modelo ativo é{' '}
+              <strong>{activeModel.label}</strong>.
+            </p>
+          </section>
+        </>
       ) : (
         <section className="map-section">
           <div className="map-shell map-status" role="status">
             {loadError ? (
               <>
-                <strong>Não foi possível carregar a malha.</strong>
+                <strong>Não foi possível carregar a suscetibilidade.</strong>
                 <span>{loadError}</span>
               </>
             ) : (
               <>
-                <strong>Preparando a malha demonstrativa do Acre…</strong>
-                <span>Carregando o limite geográfico e construindo as células do protótipo.</span>
+                <strong>Carregando o produto científico…</strong>
+                <span>Validando manifesto, limite do Acre e escores dos quatro modelos.</span>
               </>
             )}
           </div>
         </section>
       )}
-
-      {selectedLayer === 'danger' && grid ? (
-        <div className="temporal-grid">
-          <TimeSlider dates={dangerDates} selectedDate={selectedDate} onChange={setSelectedDate} />
-          <TimeSeriesChart data={dangerSeries} selectedDate={selectedDate} title={chartTitle} />
-        </div>
-      ) : selectedLayer === 'risk' ? (
-        <section className="static-risk-note">
-          <span className="eyebrow">Risco</span>
-          <strong>Camada estática no protótipo</strong>
-          <p>
-            A navegação diária é exibida apenas para Perigo. A célula selecionada permanece ativa ao alternar entre Risco e Perigo.
-          </p>
-        </section>
-      ) : null}
     </main>
   )
 }
