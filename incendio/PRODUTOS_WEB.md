@@ -90,8 +90,18 @@ cd incendio
 
 O cubo climático é carregado uma vez. Após cada modelo/data, uma matriz agregada é
 gravada em `resultados/perigo_2015_checkpoints/`; interromper e executar o mesmo
-comando continua apenas os pontos pendentes. Também é possível processar modelos ou
-intervalos separadamente:
+comando continua apenas os pontos pendentes. Antes do primeiro cálculo, o exportador
+grava nesse diretório um manifesto com os 44 preditores, ordem das 212 células,
+semente, protocolo temporal e implementação dos modelos. Uma retomada com contrato
+divergente é recusada para impedir a mistura de resultados incompatíveis.
+
+Para preparar e inspecionar esse contrato sem iniciar previsões:
+
+```bash
+.venv/bin/python exportar_perigo_2015.py --prepare-only
+```
+
+Também é possível processar modelos ou intervalos separadamente:
 
 ```bash
 .venv/bin/python exportar_perigo_2015.py --models gradboost random_forest logistic_regression
@@ -101,11 +111,20 @@ intervalos separadamente:
 
 O Fuzzy k-NN usa busca exata dos 29 vizinhos, sem índice aproximado. Como ele é o
 modelo mais custoso, a retomada diária evita repetir dias já concluídos.
+Para uma execução longa independente do terminal atual:
+
+```bash
+tmux new-session -d -s danger-2015-fuzzy \
+  "cd $PWD && MPLCONFIGDIR=/tmp/incendio-danger-fuzzy-exact \
+  .venv/bin/python exportar_perigo_2015.py --models fuzzy_knn_k29 \
+  > resultados/perigo_2015_fuzzy_exact.log 2>&1"
+tmux attach -t danger-2015-fuzzy
+```
 
 Quando os quatro checkpoints possuem 365 dias, o exportador grava `manifest.json`,
 `grid.geojson` e quatro matrizes `scores/*.json`. A geometria aparece uma única vez;
 linhas e colunas das matrizes seguem `dates` e `cell_order` do manifesto. Para auditar
-o produto sem recalcular previsões:
+o produto sem recalcular previsões, incluindo a proveniência científica:
 
 ```bash
 .venv/bin/python exportar_perigo_2015.py --validate-only

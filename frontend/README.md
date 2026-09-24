@@ -20,6 +20,9 @@ Os quatro modelos disponíveis são:
 Todos produzem `relative_score` no intervalo `[0, 1]`. Esses escores não são
 probabilidades calibradas nem devem orientar decisões operacionais. O modo Perigo é
 uma reconstituição histórica, não uma previsão atual. Alerta permanece indisponível.
+O manifesto anual também identifica os 44 preditores, as 196.455 amostras de treino
+e a busca exata `NearestNeighbors` usada pelo Fuzzy k-NN; o loader rejeita produto
+sem essa proveniência.
 
 No Perigo, o slider percorre exatamente os 365 dias de 2015 e começa em 25/08/2015.
 As quatro matrizes anuais são carregadas na entrada do modo; depois disso, data e
