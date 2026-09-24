@@ -135,5 +135,10 @@ conclusão da sessão `danger-2015-fuzzy`, audita janeiro, agosto e dezembro nos
 modelos, executa os testes Python e do frontend, compila o site e verifica por HTTP
 os seis arquivos do produto. A mensagem `FINALIZATION_OK` confirma que todas essas
 etapas passaram. O script não cria commits nem envia a branch.
+Para automatizar também o commit dos seis arquivos públicos e o envio de
+`feature/historical-danger-2015` depois dessa aprovação, execute da raiz
+`bash scripts/publish_historical_danger_2015.sh`. Ele recusa branch diferente,
+alterações alheias ao produto e validação incompleta; o resultado fica em
+`incendio/resultados/perigo_2015_publication.log` quando iniciado em `tmux`.
 
 Os valores são `relative_score`, nunca probabilidade calibrada ou perigo operacional.
