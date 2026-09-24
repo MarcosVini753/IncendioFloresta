@@ -70,6 +70,21 @@ describe('contrato anual de perigo', () => {
     expect(dangerSeries(product, 'gradboost', cellOrder[10])[0].value).toBe(values[0][10])
     expect(() => dangerCellsForDate(product, '2016-01-01')).toThrow(/Data ausente/)
   })
+
+  it('usa as linhas corretas nos extremos do slider anual', () => {
+    const annual = values.map((row) => [...row])
+    annual[0][0] = 0.1
+    annual[364][0] = 0.9
+    const changingProduct: DangerProduct = {
+      ...product,
+      scores: { ...product.scores, gradboost: annual },
+    }
+    expect(dangerCellsForDate(changingProduct, '2015-01-01').features[0].properties.score_gradboost).toBe(0.1)
+    expect(dangerCellsForDate(changingProduct, '2015-12-31').features[0].properties.score_gradboost).toBe(0.9)
+    const series = dangerSeries(changingProduct, 'gradboost', cellOrder[0])
+    expect(series[0].value).toBe(0.1)
+    expect(series[364].value).toBe(0.9)
+  })
 })
 
 describe('falhas HTTP', () => {
