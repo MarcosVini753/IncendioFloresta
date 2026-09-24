@@ -103,6 +103,22 @@ button:disabled {
   font-size: 0.8rem;
 }
 
+.product-unavailable {
+  display: grid;
+  gap: 3px;
+  margin: 0 0 14px;
+  padding: 11px 14px;
+  border: 1px solid #d7e0db;
+  border-radius: 12px;
+  background: #fff;
+  color: #526159;
+  font-size: 0.8rem;
+}
+
+.product-unavailable strong {
+  color: #263c32;
+}
+
 .temporal-warning span:last-child {
   flex-basis: 100%;
   font-weight: 700;

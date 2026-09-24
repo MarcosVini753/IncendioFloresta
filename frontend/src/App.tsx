@@ -61,6 +61,7 @@ export default function App() {
     }).catch((error: unknown) => {
       if (!(error instanceof DOMException && error.name === 'AbortError')) {
         setDangerError(error instanceof Error ? error.message : 'Erro ao carregar o perigo histórico.')
+        setMode('susceptibility')
       }
     })
     return () => controller.abort()
@@ -112,6 +113,7 @@ export default function App() {
 
   const ready = Boolean(susceptibility && activeProduct && activeCells && activeModelManifest)
   const currentError = mode === 'danger' ? dangerError : loadError
+  const dangerUnavailable = Boolean(dangerError)
 
   return (
     <main className="app-shell">
@@ -131,7 +133,14 @@ export default function App() {
           <span id="product-mode-label" className="control-label">Produto</span>
           <div className="layer-selector">
             <button type="button" className={mode === 'susceptibility' ? 'active' : undefined} onClick={() => setMode('susceptibility')}>Suscetibilidade</button>
-            <button type="button" className={mode === 'danger' ? 'active' : undefined} onClick={() => setMode('danger')}>Perigo histórico</button>
+            <button
+              type="button"
+              className={mode === 'danger' ? 'active' : undefined}
+              disabled={dangerUnavailable}
+              onClick={() => setMode('danger')}
+            >
+              {dangerUnavailable ? 'Perigo em geração' : 'Perigo histórico'}
+            </button>
           </div>
         </section>
         {activeProduct ? <ModelSelector value={activeModel} models={activeModels}
@@ -142,6 +151,13 @@ export default function App() {
           referenceDate={hotspotReferenceDate} loading={!hotspots && !hotspotsError}
           error={hotspotsError} onChange={setShowHotspots} />
       </div>
+
+      {dangerUnavailable ? (
+        <aside className="product-unavailable" role="status">
+          <strong>Perigo histórico diário — 2015 está em geração.</strong>
+          <span>O mapa continua em Suscetibilidade. Atualize após sincronizar o produto anual.</span>
+        </aside>
+      ) : null}
 
       {mode === 'danger' && showDangerHotspots ? <aside className="temporal-warning" role="note">
         <strong>Perigo histórico: {formatReferenceDate(dangerDate)}</strong>
