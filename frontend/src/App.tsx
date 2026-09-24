@@ -164,7 +164,7 @@ export default function App() {
         {mode === 'danger' && danger ? <section className="temporal-grid">
           <TimeSlider dates={danger.manifest.dates} selectedDate={dangerDate} onChange={setDangerDate} />
           <TimeSeriesChart data={series} selectedDate={dangerDate}
-            title={selectedCell?.kind === 'aggregated' ? `Série diária — ${selectedCell.feature.properties.id}` : 'Média estadual diária das 212 células'} />
+            title={selectedCell?.kind === 'aggregated' ? `Série diária — ${selectedCell.feature.properties.id}` : 'Média estadual ponderada das células-fonte'} />
         </section> : null}
 
         <section className="scientific-product-note">

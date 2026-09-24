@@ -51,6 +51,9 @@ describe('contrato anual de perigo', () => {
     expect(cells.features).toHaveLength(212)
     expect(cells.features[10].properties.score_gradboost).toBe(values[0][10])
     expect(dangerSeries(product, 'gradboost')).toHaveLength(365)
+    expect(dangerSeries(product, 'gradboost')[0].value).toBeCloseTo(
+      values[0].reduce((sum, score, index) => sum + score * grid.features[index].properties.n_source_cells, 0) / 307410,
+    )
     expect(dangerSeries(product, 'gradboost', cellOrder[10])[0].value).toBe(values[0][10])
     expect(() => dangerCellsForDate(product, '2016-01-01')).toThrow(/Data ausente/)
   })

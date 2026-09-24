@@ -166,9 +166,13 @@ export function dangerCellsForDate(product: DangerProduct, date: string): Aggreg
 export function dangerSeries(product: DangerProduct, model: SusceptibilityModelId, cellId?: string) {
   const cellIndex = cellId == null ? -1 : product.manifest.cell_order.indexOf(cellId)
   if (cellId != null && cellIndex < 0) throw new Error(`Célula ausente no produto: ${cellId}.`)
+  const weights = product.grid.features.map((feature) => feature.properties.n_source_cells)
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0)
   return product.manifest.dates.map((date, dateIndex) => {
     const row = product.scores[model][dateIndex]
-    const value = cellIndex >= 0 ? row[cellIndex] : row.reduce((sum, score) => sum + score, 0) / row.length
+    const value = cellIndex >= 0
+      ? row[cellIndex]
+      : row.reduce((sum, score, index) => sum + score * weights[index], 0) / totalWeight
     return { date, value }
   })
 }
