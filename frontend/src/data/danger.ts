@@ -54,13 +54,21 @@ export function validateDangerManifest(value: unknown): DangerManifest {
   const ids = new Set<string>()
   for (const model of value.models) {
     if (!isRecord(model) || !isModelId(model.id) || typeof model.label !== 'string' ||
-        typeof model.file !== 'string' || ids.has(model.id)) {
+        typeof model.file !== 'string' || !isRecord(model.implementation) ||
+        typeof model.implementation.backend !== 'string' || ids.has(model.id)) {
       throw new Error('Modelo diário ausente, duplicado ou inválido.')
     }
     ids.add(model.id)
   }
   if (SUSCEPTIBILITY_MODEL_IDS.some((id) => !ids.has(id))) {
     throw new Error('O manifesto precisa conter exatamente os quatro modelos esperados.')
+  }
+  const fuzzy = value.models.find((model) => isRecord(model) && model.id === 'fuzzy_knn_k29')
+  if (!isRecord(fuzzy) || !isRecord(fuzzy.implementation) ||
+      fuzzy.implementation.backend !== 'sklearn.neighbors.NearestNeighbors' ||
+      fuzzy.implementation.search !== 'exact' || fuzzy.implementation.k !== 29 ||
+      fuzzy.implementation.m !== 2) {
+    throw new Error('O Fuzzy k-NN precisa declarar busca exata com k=29 e m=2.')
   }
   if (!isRecord(value.counts) || value.counts.dates !== 365 || value.counts.features !== 212 ||
       value.counts.source_cells_per_date !== 307410) {
@@ -73,6 +81,14 @@ export function validateDangerManifest(value: unknown): DangerManifest {
   if (!Array.isArray(value.bounds) || value.bounds.length !== 4 || !value.bounds.every(Number.isFinite) ||
       !isRecord(value.files) || typeof value.files.grid !== 'string') {
     throw new Error('Arquivos ou limites ausentes no manifesto de perigo.')
+  }
+  if (!isRecord(value.provenance) || value.provenance.checkpoint_schema_version !== '1.0' ||
+      typeof value.provenance.checkpoint_contract_sha256 !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(value.provenance.checkpoint_contract_sha256) ||
+      value.provenance.training_rows !== 196455 || !Array.isArray(value.provenance.predictors) ||
+      value.provenance.predictors.length !== 44 ||
+      value.provenance.predictors.some((predictor) => typeof predictor !== 'string')) {
+    throw new Error('A proveniência científica do perigo histórico é inválida.')
   }
   return value as unknown as DangerManifest
 }

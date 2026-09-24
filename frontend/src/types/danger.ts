@@ -20,6 +20,13 @@ export interface DangerModelManifest {
   file: string
   validation_2013: { roc_auc: number; pr_auc: number }
   test_2014_2015: { roc_auc: number; pr_auc: number }
+  implementation: {
+    backend: string
+    random_state?: number
+    search?: 'exact'
+    k?: number
+    m?: number
+  }
 }
 
 export interface DangerManifest {
@@ -53,6 +60,12 @@ export interface DangerManifest {
   counts: { dates: number; features: number; source_cells_per_date: number }
   bounds: [number, number, number, number]
   files: { grid: string }
+  provenance: {
+    checkpoint_schema_version: '1.0'
+    checkpoint_contract_sha256: string
+    training_rows: number
+    predictors: string[]
+  }
 }
 
 export interface DangerScoreMatrix {

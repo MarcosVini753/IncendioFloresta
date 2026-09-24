@@ -12,6 +12,9 @@ const manifest: DangerManifest = {
   generated_at: '2026-09-22T00:00:00Z', source_period: '2015-01-01/2015-12-31', crs: 'EPSG:4326',
   default_model: 'gradboost', default_date: '2015-08-25', dates, cell_order: cellOrder,
   models: models.map((id) => ({ id, label: id, file: `scores/${id}.json`,
+    implementation: id === 'fuzzy_knn_k29'
+      ? { backend: 'sklearn.neighbors.NearestNeighbors', search: 'exact', k: 29, m: 2 }
+      : { backend: `sklearn.${id}`, random_state: 42 },
     validation_2013: { roc_auc: 0.9, pr_auc: 0.8 }, test_2014_2015: { roc_auc: 0.8, pr_auc: 0.7 } })),
   value: { semantics: 'relative_score', domain: [0, 1], calibrated_probability: false },
   protocol: { training: '2006-2012', validation: '2013', historical_test: '2014-2015', predictor_count: 44, seed: 42, fire_context: 'previous_days_only' },
@@ -19,6 +22,8 @@ const manifest: DangerManifest = {
   representation: { type: 'aggregated_grid', step_degrees: 0.28, aggregation: 'mean' },
   counts: { dates: 365, features: 212, source_cells_per_date: 307410 }, bounds: [-74, -11, -66, -7],
   files: { grid: 'grid.geojson' },
+  provenance: { checkpoint_schema_version: '1.0', checkpoint_contract_sha256: 'a'.repeat(64),
+    training_rows: 196455, predictors: Array.from({ length: 44 }, (_, index) => `predictor_${index}`) },
 }
 
 const values = Array.from({ length: 365 }, () => Array.from({ length: 212 }, (_, index) => index / 212))
@@ -44,6 +49,14 @@ describe('contrato anual de perigo', () => {
     expect(() => validateDangerManifest({ ...manifest, models: manifest.models.slice(1) })).toThrow(/quatro modelos/)
     expect(() => validateDangerManifest({ ...manifest, models: manifest.models.map((model, index) => index === 0 ? { ...model, id: 'fuzzy_knn_k29' } : model) })).toThrow(/duplicado|quatro modelos/)
     expect(() => validateDangerScores({ schema_version: '1.0', model: 'gradboost', values: values.slice(1) }, 'gradboost')).toThrow(/incompleta/)
+  })
+
+  it('rejeita proveniência ausente e busca Fuzzy aproximada', () => {
+    expect(() => validateDangerManifest({ ...manifest, provenance: undefined })).toThrow(/proveniência/)
+    const approximate = manifest.models.map((model) => model.id === 'fuzzy_knn_k29'
+      ? { ...model, implementation: { ...model.implementation, search: 'approximate' } }
+      : model)
+    expect(() => validateDangerManifest({ ...manifest, models: approximate })).toThrow(/busca exata/)
   })
 
   it('monta a célula diária e séries estadual e local sem novas requisições', () => {
