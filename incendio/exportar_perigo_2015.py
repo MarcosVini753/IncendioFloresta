@@ -465,7 +465,8 @@ def audit_samples(
             print(f"[auditoria] {date}/{model_id}: médias reproduzidas", flush=True)
 
 
-def validate_product(product_dir: Path = PRODUTO) -> None:
+def validate_product(product_dir: Path | None = None) -> None:
+    product_dir = product_dir or PRODUTO
     manifest = json.loads((product_dir / "manifest.json").read_text(encoding="utf-8"))
     dates = manifest["dates"]
     expected = calendar_2015()

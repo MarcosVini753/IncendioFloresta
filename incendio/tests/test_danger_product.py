@@ -91,6 +91,46 @@ class DangerExporterUnitTest(unittest.TestCase):
         self.assertEqual(result["fogo_5km_3d"][0], 1)
         self.assertEqual(result["dias_desde_fogo_vizinho"][0], 1)
 
+    def test_complete_checkpoints_generate_the_public_product(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            checkpoints = root / "checkpoints"
+            checkpoints.mkdir()
+            product = root / "produtos" / "perigo" / "v1" / "2015"
+            features = [{
+                "type": "Feature",
+                "geometry": {"type": "Polygon", "coordinates": [[
+                    [-70.0, -9.0], [-69.9, -9.0], [-69.9, -8.9],
+                    [-70.0, -8.9], [-70.0, -9.0],
+                ]]},
+                "properties": {
+                    "id": f"AC-R00C{index:02d}",
+                    "centroid": [-69.95, -8.95],
+                    "n_source_cells": 307_199 if index == 0 else 1,
+                    "aggregation": "mean",
+                },
+            } for index in range(212)]
+            predictors = [f"predictor_{index}" for index in range(44)]
+            contract = exporter.build_checkpoint_contract(predictors, features, 196_455)
+            values = np.full((365, 212), 0.5)
+            completed = np.ones(365, dtype=bool)
+            for spec in exporter.MODEL_SPECS:
+                np.savez_compressed(
+                    checkpoints / f"scores_{spec['id']}.npz",
+                    values=values,
+                    completed=completed,
+                )
+            with patch.object(exporter, "CHECKPOINTS", checkpoints), patch.object(
+                exporter, "PRODUTO", product
+            ):
+                exporter.export_product(
+                    features, exporter.calendar_2015(),
+                    [-70.0, -9.0, -69.9, -8.9], predictors, contract,
+                )
+                exporter.validate_product()
+            self.assertEqual(len(list(product.rglob("*.json"))), 5)
+            self.assertTrue((product / "grid.geojson").is_file())
+
     def test_public_product_when_present(self):
         if not (exporter.PRODUTO / "manifest.json").exists():
             self.skipTest("produto anual ainda em processamento")
