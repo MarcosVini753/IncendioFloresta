@@ -12,6 +12,13 @@ from pipeline import dados
 
 
 class DangerExporterUnitTest(unittest.TestCase):
+    @staticmethod
+    def _checkpoint_contract():
+        features = [{"properties": {"id": "AC-R00C00"}}]
+        return exporter.build_checkpoint_contract(
+            [f"predictor_{index}" for index in range(44)], features, 196_455
+        )
+
     def test_calendar_has_every_day_of_2015(self):
         dates = exporter.calendar_2015()
         self.assertEqual(len(dates), 365)
@@ -46,6 +53,35 @@ class DangerExporterUnitTest(unittest.TestCase):
             self.assertTrue(restored_completed[236])
             np.testing.assert_allclose(restored_values[236], 0.5)
             self.assertTrue(np.isnan(restored_values[0]).all())
+
+    def test_checkpoint_contract_is_created_and_reused(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+            exporter, "CHECKPOINTS", Path(directory)
+        ):
+            contract = self._checkpoint_contract()
+            exporter.ensure_checkpoint_contract(contract)
+            exporter.ensure_checkpoint_contract(contract)
+            self.assertTrue((Path(directory) / exporter.CHECKPOINT_MANIFEST).exists())
+
+    def test_checkpoint_contract_rejects_mismatch(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+            exporter, "CHECKPOINTS", Path(directory)
+        ):
+            contract = self._checkpoint_contract()
+            exporter.ensure_checkpoint_contract(contract)
+            incompatible = dict(contract, training_rows=1)
+            with self.assertRaisesRegex(ValueError, "diverge"):
+                exporter.ensure_checkpoint_contract(incompatible)
+
+    def test_checkpoint_contract_rejects_legacy_artifacts(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(
+            exporter, "CHECKPOINTS", Path(directory)
+        ):
+            legacy = Path(directory) / "fuzzy_knn_k29"
+            legacy.mkdir()
+            np.save(legacy / "000.npy", np.zeros(212))
+            with self.assertRaisesRegex(ValueError, "sem manifesto"):
+                exporter.ensure_checkpoint_contract(self._checkpoint_contract())
 
     def test_fire_context_excludes_the_current_day(self):
         result = dados.contagio(

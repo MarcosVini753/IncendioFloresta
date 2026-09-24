@@ -9,6 +9,7 @@ data sem versionar resultados intermediarios.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -43,27 +44,47 @@ SEMENTE = 42
 ANO = 2015
 N_SOURCE_CELLS = 307_410
 DEFAULT_DATE = "2015-08-25"
+CHECKPOINT_SCHEMA_VERSION = "1.0"
+CHECKPOINT_MANIFEST = "manifest.json"
 
 MODEL_SPECS = (
     {
         "id": "gradboost", "training_name": "GradBoost", "label": "GradBoost",
         "validation": {"roc_auc": 0.983462, "pr_auc": 0.821555},
         "test": {"roc_auc": 0.976538, "pr_auc": 0.779165},
+        "implementation": {
+            "backend": "sklearn.ensemble.HistGradientBoostingClassifier",
+            "random_state": SEMENTE,
+        },
     },
     {
         "id": "random_forest", "training_name": "RandomForest", "label": "Random Forest",
         "validation": {"roc_auc": 0.979192, "pr_auc": 0.810696},
         "test": {"roc_auc": 0.974980, "pr_auc": 0.777088},
+        "implementation": {
+            "backend": "sklearn.ensemble.RandomForestClassifier",
+            "random_state": SEMENTE,
+        },
     },
     {
         "id": "logistic_regression", "training_name": "RegLogistica", "label": "Regressão logística",
         "validation": {"roc_auc": 0.972802, "pr_auc": 0.779675},
         "test": {"roc_auc": 0.970432, "pr_auc": 0.739004},
+        "implementation": {
+            "backend": "sklearn.linear_model.LogisticRegression",
+            "random_state": SEMENTE,
+        },
     },
     {
         "id": "fuzzy_knn_k29", "training_name": "FuzzyKNN_k29", "label": "Fuzzy k-NN (k=29)",
         "validation": {"roc_auc": 0.920768, "pr_auc": 0.761170},
         "test": {"roc_auc": 0.916687, "pr_auc": 0.723283},
+        "implementation": {
+            "backend": "sklearn.neighbors.NearestNeighbors",
+            "search": "exact",
+            "k": 29,
+            "m": 2.0,
+        },
     },
 )
 
@@ -82,6 +103,65 @@ def calendar_2015() -> list[str]:
     )]
 
 
+def build_checkpoint_contract(
+    predictors: list[str], features: list[dict[str, Any]], training_rows: int
+) -> dict[str, Any]:
+    """Descreve tudo que precisa permanecer estável durante uma retomada."""
+    contract: dict[str, Any] = {
+        "schema_version": CHECKPOINT_SCHEMA_VERSION,
+        "product": "wildfire_historical_daily_danger_checkpoints",
+        "year": ANO,
+        "dates": calendar_2015(),
+        "cell_order": [feature["properties"]["id"] for feature in features],
+        "predictors": predictors,
+        "training_rows": training_rows,
+        "protocol": {
+            "training": "2006-2012",
+            "validation": "2013",
+            "historical_test": "2014-2015",
+            "seed": SEMENTE,
+            "fire_context": "previous_days_only",
+            "source_cells_per_date": N_SOURCE_CELLS,
+            "aggregation": "mean",
+        },
+        "models": {
+            spec["id"]: spec["implementation"]
+            for spec in MODEL_SPECS
+        },
+    }
+    canonical = json.dumps(contract, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    contract["contract_sha256"] = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+    return contract
+
+
+def ensure_checkpoint_contract(contract: dict[str, Any]) -> None:
+    """Cria o contrato ou recusa checkpoints sem proveniência compatível."""
+    path = CHECKPOINTS / CHECKPOINT_MANIFEST
+    if path.exists():
+        stored = json.loads(path.read_text(encoding="utf-8"))
+        if stored != contract:
+            raise ValueError(
+                "Contrato dos checkpoints diverge da execução atual. "
+                "Preserve o diretório antigo e inicie uma série limpa."
+            )
+        return
+
+    artifacts = (
+        list(CHECKPOINTS.glob("scores_*.npz"))
+        + list(CHECKPOINTS.glob("fitted_*.joblib"))
+        + [path for path in CHECKPOINTS.iterdir() if path.is_dir()]
+        if CHECKPOINTS.exists()
+        else []
+    )
+    if artifacts:
+        raise ValueError(
+            "Checkpoints sem manifesto de proveniência foram encontrados. "
+            "Preserve o diretório antigo antes de preparar uma série nova."
+        )
+    CHECKPOINTS.mkdir(parents=True, exist_ok=True)
+    _json_dump(path, contract)
+
+
 def load_inputs() -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
     missing = [path for path in (AMOSTRA, ESTATICA, NOMES_CLIMA) if not path.exists()]
     if missing:
@@ -97,7 +177,12 @@ def load_inputs() -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
     return sample, static, names
 
 
-def fit_models(sample: pd.DataFrame, climate_names: list[str], selected: set[str]):
+def fit_models(
+    sample: pd.DataFrame,
+    climate_names: list[str],
+    selected: set[str],
+    contract_sha256: str,
+):
     predictors = dados.colunas_preditoras(sample, climate_names)
     if len(predictors) != 44:
         raise ValueError(f"Esperados 44 preditores; recebidos {len(predictors)}.")
@@ -113,14 +198,23 @@ def fit_models(sample: pd.DataFrame, climate_names: list[str], selected: set[str
         cache = CHECKPOINTS / f"fitted_{spec['id']}.joblib"
         if cache.exists():
             payload = joblib.load(cache)
-            if payload.get("predictors") == predictors:
+            if (
+                payload.get("predictors") == predictors
+                and payload.get("contract_sha256") == contract_sha256
+                and payload.get("model_id") == spec["id"]
+            ):
                 fitted[spec["id"]] = payload["model"]
                 print(f"[modelo] {spec['label']} recuperado de {cache}", flush=True)
                 continue
         model = zoo[spec["training_name"]]
         print(f"[modelo] ajustando {spec['label']} com {len(train)} pares...", flush=True)
         model.fit(X, y)
-        joblib.dump({"model": model, "predictors": predictors}, cache)
+        joblib.dump({
+            "model": model,
+            "predictors": predictors,
+            "model_id": spec["id"],
+            "contract_sha256": contract_sha256,
+        }, cache)
         fitted[spec["id"]] = model
     return fitted, predictors
 
@@ -277,7 +371,7 @@ def process(
             print(f"  {model_id}: checkpoint salvo", flush=True)
 
 
-def export_product(features, dates, bounds, predictors) -> None:
+def export_product(features, dates, bounds, predictors, checkpoint_contract) -> None:
     matrices = {}
     for spec in MODEL_SPECS:
         values, completed = load_checkpoint(spec["id"], len(dates), len(features))
@@ -311,6 +405,7 @@ def export_product(features, dates, bounds, predictors) -> None:
         "models": [{
             "id": spec["id"], "label": spec["label"],
             "validation_2013": spec["validation"], "test_2014_2015": spec["test"],
+            "implementation": spec["implementation"],
             "file": f"scores/{spec['id']}.json",
         } for spec in MODEL_SPECS],
         "value": {"semantics": "relative_score", "domain": [0, 1], "calibrated_probability": False},
@@ -327,6 +422,12 @@ def export_product(features, dates, bounds, predictors) -> None:
         "counts": {"dates": len(dates), "features": len(features), "source_cells_per_date": N_SOURCE_CELLS},
         "bounds": [round(value, 7) for value in bounds],
         "files": {"grid": "grid.geojson"},
+        "provenance": {
+            "checkpoint_schema_version": checkpoint_contract["schema_version"],
+            "checkpoint_contract_sha256": checkpoint_contract["contract_sha256"],
+            "training_rows": checkpoint_contract["training_rows"],
+            "predictors": checkpoint_contract["predictors"],
+        },
     }
     _json_dump(staging / "manifest.json", manifest)
     validate_product(staging)
@@ -370,6 +471,14 @@ def validate_product(product_dir: Path = PRODUTO) -> None:
     expected = calendar_2015()
     if dates != expected or len(manifest["cell_order"]) != 212:
         raise ValueError("Manifesto não contém o calendário contínuo ou as 212 células esperadas.")
+    provenance = manifest.get("provenance", {})
+    if (
+        provenance.get("checkpoint_schema_version") != CHECKPOINT_SCHEMA_VERSION
+        or len(provenance.get("predictors", [])) != 44
+        or provenance.get("training_rows") != 196_455
+        or len(provenance.get("checkpoint_contract_sha256", "")) != 64
+    ):
+        raise ValueError("Manifesto não registra a proveniência científica esperada.")
     grid = json.loads((product_dir / manifest["files"]["grid"]).read_text(encoding="utf-8"))
     if [item["properties"]["id"] for item in grid["features"]] != manifest["cell_order"]:
         raise ValueError("Ordem da grade diverge de cell_order.")
@@ -392,6 +501,10 @@ def main() -> None:
     parser.add_argument("--end", default="2015-12-31")
     parser.add_argument("--validate-only", action="store_true")
     parser.add_argument("--export-only", action="store_true")
+    parser.add_argument(
+        "--prepare-only", action="store_true",
+        help="cria e valida apenas o contrato local dos checkpoints",
+    )
     parser.add_argument("--audit-samples", action="store_true", help="recalcula janeiro, agosto e dezembro")
     args = parser.parse_args()
     if args.validate_only:
@@ -404,9 +517,21 @@ def main() -> None:
     sample, static, climate_names = load_inputs()
     features, group_index, counts, bounds = build_grid(static)
     predictors = dados.colunas_preditoras(sample, climate_names)
+    training_rows = int(sample["ano"].isin(range(2006, 2013)).sum())
+    checkpoint_contract = build_checkpoint_contract(predictors, features, training_rows)
+    ensure_checkpoint_contract(checkpoint_contract)
+    if args.prepare_only:
+        print(
+            "Contrato de checkpoints preparado: "
+            f"{checkpoint_contract['contract_sha256']}",
+            flush=True,
+        )
+        return
     if not args.export_only:
         selected = set(args.models or [item["id"] for item in MODEL_SPECS])
-        fitted, predictors = fit_models(sample, climate_names, selected)
+        fitted, predictors = fit_models(
+            sample, climate_names, selected, checkpoint_contract["contract_sha256"]
+        )
         print("[clima] carregando o cubo uma única vez...", flush=True)
         climate_cube, loaded_names = dados.features_climaticas()
         if loaded_names != climate_names:
@@ -434,7 +559,7 @@ def main() -> None:
                 group_index, counts, all_dates,
             )
     if all(load_checkpoint(item["id"], 365, len(features))[1].all() for item in MODEL_SPECS):
-        export_product(features, all_dates, bounds, predictors)
+        export_product(features, all_dates, bounds, predictors, checkpoint_contract)
     else:
         print("Checkpoints ainda incompletos; o produto público será gerado ao concluir os quatro modelos.")
 
