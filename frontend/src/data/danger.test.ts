@@ -88,6 +88,27 @@ describe('contrato anual de perigo', () => {
 })
 
 describe('falhas HTTP', () => {
+  it('carrega manifesto, grade e quatro matrizes anuais uma vez', async () => {
+    const request = vi.fn((input: string) => {
+      const path = input.split('/').at(-1)
+      const payload = path === 'manifest.json'
+        ? manifest
+        : path === 'grid.geojson'
+          ? grid
+          : { schema_version: '1.0', model: path?.replace('.json', ''), values }
+      return Promise.resolve(new Response(JSON.stringify(payload), {
+        status: 200, headers: { 'content-type': 'application/json' },
+      }))
+    })
+    vi.stubGlobal('fetch', request)
+
+    const loaded = await loadDangerProduct()
+    expect(request).toHaveBeenCalledTimes(6)
+    expect(loaded.manifest.dates).toHaveLength(365)
+    expect(Object.keys(loaded.scores)).toHaveLength(4)
+    expect(dangerCellsForDate(loaded, '2015-08-25').features).toHaveLength(212)
+  })
+
   it('informa arquivo público ausente', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('', { status: 404 })))
     await expect(loadDangerProduct()).rejects.toThrow(/HTTP 404/)
