@@ -37,3 +37,4 @@ venv/
 
 # Produtos sincronizados a partir da copia canonica em incendio/produtos
 frontend/public/data/susceptibility/
+frontend/public/data/danger/

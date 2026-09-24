@@ -1,4 +1,4 @@
-# Produtos web da suscetibilidade
+# Produtos web científicos
 
 ## Separação de artefatos
 
@@ -13,6 +13,9 @@ Acre e os produtos destinados ao navegador. Permanecem apenas no ambiente local:
 
 O diretório canônico é `produtos/suscetibilidade/v1/`. A cópia sob
 `frontend/public` é criada pelos scripts do npm e nunca deve ser editada diretamente.
+
+O perigo histórico tem cópia canônica em `produtos/perigo/v1/2015/` e segue a mesma
+regra: checkpoints e modelos ajustados ficam em `resultados/`, fora do Git.
 
 ## Ambiente Python
 
@@ -73,3 +76,39 @@ Para auditar os dois produtos já gerados sem recalcular modelos:
 
 A validação percorre todos os setores, rejeita setores vazios, confirma os quatro
 escores em `[0, 1]` e exige exatamente 307.410 IDs únicos.
+
+## Perigo histórico diário de 2015
+
+O produto diário preserva o protocolo científico do pipeline: treino em 2006–2012,
+validação em 2013, teste histórico em 2014–2015, 44 preditores e contexto de fogo
+formado exclusivamente por dias anteriores. Para gerar ou retomar:
+
+```bash
+cd incendio
+.venv/bin/python exportar_perigo_2015.py
+```
+
+O cubo climático é carregado uma vez. Após cada modelo/data, uma matriz agregada é
+gravada em `resultados/perigo_2015_checkpoints/`; interromper e executar o mesmo
+comando continua apenas os pontos pendentes. Também é possível processar modelos ou
+intervalos separadamente:
+
+```bash
+.venv/bin/python exportar_perigo_2015.py --models gradboost random_forest logistic_regression
+.venv/bin/python exportar_perigo_2015.py --models fuzzy_knn_k29
+.venv/bin/python exportar_perigo_2015.py --start 2015-08-01 --end 2015-08-31
+```
+
+O Fuzzy k-NN usa busca exata dos 29 vizinhos, sem índice aproximado. Como ele é o
+modelo mais custoso, a retomada diária evita repetir dias já concluídos.
+
+Quando os quatro checkpoints possuem 365 dias, o exportador grava `manifest.json`,
+`grid.geojson` e quatro matrizes `scores/*.json`. A geometria aparece uma única vez;
+linhas e colunas das matrizes seguem `dates` e `cell_order` do manifesto. Para auditar
+o produto sem recalcular previsões:
+
+```bash
+.venv/bin/python exportar_perigo_2015.py --validate-only
+```
+
+Os valores são `relative_score`, nunca probabilidade calibrada ou perigo operacional.
