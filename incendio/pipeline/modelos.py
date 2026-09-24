@@ -156,7 +156,7 @@ def zoo(semente: int = 42, k_fuzzy: int = 29) -> dict[str, object]:
             ]
         ),
         "RegLogistica": com_preparo(
-            LogisticRegression(max_iter=2000, class_weight="balanced")
+            LogisticRegression(max_iter=2000, class_weight="balanced", random_state=semente)
         ),
         f"FuzzyKNN_k{k_fuzzy}": com_preparo(FuzzyKNN(k=k_fuzzy, m=2.0)),
     }
