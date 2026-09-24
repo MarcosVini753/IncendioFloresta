@@ -130,4 +130,10 @@ o produto sem recalcular previsões, incluindo a proveniência científica:
 .venv/bin/python exportar_perigo_2015.py --validate-only
 ```
 
+Da raiz do repositório, `bash scripts/finalize_historical_danger_2015.sh` aguarda a
+conclusão da sessão `danger-2015-fuzzy`, audita janeiro, agosto e dezembro nos quatro
+modelos, executa os testes Python e do frontend, compila o site e verifica por HTTP
+os seis arquivos do produto. A mensagem `FINALIZATION_OK` confirma que todas essas
+etapas passaram. O script não cria commits nem envia a branch.
+
 Os valores são `relative_score`, nunca probabilidade calibrada ou perigo operacional.
