@@ -30,9 +30,9 @@ export function TimeSeriesChart({ data, selectedDate, title }: TimeSeriesChartPr
       <div className="section-heading">
         <div>
           <span className="eyebrow">Série temporal</span>
-          <h2>{title ?? 'Perigo médio demonstrativo — Acre'}</h2>
+          <h2>{title ?? 'Perigo histórico médio — Acre'}</h2>
         </div>
-        <span className="prototype-badge">Dados simulados</span>
+        <span className="prototype-badge">365 dias reais do produto</span>
       </div>
 
       <div className="chart-wrapper">
@@ -43,10 +43,10 @@ export function TimeSeriesChart({ data, selectedDate, title }: TimeSeriesChartPr
             <YAxis domain={[0, 1]} tickFormatter={(value) => Number(value).toFixed(1)} />
             <Tooltip
               labelFormatter={(value) => `Data: ${shortDate(String(value))}`}
-              formatter={(value) => [Number(value).toFixed(2), 'Índice']}
+              formatter={(value) => [Number(value).toFixed(3), 'Escore relativo']}
             />
             <ReferenceLine x={selectedDate} strokeDasharray="5 5" />
-            <Line type="monotone" dataKey="value" stroke="currentColor" strokeWidth={3} dot />
+            <Line type="monotone" dataKey="value" stroke="currentColor" strokeWidth={2} dot={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>

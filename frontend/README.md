@@ -1,7 +1,7 @@
-# Frontend — suscetibilidade experimental do Acre
+# Frontend — suscetibilidade e perigo histórico do Acre
 
-Interface React + TypeScript + MapLibre para visualizar a suscetibilidade histórica
-experimental e, de forma independente, os focos de calor reais do INPE.
+Interface React + TypeScript + MapLibre para visualizar a suscetibilidade experimental,
+o perigo diário reconstituído para 2015 e, de forma independente, focos reais do INPE.
 
 ## Produto exibido
 
@@ -18,8 +18,12 @@ Os quatro modelos disponíveis são:
 - Fuzzy k-NN com `k=29`.
 
 Todos produzem `relative_score` no intervalo `[0, 1]`. Esses escores não são
-probabilidades calibradas nem devem orientar decisões operacionais. Perigo diário e
-Alerta não são exibidos porque ainda não existe um produto temporal web validado.
+probabilidades calibradas nem devem orientar decisões operacionais. O modo Perigo é
+uma reconstituição histórica, não uma previsão atual. Alerta permanece indisponível.
+
+No Perigo, o slider percorre exatamente os 365 dias de 2015 e começa em 25/08/2015.
+As quatro matrizes anuais são carregadas na entrada do modo; depois disso, data e
+modelo mudam localmente. A série exibe a célula selecionada ou a média estadual.
 
 ## Sincronização do produto
 
@@ -27,10 +31,11 @@ A única cópia versionada fica em:
 
 ```text
 incendio/produtos/suscetibilidade/v1/
+incendio/produtos/perigo/v1/2015/
 ```
 
-Os scripts `predev` e `prebuild` copiam automaticamente esse diretório para
-`frontend/public/data/susceptibility/`. A cópia pública é gerada e ignorada pelo Git.
+Os scripts `predev` e `prebuild` copiam automaticamente ambos os produtos para
+`frontend/public/data/{susceptibility,danger}/`. As cópias são geradas e ignoradas.
 
 ## Executar localmente
 
@@ -45,6 +50,7 @@ Para validar a compilação e confirmar que o produto entrou em `dist`:
 ```bash
 npm run build
 find dist/data/susceptibility -type f
+find dist/data/danger -type f
 ```
 
 Na branch `experiment/native-susceptibility-grid`, execute também:
@@ -74,10 +80,11 @@ toggle, clustering e popup permanecem independentes do modelo de suscetibilidade
 ## Aceite manual
 
 1. O mapa abre com GradBoost e permite trocar instantaneamente entre quatro modelos.
-2. Não há controles ativos de Perigo ou Alerta.
+2. Perigo histórico abre em 25/08/2015, tem 365 posições e nunca ativa a grade nativa.
 3. Uma célula selecionada mostra os quatro escores, a média e a contagem de fontes.
 4. A legenda permanece fixa de 0 a 1.
 5. Os focos INPE podem ser ocultados, agrupados e inspecionados sem alterar o produto.
 6. Manifesto, GeoJSON e limite respondem com HTTP 200 e o console não apresenta erros.
+7. No Perigo, focos iniciam ocultos; ao ativá-los, as duas datas e o aviso temporal aparecem.
 
 Ao conectar o repositório à Vercel, use `frontend` como **Root Directory**.

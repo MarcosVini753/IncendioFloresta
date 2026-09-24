@@ -86,6 +86,28 @@ button:disabled {
   margin-bottom: 14px;
 }
 
+.product-controls {
+  grid-template-columns: minmax(280px, auto) minmax(240px, 0.7fr) minmax(330px, 1fr);
+}
+
+.temporal-warning {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 0 0 14px;
+  padding: 11px 14px;
+  border: 1px solid #f0c89b;
+  border-radius: 12px;
+  background: #fff7ed;
+  color: #8a4a20;
+  font-size: 0.8rem;
+}
+
+.temporal-warning span:last-child {
+  flex-basis: 100%;
+  font-weight: 700;
+}
+
 .control-group {
   min-width: 0;
   padding: 11px 12px;

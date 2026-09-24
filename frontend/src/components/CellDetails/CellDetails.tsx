@@ -4,11 +4,14 @@ import type {
   SusceptibilityManifest,
   SusceptibilityModelId,
 } from '../../types/susceptibility'
+import type { DangerManifest } from '../../types/danger'
 
 interface CellDetailsProps {
   cell: SelectedSusceptibilityCell | null
   model: SusceptibilityModelId
-  manifest: SusceptibilityManifest
+  manifest: SusceptibilityManifest | DangerManifest
+  date?: string
+  productLabel?: string
   onClear: () => void
 }
 
@@ -19,7 +22,14 @@ function formatScore(value: number) {
   }).format(value)
 }
 
-export function CellDetails({ cell, model, manifest, onClear }: CellDetailsProps) {
+function formatDate(value: string) {
+  const [year, month, day] = value.split('-')
+  return `${day}/${month}/${year}`
+}
+
+export function CellDetails({
+  cell, model, manifest, date, productLabel = 'Suscetibilidade', onClear,
+}: CellDetailsProps) {
   if (!cell) {
     return (
       <aside className="cell-details cell-details-empty">
@@ -44,7 +54,7 @@ export function CellDetails({ cell, model, manifest, onClear }: CellDetailsProps
       <div className="cell-details-header">
         <div>
           <span className="eyebrow">
-            {cell.kind === 'native' ? 'Célula científica original' : 'Célula agregada'}
+            {cell.kind === 'native' ? 'Célula científica original' : `${productLabel} · célula agregada`}
           </span>
           <h2>{properties.id}</h2>
         </div>
@@ -69,6 +79,7 @@ export function CellDetails({ cell, model, manifest, onClear }: CellDetailsProps
       </dl>
 
       <dl className="cell-metrics">
+        {date ? <div><dt>Data</dt><dd>{formatDate(date)}</dd></div> : null}
         {cell.kind === 'native' ? (
           <>
             <div><dt>Índice X</dt><dd>{cell.feature.properties.grid_x}</dd></div>

@@ -1,13 +1,14 @@
 interface MapLegendProps {
   modelLabel: string
+  productLabel: string
   showHotspots: boolean
 }
 
-export function MapLegend({ modelLabel, showHotspots }: MapLegendProps) {
+export function MapLegend({ modelLabel, productLabel, showHotspots }: MapLegendProps) {
   return (
     <div className="map-legend-stack">
-      <div className="map-legend" aria-label={`Legenda de suscetibilidade: ${modelLabel}`}>
-        <strong>Suscetibilidade · {modelLabel}</strong>
+      <div className="map-legend" aria-label={`Legenda de ${productLabel}: ${modelLabel}`}>
+        <strong>{productLabel} · {modelLabel}</strong>
         <div className="legend-gradient" />
         <div className="legend-scale">
           <span>0 · menor</span>

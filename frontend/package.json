@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "predev": "node scripts/sync-susceptibility.mjs",
+    "predev": "node scripts/sync-scientific-products.mjs",
     "dev": "vite",
-    "prebuild": "node scripts/sync-susceptibility.mjs",
+    "prebuild": "node scripts/sync-scientific-products.mjs",
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "preview": "vite preview"

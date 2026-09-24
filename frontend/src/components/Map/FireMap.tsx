@@ -28,6 +28,8 @@ import { MapLegend } from '../Legend/MapLegend'
 interface FireMapProps {
   model: SusceptibilityModelId
   modelLabel: string
+  productLabel: string
+  nativeEnabled: boolean
   cells: AggregatedCellCollection
   boundary: Feature<Polygon | MultiPolygon>
   bounds: [[number, number], [number, number]]
@@ -143,6 +145,8 @@ function nativeWithValue(collection: NativeCellCollection, model: Susceptibility
 export function FireMap({
   model,
   modelLabel,
+  productLabel,
+  nativeEnabled,
   cells,
   boundary,
   bounds,
@@ -162,6 +166,7 @@ export function FireMap({
   const hotspotsRef = useRef(hotspots)
   const showHotspotsRef = useRef(showHotspots)
   const nativeProductRef = useRef(nativeProduct)
+  const nativeEnabledRef = useRef(nativeEnabled)
   const nativeVisibleRef = useRef<NativeCellCollection>(EMPTY_NATIVE)
   const nativeCacheRef = useRef(new NativeSectorCache(32))
   const nativeAbortRef = useRef<AbortController | null>(null)
@@ -179,6 +184,7 @@ export function FireMap({
   hotspotsRef.current = hotspots
   showHotspotsRef.current = showHotspots
   nativeProductRef.current = nativeProduct
+  nativeEnabledRef.current = nativeEnabled
 
   const geojson = useMemo<AggregatedCellCollection>(
     () => ({
@@ -400,7 +406,7 @@ export function FireMap({
 
       const refreshNative = () => {
         nativeAbortRef.current?.abort()
-        if (map.getZoom() < NATIVE_ZOOM) {
+        if (!nativeEnabledRef.current || map.getZoom() < NATIVE_ZOOM) {
           setNativeVisibility(false)
           nativeVisibleRef.current = EMPTY_NATIVE
           const nativeSource = map.getSource(NATIVE_SOURCE_ID) as GeoJSONSource
@@ -488,6 +494,7 @@ export function FireMap({
   useEffect(() => {
     const source = mapRef.current?.getSource(CELLS_SOURCE_ID) as GeoJSONSource | undefined
     source?.setData(geojson)
+    popupRef.current?.remove()
   }, [geojson])
 
   useEffect(() => {
@@ -497,7 +504,7 @@ export function FireMap({
 
   useEffect(() => {
     refreshNativeRef.current?.()
-  }, [nativeProduct])
+  }, [nativeProduct, nativeEnabled])
 
   useEffect(() => {
     const source = mapRef.current?.getSource(INPE_SOURCE_ID) as GeoJSONSource | undefined
@@ -527,9 +534,15 @@ export function FireMap({
   return (
     <div className="map-shell">
       <div ref={containerRef} className="map-container" />
-      <MapLegend modelLabel={modelLabel} showHotspots={showHotspots && Boolean(hotspots?.features.length)} />
+      <MapLegend
+        modelLabel={modelLabel}
+        productLabel={productLabel}
+        showHotspots={showHotspots && Boolean(hotspots?.features.length)}
+      />
       <div className="map-prototype-note">
-        {nativeMode
+        {!nativeEnabled
+          ? 'Perigo histórico em grade agregada de 0,28° · a grade científica original não é carregada neste modo'
+          : nativeMode
           ? nativeLoading
             ? 'Carregando setores da grade científica original…'
             : nativeError || `${nativeCellCount.toLocaleString('pt-BR')} células científicas visíveis · sem agregação`

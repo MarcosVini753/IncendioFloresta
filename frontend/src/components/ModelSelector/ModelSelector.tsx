@@ -1,19 +1,17 @@
-import type {
-  SusceptibilityModelId,
-  SusceptibilityModelManifest,
-} from '../../types/susceptibility'
+import type { SusceptibilityModelId } from '../../types/susceptibility'
 
 interface ModelSelectorProps {
   value: SusceptibilityModelId
-  models: SusceptibilityModelManifest[]
+  models: { id: SusceptibilityModelId; label: string }[]
   onChange: (model: SusceptibilityModelId) => void
+  label?: string
 }
 
-export function ModelSelector({ value, models, onChange }: ModelSelectorProps) {
+export function ModelSelector({ value, models, onChange, label = 'Modelo de suscetibilidade' }: ModelSelectorProps) {
   return (
     <section className="control-group" aria-labelledby="model-selector-label">
       <label id="model-selector-label" className="control-label" htmlFor="susceptibility-model">
-        Modelo de suscetibilidade
+        {label}
       </label>
       <select
         id="susceptibility-model"
