@@ -36,6 +36,11 @@ incendio/produtos/perigo/v1/2015/
 
 Os scripts `predev` e `prebuild` copiam automaticamente ambos os produtos para
 `frontend/public/data/{susceptibility,danger}/`. As cópias são geradas e ignoradas.
+Enquanto os checkpoints Fuzzy k-NN ainda estão sendo calculados, o produto de Perigo
+canônico não existe: `npm run dev` e `npm run build` continuam funcionando para
+Suscetibilidade, e o modo histórico informa que seus arquivos ainda não estão
+disponíveis. Depois que o exportador terminar, reinicie o dev server ou execute
+`node scripts/sync-scientific-products.mjs` dentro de `frontend` para copiar o produto.
 
 ## Executar localmente
 
