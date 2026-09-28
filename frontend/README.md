@@ -3,6 +3,14 @@
 Interface React + TypeScript + MapLibre para visualizar a suscetibilidade histórica
 experimental e, de forma independente, os focos de calor reais do INPE.
 
+Na branch `feature/historical-climate-scars-2015`, a aba **Clima e cicatrizes ·
+2015** acrescenta 365 datas históricas. O seletor alterna entre umidade relativa
+e precipitação; o slider muda o dia, e o toggle exibe cicatrizes observadas no
+mesmo dia. Um clique na célula mostra mínimo, média espacial e máximo, além da
+quantidade de pixels climáticos válidos. Setores sem cobertura ficam cinza.
+Os marcadores vermelhos ajudam a localizar cicatrizes no zoom estadual; ao
+aproximar, os polígonos mostram a área dos pixels classificados.
+
 ## Produto exibido
 
 O frontend carrega e valida o manifesto e o GeoJSON gerados pelo pipeline científico.
@@ -19,7 +27,7 @@ Os quatro modelos disponíveis são:
 
 Todos produzem `relative_score` no intervalo `[0, 1]`. Esses escores não são
 probabilidades calibradas nem devem orientar decisões operacionais. Perigo diário e
-Alerta não são exibidos porque ainda não existe um produto temporal web validado.
+Alerta não são exibidos nesta branch.
 
 ## Sincronização do produto
 
@@ -31,6 +39,8 @@ incendio/produtos/suscetibilidade/v1/
 
 Os scripts `predev` e `prebuild` copiam automaticamente esse diretório para
 `frontend/public/data/susceptibility/`. A cópia pública é gerada e ignorada pelo Git.
+Na branch climática, eles também copiam `incendio/produtos/clima/` para
+`frontend/public/data/climate/`.
 
 ## Executar localmente
 
@@ -45,6 +55,7 @@ Para validar a compilação e confirmar que o produto entrou em `dist`:
 ```bash
 npm run build
 find dist/data/susceptibility -type f
+find dist/data/climate/v1/2015 -type f
 ```
 
 Na branch `experiment/native-susceptibility-grid`, execute também:
@@ -70,6 +81,15 @@ python3 scripts/prepare_inpe_hotspots.py
 
 Os focos são detecções orbitais, não incêndios confirmados. Data de referência,
 toggle, clustering e popup permanecem independentes do modelo de suscetibilidade.
+Os focos de 2026 não aparecem na aba histórica de clima de 2015.
+
+## Verificar a seção de 2015
+
+1. Abra **Clima e cicatrizes · 2015** e escolha 01/01, 25/08 e 31/12 no slider.
+2. Alterne umidade e precipitação; consulte uma célula e seus três valores espaciais.
+3. Ligue e desligue as cicatrizes. Dias sem registro exibem contagem zero.
+4. Confirme HTTP 200 para `manifest.json`, `grid.geojson`, `boundary.geojson`,
+   `humidity.json`, `precipitation.json` e `scars.geojson` em `/data/climate/v1/2015/`.
 
 ## Aceite manual
 

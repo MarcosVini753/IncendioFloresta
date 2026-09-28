@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react'
 import { CellDetails } from './components/CellDetails/CellDetails'
+import { ClimateDetails } from './components/ClimateDetails/ClimateDetails'
 import { HotspotLayerControl } from './components/HotspotControl/HotspotLayerControl'
+import { ClimateMap } from './components/Map/ClimateMap'
 import { FireMap } from './components/Map/FireMap'
 import { ModelSelector } from './components/ModelSelector/ModelSelector'
+import { TimeSlider } from './components/Timeline/TimeSlider'
+import { loadClimateProduct } from './data/climate'
 import { loadInpeHotspots } from './data/inpeHotspots'
 import { loadNativeGridProduct } from './data/nativeSusceptibility'
 import { loadSusceptibilityProduct } from './data/susceptibility'
 import type { InpeHotspotCollection } from './types/inpe'
+import type { ClimateProduct, ClimateVariable } from './types/climate'
 import type {
   NativeGridProduct,
   SelectedSusceptibilityCell,
@@ -20,6 +25,13 @@ function formatReferenceDate(value: string | undefined) {
 }
 
 export default function App() {
+  const [section, setSection] = useState<'susceptibility' | 'climate'>('susceptibility')
+  const [climate, setClimate] = useState<ClimateProduct | null>(null)
+  const [climateError, setClimateError] = useState<string | null>(null)
+  const [climateVariable, setClimateVariable] = useState<ClimateVariable>('humidity')
+  const [climateDate, setClimateDate] = useState('2015-08-25')
+  const [showScars, setShowScars] = useState(true)
+  const [selectedClimateCell, setSelectedClimateCell] = useState<string | null>(null)
   const [product, setProduct] = useState<SusceptibilityProduct | null>(null)
   const [selectedModel, setSelectedModel] = useState<SusceptibilityModelId>('gradboost')
   const [selectedCell, setSelectedCell] = useState<SelectedSusceptibilityCell | null>(null)
@@ -46,6 +58,20 @@ export default function App() {
       })
     return () => controller.abort()
   }, [])
+
+  useEffect(() => {
+    if (section !== 'climate' || climate) return
+    const controller = new AbortController()
+    setClimateError(null)
+    loadClimateProduct(controller.signal)
+      .then(setClimate)
+      .catch((error: unknown) => {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+          setClimateError(error instanceof Error ? error.message : 'Erro ao carregar clima histórico.')
+        }
+      })
+    return () => controller.abort()
+  }, [section, climate])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -80,6 +106,7 @@ export default function App() {
   const hotspotReferenceDate = formatReferenceDate(
     hotspots?.metadata.data_referencia ?? hotspots?.features[0]?.properties.data_hora_gmt ?? undefined,
   )
+  const dailyScars = climate?.scars.features.filter((feature) => feature.properties.date === climateDate).length ?? 0
 
   return (
     <main className="app-shell">
@@ -87,11 +114,55 @@ export default function App() {
         <div>
           <span className="eyebrow">Produto científico experimental</span>
           <h1>Monitoramento de Incêndios Florestais — Acre</h1>
-          <p>Suscetibilidade histórica agregada com focos de calor observados pelo INPE.</p>
+          <p>Suscetibilidade experimental, clima diário de 2015 e observações de fogo.</p>
         </div>
-        <span className="prototype-badge">Suscetibilidade experimental · focos INPE reais</span>
+        <span className="prototype-badge">{section === 'climate' ? 'Clima histórico · cicatrizes mapeadas · 2015' : 'Suscetibilidade experimental · focos INPE reais'}</span>
       </header>
 
+      <nav className="product-tabs" aria-label="Seção do mapa">
+        <button type="button" className={section === 'susceptibility' ? 'active' : undefined} onClick={() => setSection('susceptibility')}>Suscetibilidade</button>
+        <button type="button" className={section === 'climate' ? 'active' : undefined} onClick={() => setSection('climate')}>Clima e cicatrizes · 2015</button>
+      </nav>
+
+      {section === 'climate' ? (
+        <>
+          <div className="map-controls climate-controls">
+            <section className="control-group">
+              <span className="control-label">Variável climática</span>
+              <div className="layer-selector">
+                <button type="button" className={climateVariable === 'humidity' ? 'active' : undefined} onClick={() => setClimateVariable('humidity')}>Umidade relativa</button>
+                <button type="button" className={climateVariable === 'precipitation' ? 'active' : undefined} onClick={() => setClimateVariable('precipitation')}>Precipitação</button>
+              </div>
+            </section>
+            <section className="control-group climate-scar-control">
+              <span className="control-label">Observações</span>
+              <label><input type="checkbox" checked={showScars} onChange={(event) => setShowScars(event.target.checked)} /> Cicatrizes observadas no dia</label>
+              <small>{dailyScars} pixels classificados em {formatReferenceDate(climateDate)}</small>
+            </section>
+          </div>
+          {climate ? (
+            <>
+              <TimeSlider dates={climate.manifest.dates} selectedDate={climateDate} onChange={setClimateDate} />
+              <section className="map-workspace climate-workspace">
+                <ClimateMap product={climate} variable={climateVariable} date={climateDate} showScars={showScars} selectedCellId={selectedClimateCell} onCellSelect={setSelectedClimateCell} />
+                <ClimateDetails product={climate} variable={climateVariable} date={climateDate} cellId={selectedClimateCell} onClear={() => setSelectedClimateCell(null)} />
+              </section>
+              <section className="scientific-product-note">
+                <div><span className="eyebrow">Como ler</span><strong>Clima histórico e cicatrizes mapeadas de 2015</strong></div>
+                <p>As cores mostram a média espacial diária. O painel informa mínimo, média e máximo entre pixels climáticos de aproximadamente 0,1° que intersectam cada célula visual de 0,28°. Marcadores vermelhos localizam pixels classificados como cicatriz; ao aproximar, seu contorno aparece. Um dia sem registro não comprova ausência de fogo.</p>
+              </section>
+            </>
+          ) : (
+            <section className="map-section">
+              <div className="map-shell map-status" role="status">
+                <strong>{climateError ? 'Não foi possível carregar o clima histórico.' : 'Carregando clima e cicatrizes de 2015…'}</strong>
+                {climateError && <span>{climateError}</span>}
+              </div>
+            </section>
+          )}
+        </>
+      ) : (
+      <>
       <div className="map-controls">
         {product ? (
           <ModelSelector
@@ -168,6 +239,8 @@ export default function App() {
             )}
           </div>
         </section>
+      )}
+      </>
       )}
     </main>
   )

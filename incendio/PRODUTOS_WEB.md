@@ -1,4 +1,39 @@
-# Produtos web da suscetibilidade
+# Produtos web científicos
+
+## Clima diário e cicatrizes observadas de 2015
+
+Na branch `feature/historical-climate-scars-2015`, o exportador gera um produto
+histórico independente dos modelos. Execute, a partir de `incendio/`:
+
+```bash
+.venv/bin/python exportar_clima_2015.py
+.venv/bin/python exportar_clima_2015.py --validate-only
+```
+
+Os insumos locais são os três GeoTIFFs e a malha agregada já versionada em
+`produtos/suscetibilidade/v1/aggregated/mapa.geojson`. A única cópia pública
+versionada fica em `produtos/clima/v1/2015/`:
+
+- `manifest.json`: 365 datas, ordem de 212 células, cobertura por célula e fontes;
+- `grid.geojson` e `boundary.geojson`: geometria sem valores diários duplicados;
+- `humidity.json` e `precipitation.json`: matrizes `values[365][212][min, mean, max]`;
+- `scars.geojson`: pixels do raster anual de 2015 com data de detecção.
+
+Cada célula visual mede cerca de `0,28°`. O exportador intersecta seus polígonos
+com pixels climáticos de aproximadamente `0,1°`; a média usa a área geodésica
+das interseções como peso. Mínimo e máximo são espaciais naquele dia, entre
+pixels válidos que intersectam a célula. Os 8 setores sem pixels válidos têm
+`[null, null, null]` e aparecem sem dado no mapa. Os números não representam
+extremos horários nem uma medição pontual.
+
+O GeoTIFF de cicatrizes tem uma banda por ano; seus valores positivos codificam
+o dia do ano da detecção. Em 2015, há 445 pixels positivos no raster bruto e
+425 polígonos após o recorte pelo limite versionado do Acre. Um dia sem
+cicatriz no produto significa somente que este raster não registrou detecção.
+O clima termina em 2015, apesar de `2016` aparecer no nome dos arquivos.
+
+Os scripts npm `predev` e `prebuild` sincronizam a cópia canônica para
+`frontend/public/data/climate/`, que é gerada e ignorada pelo Git.
 
 ## Separação de artefatos
 
@@ -11,7 +46,7 @@ Acre e os produtos destinados ao navegador. Permanecem apenas no ambiente local:
 - PNGs, CSVs de avaliação e demais resultados intermediários;
 - ambientes virtuais, caches Python e arquivos `*.Identifier`.
 
-O diretório canônico é `produtos/suscetibilidade/v1/`. A cópia sob
+O diretório canônico da suscetibilidade é `produtos/suscetibilidade/v1/`. A cópia sob
 `frontend/public` é criada pelos scripts do npm e nunca deve ser editada diretamente.
 
 ## Ambiente Python
