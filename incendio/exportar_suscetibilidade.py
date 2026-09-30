@@ -1,8 +1,8 @@
-"""Exporta a suscetibilidade experimental para consumo pelo frontend.
+"""Exporta a suscetibilidade experimental do ano mais recente para o frontend.
 
 O produto agregado e a grade cientifica nativa partem exatamente dos mesmos
 quatro escores. Os valores sao escores relativos em [0, 1], nao probabilidades
-calibradas nem previsoes operacionais de incendio.
+calibradas nem previsoes prospectivas/operacionais de incendio.
 """
 
 from __future__ import annotations
@@ -26,7 +26,8 @@ from treinar_suscetibilidade import PREDITORES, equilibrar, montar
 BASE = Path(__file__).resolve().parent
 RESULTADOS = BASE / "resultados"
 ESTATICA = RESULTADOS / "estatica.parquet"
-CACHE_SCORES = RESULTADOS / "suscetibilidade_scores.parquet"
+TARGET_YEAR = max(geo.ANOS_CICATRIZ)
+CACHE_SCORES = RESULTADOS / f"suscetibilidade_{TARGET_YEAR}_scores.parquet"
 LIMITE = BASE / "recursos" / "limite_acre.geojson"
 PRODUTO = BASE / "produtos" / "suscetibilidade" / "v1"
 AGREGADO = PRODUTO / "aggregated"
@@ -44,32 +45,24 @@ MODEL_SPECS = (
         "training_name": "GradBoost",
         "label": "GradBoost",
         "property": "score_gradboost",
-        "roc_auc": 0.8626046879537765,
-        "pr_auc": 0.8209198956599393,
     },
     {
         "id": "random_forest",
         "training_name": "RandomForest",
         "label": "Random Forest",
         "property": "score_random_forest",
-        "roc_auc": 0.8620899542894825,
-        "pr_auc": 0.8189487409531366,
     },
     {
         "id": "logistic_regression",
         "training_name": "RegLogistica",
         "label": "Regressão logística",
         "property": "score_logistic_regression",
-        "roc_auc": 0.8542878212075525,
-        "pr_auc": 0.8102112687664871,
     },
     {
         "id": "fuzzy_knn_k29",
         "training_name": "FuzzyKNN_k29",
         "label": "Fuzzy k-NN (k=29)",
         "property": "score_fuzzy_knn_k29",
-        "roc_auc": 0.8447305875567344,
-        "pr_auc": 0.7943606296911658,
     },
 )
 SCORE_COLUMNS = tuple(spec["property"] for spec in MODEL_SPECS)
@@ -204,7 +197,7 @@ def treinar_e_calcular(est: pd.DataFrame, reutilizar: bool) -> pd.DataFrame:
             validar_scores(scores)
             return scores[cache_columns]
 
-    _, target = montar(est, "qualquer")
+    _, target = montar(est, TARGET_YEAR)
     index = equilibrar(target, np.random.default_rng(SEMENTE), razao=1)
     X_train = est.iloc[index][PREDITORES].to_numpy(dtype=np.float64)
     y_train = target[index]
@@ -258,10 +251,10 @@ def public_models():
             "label": spec["label"],
             "property": spec["property"],
             "validation": {
-                "protocol": "spatial_group_kfold_25km",
-                "folds": 5,
-                "roc_auc": spec["roc_auc"],
-                "pr_auc": spec["pr_auc"],
+                "protocol": "not_evaluated_for_2016_target",
+                "folds": 0,
+                "roc_auc": None,
+                "pr_auc": None,
             },
         }
         for spec in MODEL_SPECS
@@ -272,9 +265,9 @@ def base_manifest(generated_at: str) -> dict[str, Any]:
     return {
         "schema_version": "1.0",
         "product": "wildfire_susceptibility",
-        "label": "Suscetibilidade — modelo experimental",
+        "label": "Risco experimental — referência 2016",
         "generated_at": generated_at,
-        "source_period": "2006-2016",
+        "source_period": str(TARGET_YEAR),
         "crs": "EPSG:4326",
         "default_model": "gradboost",
         "models": public_models(),
@@ -284,10 +277,11 @@ def base_manifest(generated_at: str) -> dict[str, Any]:
             "calibrated_probability": False,
         },
         "training": {
-            "target": "burned_at_least_once_2006_2016",
+            "target": f"burned_in_{TARGET_YEAR}",
             "sample": "balanced_1_to_1",
             "seed": SEMENTE,
             "predictors": PREDITORES,
+            "evaluation": "in_sample_scores_no_independent_validation",
         },
         "original_grid": {
             "crs": f"EPSG:{geo.EPSG_CENTROIDES}",
@@ -453,6 +447,8 @@ def validar_produto_agregado() -> None:
     with (AGREGADO / manifest["files"]["geojson"]).open(encoding="utf-8") as stream:
         collection = json.load(stream)
     features = collection.get("features", [])
+    if manifest.get("source_period") != str(TARGET_YEAR) or manifest.get("training", {}).get("target") != f"burned_in_{TARGET_YEAR}":
+        raise ValueError(f"O produto agregado nao corresponde ao alvo mais recente ({TARGET_YEAR}).")
     if collection.get("type") != "FeatureCollection" or not features:
         raise ValueError("GeoJSON agregado vazio ou invalido.")
     if sum(item["properties"]["n_source_cells"] for item in features) != 307_410:
@@ -471,6 +467,8 @@ def validar_produto_nativo() -> None:
     with (NATIVO / manifest["files"]["index"]).open(encoding="utf-8") as stream:
         index = json.load(stream)
     entries = index.get("sectors", [])
+    if manifest.get("source_period") != str(TARGET_YEAR) or manifest.get("training", {}).get("target") != f"burned_in_{TARGET_YEAR}":
+        raise ValueError(f"O produto nativo nao corresponde ao alvo mais recente ({TARGET_YEAR}).")
     if not entries or len(entries) != manifest["counts"]["sectors"]:
         raise ValueError("Indice nativo vazio ou com contagem de setores divergente.")
     ids: set[str] = set()

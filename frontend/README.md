@@ -1,7 +1,10 @@
-# Frontend — suscetibilidade experimental do Acre
+# Frontend — risco experimental do Acre
 
-Interface React + TypeScript + MapLibre para visualizar a suscetibilidade histórica
-experimental e, de forma independente, os focos de calor reais do INPE.
+Interface React + TypeScript + MapLibre para visualizar o risco experimental
+referente a 2016 e, de forma independente, os focos de calor reais do INPE.
+O produto de risco usa apenas o ano mais recente do raster de cicatrizes
+disponível no repositório: 2016. Os valores são retrospectivos e não representam
+previsão prospectiva independente.
 
 Na branch `feature/historical-climate-scars-2015`, a aba **Clima e cicatrizes ·
 2015** acrescenta 365 datas históricas. O seletor alterna entre umidade relativa
@@ -18,15 +21,16 @@ A visualização estadual usa 212 células de aproximadamente `0,28°`, recortad
 limite do Acre. Cada valor é a média das células científicas originais de cerca de
 `893 × 598 m` contidas naquele setor.
 
-Os quatro modelos disponíveis são:
+Os quatro modelos disponíveis calculam escores relativos ajustados ao alvo de 2016:
 
-- GradBoost, selecionado inicialmente pela melhor validação espacial registrada;
+- GradBoost, selecionado como modelo inicial;
 - Random Forest;
 - Regressão logística;
 - Fuzzy k-NN com `k=29`.
 
 Todos produzem `relative_score` no intervalo `[0, 1]`. Esses escores não são
-probabilidades calibradas nem devem orientar decisões operacionais. Perigo diário e
+probabilidades calibradas nem devem orientar decisões operacionais. Não há validação
+independente publicada para o alvo anual de 2016. Perigo diário e
 Alerta não são exibidos nesta branch.
 
 ## Sincronização do produto

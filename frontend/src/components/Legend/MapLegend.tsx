@@ -6,8 +6,8 @@ interface MapLegendProps {
 export function MapLegend({ modelLabel, showHotspots }: MapLegendProps) {
   return (
     <div className="map-legend-stack">
-      <div className="map-legend" aria-label={`Legenda de suscetibilidade: ${modelLabel}`}>
-        <strong>Suscetibilidade · {modelLabel}</strong>
+      <div className="map-legend" aria-label={`Legenda de risco: ${modelLabel}`}>
+        <strong>Risco · {modelLabel}</strong>
         <div className="legend-gradient" />
         <div className="legend-scale">
           <span>0 · menor</span>

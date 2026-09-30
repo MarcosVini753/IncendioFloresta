@@ -13,7 +13,7 @@ export function ModelSelector({ value, models, onChange }: ModelSelectorProps) {
   return (
     <section className="control-group" aria-labelledby="model-selector-label">
       <label id="model-selector-label" className="control-label" htmlFor="susceptibility-model">
-        Modelo de suscetibilidade
+        Modelo de risco
       </label>
       <select
         id="susceptibility-model"

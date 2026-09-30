@@ -25,7 +25,7 @@ const manifest: NativeSusceptibilityManifest = {
   product: 'wildfire_susceptibility',
   label: 'Suscetibilidade',
   generated_at: '2026-09-22T00:00:00Z',
-  source_period: '2006-2016',
+  source_period: '2016',
   crs: 'EPSG:4326',
   default_model: 'gradboost',
   models: [
@@ -39,6 +39,11 @@ const manifest: NativeSusceptibilityManifest = {
     property: property as NativeSusceptibilityManifest['models'][number]['property'],
     validation: { protocol: 'spatial_group_kfold_25km', folds: 5, roc_auc: 0.8, pr_auc: 0.7 },
   })),
+  training: {
+    target: 'burned_in_2016', sample: 'balanced_1_to_1', seed: 42,
+    predictors: ['veg', 'dist_estrada', 'dist_agua', 'altitude'],
+    evaluation: 'in_sample_scores_no_independent_validation',
+  },
   value: { semantics: 'relative_score', domain: [0, 1], calibrated_probability: false },
   original_grid: { crs: 'EPSG:31979', cell_width_m: 892.98, cell_height_m: 598.16, cell_count: 307410 },
   representation: { type: 'native_sharded_grid', aggregation: 'none', sector_step_degrees: 0.28 },

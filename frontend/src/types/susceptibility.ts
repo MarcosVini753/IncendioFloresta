@@ -39,10 +39,10 @@ export interface SusceptibilityModelManifest {
   label: string
   property: SusceptibilityScoreProperty
   validation: {
-    protocol: 'spatial_group_kfold_25km'
+    protocol: 'spatial_group_kfold_25km' | 'not_evaluated_for_2016_target'
     folds: number
-    roc_auc: number
-    pr_auc: number
+    roc_auc: number | null
+    pr_auc: number | null
   }
 }
 
@@ -55,6 +55,13 @@ export interface SusceptibilityManifest {
   crs: 'EPSG:4326'
   default_model: SusceptibilityModelId
   models: SusceptibilityModelManifest[]
+  training: {
+    target: string
+    sample: string
+    seed: number
+    predictors: string[]
+    evaluation: string
+  }
   value: {
     semantics: 'relative_score'
     domain: [number, number]
@@ -127,6 +134,7 @@ export interface NativeSusceptibilityManifest {
   crs: 'EPSG:4326'
   default_model: SusceptibilityModelId
   models: SusceptibilityModelManifest[]
+  training: SusceptibilityManifest['training']
   value: SusceptibilityManifest['value']
   original_grid: SusceptibilityManifest['original_grid']
   representation: {

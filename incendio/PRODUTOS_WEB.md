@@ -70,13 +70,17 @@ cd incendio
 .venv/bin/python exportar_suscetibilidade.py --validate-only
 ```
 
-O alvo é “queimou em algum ano entre 2006 e 2016”. Os quatro modelos usam o mesmo
-subconjunto balanceado, semente 42 e quatro preditores de paisagem. O exportador
-calcula os escores das 307.410 células, valida finitude/domínio e agrega pela média
-em setores de `0,28°`, preservando IDs `AC-RxxCxx`.
+O site expõe somente o ano mais recente presente no raster de cicatrizes: **2016**.
+O alvo é `queimou_2016`, e não a união das cicatrizes de 2006–2016. Os quatro
+modelos usam o mesmo subconjunto balanceado, semente 42 e quatro preditores de
+paisagem. O exportador calcula escores para as 307.410 células, valida
+finitude/domínio e agrega pela média em setores de `0,28°`, preservando IDs
+`AC-RxxCxx`. São escores retrospectivos ajustados a registros de 2016, sem
+validação independente para esse alvo; não constituem previsão prospectiva,
+perigo diário nem probabilidade calibrada.
 
-O arquivo `resultados/suscetibilidade_scores.parquet` é um cache local ignorado. Para
-reutilizá-lo numa segunda exportação:
+O arquivo `resultados/suscetibilidade_2016_scores.parquet` é um cache local
+ignorado e específico do alvo de 2016. Para reutilizá-lo:
 
 ```bash
 .venv/bin/python exportar_suscetibilidade.py --reuse-scores
@@ -85,7 +89,8 @@ reutilizá-lo numa segunda exportação:
 ## Contrato público agregado
 
 `produtos/suscetibilidade/v1/aggregated/manifest.json` declara versão, modelos,
-métricas da validação espacial de 25 km, período-fonte, domínio, resolução e arquivos.
+ano de referência, alvo, semântica, domínio, resolução e arquivos. Métricas de
+validação independentes não são publicadas para este alvo anual.
 Cada feature do `mapa.geojson` contém:
 
 - ID e centroide representativo;

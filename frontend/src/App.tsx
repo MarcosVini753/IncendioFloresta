@@ -52,7 +52,7 @@ export default function App() {
       .catch((error: unknown) => {
         if (!(error instanceof DOMException && error.name === 'AbortError')) {
           setLoadError(
-            error instanceof Error ? error.message : 'Erro ao carregar a suscetibilidade.',
+            error instanceof Error ? error.message : 'Erro ao carregar o risco experimental.',
           )
         }
       })
@@ -114,13 +114,13 @@ export default function App() {
         <div>
           <span className="eyebrow">Produto científico experimental</span>
           <h1>Monitoramento de Incêndios Florestais — Acre</h1>
-          <p>Suscetibilidade experimental, clima diário de 2015 e observações de fogo.</p>
+          <p>Risco experimental referente a 2016, clima diário de 2015 e observações de fogo.</p>
         </div>
-        <span className="prototype-badge">{section === 'climate' ? 'Clima histórico · cicatrizes mapeadas · 2015' : 'Suscetibilidade experimental · focos INPE reais'}</span>
+        <span className="prototype-badge">{section === 'climate' ? 'Clima histórico · cicatrizes mapeadas · 2015' : 'Risco experimental · referência 2016 · focos INPE reais'}</span>
       </header>
 
       <nav className="product-tabs" aria-label="Seção do mapa">
-        <button type="button" className={section === 'susceptibility' ? 'active' : undefined} onClick={() => setSection('susceptibility')}>Suscetibilidade</button>
+        <button type="button" className={section === 'susceptibility' ? 'active' : undefined} onClick={() => setSection('susceptibility')}>Risco</button>
         <button type="button" className={section === 'climate' ? 'active' : undefined} onClick={() => setSection('climate')}>Clima e cicatrizes · 2015</button>
       </nav>
 
@@ -172,7 +172,7 @@ export default function App() {
           />
         ) : (
           <section className="control-group">
-            <span className="control-label">Modelo de suscetibilidade</span>
+            <span className="control-label">Modelo de risco</span>
             <span className="control-loading">Carregando produto…</span>
           </section>
         )}
@@ -214,11 +214,13 @@ export default function App() {
           <section className="scientific-product-note">
             <div>
               <span className="eyebrow">Leitura correta</span>
-              <strong>Escores relativos de suscetibilidade, não probabilidades calibradas</strong>
+              <strong>Risco experimental referente às cicatrizes de 2016</strong>
             </div>
             <p>
-              Período-fonte {product.manifest.source_period}. Cada célula visível reúne, por média
-              aritmética, células científicas de aproximadamente 893 × 598 m. O modelo ativo é{' '}
+              Ano de referência {product.manifest.source_period}. Os escores são relativos e não
+              representam probabilidades calibradas nem previsão operacional independente. Cada
+              célula visível reúne, por média aritmética, células científicas de aproximadamente
+              893 × 598 m. O modelo ativo é{' '}
               <strong>{activeModel.label}</strong>.
             </p>
           </section>
@@ -228,7 +230,7 @@ export default function App() {
           <div className="map-shell map-status" role="status">
             {loadError ? (
               <>
-                <strong>Não foi possível carregar a suscetibilidade.</strong>
+                <strong>Não foi possível carregar o risco experimental.</strong>
                 <span>{loadError}</span>
               </>
             ) : (

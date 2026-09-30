@@ -24,6 +24,9 @@ class ExportedProductTest(unittest.TestCase):
         self.assertEqual(self.manifest["schema_version"], "1.0")
         self.assertEqual(self.manifest["product"], "wildfire_susceptibility")
         self.assertEqual(self.manifest["default_model"], "gradboost")
+        self.assertEqual(self.manifest["source_period"], "2016")
+        self.assertEqual(self.manifest["training"]["target"], "burned_in_2016")
+        self.assertEqual(self.manifest["training"]["evaluation"], "in_sample_scores_no_independent_validation")
         self.assertEqual(self.manifest["value"]["semantics"], "relative_score")
         self.assertEqual(len(self.manifest["models"]), 4)
         features = self.collection["features"]

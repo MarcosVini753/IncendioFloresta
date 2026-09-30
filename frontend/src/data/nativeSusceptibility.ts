@@ -31,6 +31,12 @@ export function validateNativeManifest(value: unknown): NativeSusceptibilityMani
   if (value.crs !== 'EPSG:4326' || value.default_model !== 'gradboost') {
     throw new Error('CRS ou modelo padrão inesperado na grade científica.')
   }
+  if (typeof value.source_period !== 'string' || !/^\d{4}$/.test(value.source_period)) {
+    throw new Error('A grade científica deve indicar um único ano de referência.')
+  }
+  if (!isRecord(value.training) || value.training.target !== `burned_in_${value.source_period}`) {
+    throw new Error('O alvo da grade científica diverge do ano de referência.')
+  }
   if (!Array.isArray(value.models) || value.models.length !== 4) {
     throw new Error('A grade científica não informa os quatro modelos.')
   }

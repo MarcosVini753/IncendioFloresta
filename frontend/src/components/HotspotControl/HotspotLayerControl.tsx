@@ -54,7 +54,7 @@ export function HotspotLayerControl({
         </p>
       ) : (
         <p className="hotspot-control-note">
-          Detecções orbitais independentes da suscetibilidade; não são incêndios confirmados.
+          Detecções orbitais independentes do mapa de risco; não são incêndios confirmados.
         </p>
       )}
     </section>

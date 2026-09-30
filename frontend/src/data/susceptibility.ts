@@ -26,12 +26,15 @@ function isModelId(value: unknown): value is SusceptibilityModelId {
 }
 
 export function validateManifest(value: unknown): SusceptibilityManifest {
-  if (!isRecord(value)) throw new Error('Manifesto de suscetibilidade inválido.')
+  if (!isRecord(value)) throw new Error('Manifesto do produto de risco inválido.')
   if (value.schema_version !== '1.0' || value.product !== 'wildfire_susceptibility') {
-    throw new Error('Contrato do produto de suscetibilidade não é compatível com o frontend.')
+    throw new Error('Contrato do produto de risco não é compatível com o frontend.')
   }
-  if (value.crs !== 'EPSG:4326' || value.source_period !== '2006-2016') {
-    throw new Error('Metadados espaciais ou período-fonte inesperados no manifesto.')
+  if (value.crs !== 'EPSG:4326' || typeof value.source_period !== 'string' || !/^\d{4}$/.test(value.source_period)) {
+    throw new Error('O produto deve indicar um único ano de referência.')
+  }
+  if (!isRecord(value.training) || value.training.target !== `burned_in_${value.source_period}`) {
+    throw new Error('O alvo não corresponde ao ano de referência do produto publicado.')
   }
   if (!isModelId(value.default_model) || !Array.isArray(value.models) || value.models.length !== 4) {
     throw new Error('O manifesto não descreve os quatro modelos esperados.')
@@ -39,7 +42,7 @@ export function validateManifest(value: unknown): SusceptibilityManifest {
   const modelIds = new Set<string>()
   for (const model of value.models) {
     if (!isRecord(model) || !isModelId(model.id) || typeof model.label !== 'string') {
-      throw new Error('Modelo inválido no manifesto de suscetibilidade.')
+      throw new Error('Modelo inválido no manifesto do produto de risco.')
     }
     if (model.property !== MODEL_SCORE_PROPERTY[model.id] || modelIds.has(model.id)) {
       throw new Error('Mapeamento ou ID de modelo inválido no manifesto.')
@@ -87,7 +90,7 @@ function validateProperties(value: unknown): AggregatedCellProperties {
 
 function validateCells(value: unknown, manifest: SusceptibilityManifest): AggregatedCellCollection {
   if (!isRecord(value) || value.type !== 'FeatureCollection' || !Array.isArray(value.features)) {
-    throw new Error('O mapa de suscetibilidade não é uma FeatureCollection.')
+    throw new Error('O mapa de risco não é uma FeatureCollection.')
   }
   if (value.features.length !== manifest.counts.features || value.features.length === 0) {
     throw new Error('A quantidade de células do GeoJSON difere do manifesto.')
@@ -96,7 +99,7 @@ function validateCells(value: unknown, manifest: SusceptibilityManifest): Aggreg
   let sourceCellCount = 0
   for (const rawFeature of value.features) {
     if (!isRecord(rawFeature) || rawFeature.type !== 'Feature' || !isRecord(rawFeature.geometry)) {
-      throw new Error('Feature inválida no mapa de suscetibilidade.')
+      throw new Error('Feature inválida no mapa de risco.')
     }
     if (rawFeature.geometry.type !== 'Polygon' && rawFeature.geometry.type !== 'MultiPolygon') {
       throw new Error('A grade agregada deve conter apenas Polygon/MultiPolygon.')
