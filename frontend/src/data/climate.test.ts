@@ -1,17 +1,17 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import manifestText from '../../../incendio/produtos/clima/v1/2015/manifest.json?raw'
-import gridText from '../../../incendio/produtos/clima/v1/2015/grid.geojson?raw'
-import boundaryText from '../../../incendio/produtos/clima/v1/2015/boundary.geojson?raw'
-import humidityText from '../../../incendio/produtos/clima/v1/2015/humidity.json?raw'
-import precipitationText from '../../../incendio/produtos/clima/v1/2015/precipitation.json?raw'
-import scarsText from '../../../incendio/produtos/clima/v1/2015/scars.geojson?raw'
+import manifestText from '../../../incendio/produtos/clima/v1/2025/manifest.json?raw'
+import gridText from '../../../incendio/produtos/clima/v1/2025/grid.geojson?raw'
+import boundaryText from '../../../incendio/produtos/clima/v1/2025/boundary.geojson?raw'
+import humidityText from '../../../incendio/produtos/clima/v1/2025/humidity.json?raw'
+import precipitationText from '../../../incendio/produtos/clima/v1/2025/precipitation.json?raw'
+import scarsText from '../../../incendio/produtos/clima/v1/2025/scars.geojson?raw'
 import { loadClimateProduct, validateClimateManifest, validateClimateMatrix, validateScarCollection } from './climate'
 import type { ClimateManifest } from '../types/climate'
 
-const dates = Array.from({ length: 365 }, (_, index) => new Date(Date.UTC(2015, 0, index + 1)).toISOString().slice(0, 10))
+const dates = Array.from({ length: 365 }, (_, index) => new Date(Date.UTC(2025, 0, index + 1)).toISOString().slice(0, 10))
 const cellOrder = Array.from({ length: 212 }, (_, index) => `AC-R${index + 1}`)
 const manifest: ClimateManifest = {
-  schema_version: '1.0', product: 'historical_climate_and_scars', year: 2015,
+  schema_version: '1.0', product: 'historical_climate_and_scars', year: 2025,
   generated_at: '2026-09-28T00:00:00Z', crs: 'EPSG:4326', dates,
   cell_order: cellOrder, n_valid_pixels: Array(212).fill(3),
   bounds: [-74, -11.2, -66.6, -7.1], grid: { step_degrees: 0.28, source_step_degrees: 0.1 },
@@ -23,7 +23,7 @@ const manifest: ClimateManifest = {
 
 afterEach(() => vi.unstubAllGlobals())
 
-describe('clima diário de 2015', () => {
+describe('clima diário de 2025', () => {
   it('rejeita uma data ausente e um arquivo externo no manifesto', () => {
     expect(() => validateClimateManifest({ ...manifest, dates: dates.slice(1) })).toThrow(/Calendário/)
     expect(() => validateClimateManifest({ ...manifest, files: { ...manifest.files, grid: '../outro.geojson' } })).toThrow(/Arquivos/)
@@ -60,7 +60,7 @@ describe('clima diário de 2015', () => {
     const product = await loadClimateProduct()
     expect(product.manifest.dates).toHaveLength(365)
     expect(product.grid.features).toHaveLength(212)
-    expect(product.scars.features).toHaveLength(425)
+    expect(product.scars.features).toHaveLength(product.manifest.scars.feature_count)
     const emptyIndex = product.manifest.n_valid_pixels.findIndex((count) => count === 0)
     expect(emptyIndex).toBeGreaterThanOrEqual(0)
     expect(product.humidity.values[0][emptyIndex]).toEqual([null, null, null])

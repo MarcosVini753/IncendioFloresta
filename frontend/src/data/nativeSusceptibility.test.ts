@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import manifestText from '../../../incendio/produtos/risco/v1/2025/native_sharded_grid/manifest.json?raw'
+import { SCORE_PROPERTIES } from '../types/susceptibility'
 import {
   loadNativeSector,
+  nativeFeatureIntersectsViewport,
   NativeSectorCache,
   validateNativeIndex,
   validateNativeManifest,
@@ -20,37 +23,7 @@ const entry: NativeSectorIndexEntry = {
   feature_count: 1,
 }
 
-const manifest: NativeSusceptibilityManifest = {
-  schema_version: '1.0',
-  product: 'wildfire_susceptibility',
-  label: 'Suscetibilidade',
-  generated_at: '2026-09-22T00:00:00Z',
-  source_period: '2016',
-  crs: 'EPSG:4326',
-  default_model: 'gradboost',
-  models: [
-    ['gradboost', 'score_gradboost'],
-    ['random_forest', 'score_random_forest'],
-    ['logistic_regression', 'score_logistic_regression'],
-    ['fuzzy_knn_k29', 'score_fuzzy_knn_k29'],
-  ].map(([id, property]) => ({
-    id: id as NativeSusceptibilityManifest['models'][number]['id'],
-    label: id,
-    property: property as NativeSusceptibilityManifest['models'][number]['property'],
-    validation: { protocol: 'spatial_group_kfold_25km', folds: 5, roc_auc: 0.8, pr_auc: 0.7 },
-  })),
-  training: {
-    target: 'burned_in_2016', sample: 'balanced_1_to_1', seed: 42,
-    predictors: ['veg', 'dist_estrada', 'dist_agua', 'altitude'],
-    evaluation: 'in_sample_scores_no_independent_validation',
-  },
-  value: { semantics: 'relative_score', domain: [0, 1], calibrated_probability: false },
-  original_grid: { crs: 'EPSG:31979', cell_width_m: 892.98, cell_height_m: 598.16, cell_count: 307410 },
-  representation: { type: 'native_sharded_grid', aggregation: 'none', sector_step_degrees: 0.28 },
-  counts: { source_cells: 307410, features: 307410, sectors: 212 },
-  bounds: [-74, -11.2, -66.6, -7.1],
-  files: { index: 'index.json' },
-}
+const manifest = JSON.parse(manifestText) as NativeSusceptibilityManifest
 
 const collection: NativeCellCollection = {
   type: 'FeatureCollection',
@@ -59,10 +32,7 @@ const collection: NativeCellCollection = {
     geometry: { type: 'Polygon', coordinates: [[[-74, -11], [-73.99, -11], [-73.99, -10.99], [-74, -10.99], [-74, -11]]] },
     properties: {
       id: 'AC-Y1-X2', grid_x: 2, grid_y: 1, centroid: [-73.995, -10.995], aggregation: 'none',
-      score_gradboost: 0.4,
-      score_random_forest: 0.5,
-      score_logistic_regression: 0.6,
-      score_fuzzy_knn_k29: 0.7,
+      ...Object.fromEntries(SCORE_PROPERTIES.map((property) => [property, 0.5])) as Record<typeof SCORE_PROPERTIES[number], number>,
     },
   }],
 }
@@ -82,7 +52,7 @@ describe('contratos públicos', () => {
     const emptyEntry = { ...entry, feature_count: 0 }
     expect(() => validateNativeIndex({
       schema_version: '1.0',
-      product: 'wildfire_susceptibility_native_index',
+      product: 'wildfire_annual_risk_native_index',
       feature_count: 307410,
       sectors: [emptyEntry],
     }, { ...manifest, counts: { ...manifest.counts, sectors: 1 } })).toThrow(/vazio/)
@@ -91,6 +61,13 @@ describe('contratos públicos', () => {
 
   it('aceita uma feature nativa válida', () => {
     expect(validateNativeSector(collection, entry).features).toHaveLength(1)
+  })
+
+  it('limita as células à viewport, incluindo interseções na borda', () => {
+    const feature = collection.features[0]
+    expect(nativeFeatureIntersectsViewport(feature, [-74, -11, -73.99, -10.99])).toBe(true)
+    expect(nativeFeatureIntersectsViewport(feature, [-74, -11, -73.999, -10.999])).toBe(true)
+    expect(nativeFeatureIntersectsViewport(feature, [-70, -10, -69, -9])).toBe(false)
   })
 })
 

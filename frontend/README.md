@@ -1,95 +1,65 @@
-# Frontend — risco experimental do Acre
+# Frontend — Risco e Clima de 2025
 
-Interface React + TypeScript + MapLibre para visualizar o risco experimental
-referente a 2016 e produtos climáticos históricos de 2015.
-O produto de risco usa apenas o ano mais recente do raster de cicatrizes
-disponível no repositório: 2016. Os valores são retrospectivos e não representam
-previsão prospectiva independente.
+O site abre em **Risco anual experimental — 2025**, com **Random Forest**
+no cenário **Oeste–Leste**. Também oferece GradBoost, Regressão Logística,
+Fuzzy k-NN e XGBoost. Os modelos e cenários Acre inteiro/regional podem ser
+trocados sem novas requisições. Escores relativos em [0,1], não probabilidades
+calibradas ou previsão operacional.
 
-Na branch `feature/historical-climate-scars-2015`, a aba **Clima e cicatrizes ·
-2015** acrescenta 365 datas históricas. O seletor alterna entre umidade relativa
-e precipitação; o slider muda o dia, e o toggle exibe cicatrizes observadas no
-mesmo dia. Um clique na célula mostra mínimo, média espacial e máximo, além da
-quantidade de pixels climáticos válidos. Setores sem cobertura ficam cinza.
-Os marcadores vermelhos ajudam a localizar cicatrizes no zoom estadual; ao
-aproximar, os polígonos mostram a área dos pixels classificados.
+Treino 2007–2024; seis preditores; clima defasado. O mapa de 2025 usa clima
+anual de 2024. O painel compara os cinco escores do cenário selecionado.
 
-## Produto exibido
+Em zoom menor que 8,5 são 212 células de 0,28°. Ao aproximar, setores da
+grade original são carregados pela viewport, com margem de um setor,
+cancelamento de requisições obsoletas e cache LRU de 32 setores.
 
-O frontend carrega e valida o manifesto e o GeoJSON gerados pelo pipeline científico.
-A visualização estadual usa 212 células de aproximadamente `0,28°`, recortadas pelo
-limite do Acre. Cada valor é a média das células científicas originais de cerca de
-`893 × 598 m` contidas naquele setor.
+A aba **Clima e cicatrizes · 2025** possui 365 datas, inicialmente 25/08/2025.
+Umidade e precipitação são observadas em 2025. Mínimo, média e máximo são
+estatísticas espaciais, não extremos horários. A duração de acumulação da
+precipitação não está documentada. Sem dado climático, a célula fica cinza.
+Sem cicatriz em um dia não significa ausência comprovada de fogo.
+Ao selecionar uma célula, sua série anual mostra as três estatísticas reais.
 
-Os quatro modelos disponíveis calculam escores relativos ajustados ao alvo de 2016:
+## Executar
 
-- GradBoost, selecionado como modelo inicial;
-- Random Forest;
-- Regressão logística;
-- Fuzzy k-NN com `k=29`.
-
-Todos produzem `relative_score` no intervalo `[0, 1]`. Esses escores não são
-probabilidades calibradas nem devem orientar decisões operacionais. Não há validação
-independente publicada para o alvo anual de 2016. Perigo diário e
-Alerta não são exibidos nesta branch.
-
-## Sincronização do produto
-
-A única cópia versionada fica em:
-
-```text
-incendio/produtos/suscetibilidade/v1/
-```
-
-Os scripts `predev` e `prebuild` copiam automaticamente esse diretório para
-`frontend/public/data/susceptibility/`. A cópia pública é gerada e ignorada pelo Git.
-Na branch climática, eles também copiam `incendio/produtos/clima/` para
-`frontend/public/data/climate/`.
-
-## Executar localmente
+Gere antes os produtos canônicos seguindo [PRODUTOS_WEB.md](../incendio/PRODUTOS_WEB.md).
 
 ```bash
 cd frontend
 npm install
 npm run dev
-```
-
-Para validar a compilação e confirmar que o produto entrou em `dist`:
-
-```bash
-npm run build
-find dist/data/susceptibility -type f
-find dist/data/climate/v1/2015 -type f
-```
-
-Na branch `experiment/native-susceptibility-grid`, execute também:
-
-```bash
 npm test
+npm run build
+npm run preview
 ```
 
-Essa branch mantém a camada agregada abaixo do zoom `8,5`. A partir desse nível,
-carrega os setores que intersectam a viewport e uma margem de pré-busca, cancela
-requisições superadas por novos movimentos e mantém um cache LRU de até 32 setores.
-Somente as células dos setores visíveis entram na fonte ativa do MapLibre; ao afastar,
-o mapa retorna automaticamente à representação agregada. Não há deploy dedicado para
-o experimento nesta etapa.
+Predev/prebuild verificam ambas as origens antes de substituir as cópias
+geradas em public/data/risk/v1/2025 e public/data/climate/v1/2025.
+Não copiam os anos antigos nem alteram os arquivos de Perigo.
+O produto canônico é a única cópia versionada. A exclusão de MapLibre do
+prebundle Vite permanece por compatibilidade WSL/Windows.
 
-## Verificar a seção de 2015
+## Aceite
 
-1. Abra **Clima e cicatrizes · 2015** e escolha 01/01, 25/08 e 31/12 no slider.
-2. Alterne umidade e precipitação; consulte uma célula e seus três valores espaciais.
-3. Ligue e desligue as cicatrizes. Dias sem registro exibem contagem zero.
-4. Confirme HTTP 200 para `manifest.json`, `grid.geojson`, `boundary.geojson`,
-   `humidity.json`, `precipitation.json` e `scars.geojson` em `/data/climate/v1/2015/`.
+- Conferir os cinco modelos, os dois cenários e o painel de uma célula.
+- Aproximar até a grade nativa, arrastar rapidamente e retornar à grade estadual.
+- Conferir clima e cicatrizes em 01/01, 25/08 e 31/12/2025.
+- Conferir ausência de Perigo, Alerta e INPE na interface.
+- Verificar HTTP 200 dos manifestos, grade agregada, índice, setores e matrizes.
+- Conferir ausência de erros da aplicação no console.
 
-## Aceite manual
+O site anterior foi preservado em archive/risk-2016-before-2025.
 
-1. O mapa abre com GradBoost e permite trocar instantaneamente entre quatro modelos.
-2. Não há controles ativos de Perigo ou Alerta.
-3. Uma célula selecionada mostra os quatro escores, a média e a contagem de fontes.
-4. A legenda permanece fixa de 0 a 1.
-5. A camada de cicatrizes de 2015 pode ser ligada e desligada sem alterar o produto de risco.
-6. Manifesto, GeoJSON e limite respondem com HTTP 200 e o console não apresenta erros.
+## Smoke de navegador
 
-Ao conectar o repositório à Vercel, use `frontend` como **Root Directory**.
+Com o preview em 127.0.0.1:4173, instale as dependências de teste no Python:
+
+```bash
+../incendio/.venv/bin/python -m pip install -r scripts/requirements-browser.txt
+../incendio/.venv/bin/python -m playwright install chromium
+../incendio/.venv/bin/python scripts/smoke-2025.py
+```
+
+O teste usa dados reais, troca os dez pares modelo/cenário, seleciona células,
+verifica grade original, pan/zoom, extremos do calendário e série climática.
+Confere HTTP 200 de todos os setores e ausência de exceções JavaScript.
