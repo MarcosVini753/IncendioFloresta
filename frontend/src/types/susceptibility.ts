@@ -4,22 +4,14 @@ export const SUSCEPTIBILITY_MODEL_IDS = [
   'gradboost',
   'random_forest',
   'logistic_regression',
-  'fuzzy_knn_k29',
+  'fuzzy_knn',
+  'xgboost',
 ] as const
 
 export type SusceptibilityModelId = (typeof SUSCEPTIBILITY_MODEL_IDS)[number]
-export type SusceptibilityScoreProperty =
-  | 'score_gradboost'
-  | 'score_random_forest'
-  | 'score_logistic_regression'
-  | 'score_fuzzy_knn_k29'
-
-export interface SusceptibilityScores {
-  score_gradboost: number
-  score_random_forest: number
-  score_logistic_regression: number
-  score_fuzzy_knn_k29: number
-}
+export type RiskScenario = 'unico' | 'regional'
+export type SusceptibilityScoreProperty = `score_${RiskScenario}_${SusceptibilityModelId}`
+export type SusceptibilityScores = Record<SusceptibilityScoreProperty, number>
 
 export interface AggregatedCellProperties extends SusceptibilityScores {
   id: string
@@ -38,8 +30,9 @@ export interface SusceptibilityModelManifest {
   id: SusceptibilityModelId
   label: string
   property: SusceptibilityScoreProperty
+  properties: Record<RiskScenario, SusceptibilityScoreProperty>
   validation: {
-    protocol: 'spatial_group_kfold_25km' | 'not_evaluated_for_2016_target'
+    protocol: 'group_kfold_by_year_balanced'
     folds: number
     roc_auc: number | null
     pr_auc: number | null
@@ -48,19 +41,30 @@ export interface SusceptibilityModelManifest {
 
 export interface SusceptibilityManifest {
   schema_version: '1.0'
-  product: 'wildfire_susceptibility'
+  product: 'wildfire_annual_risk'
   label: string
   generated_at: string
   source_period: string
   crs: 'EPSG:4326'
   default_model: SusceptibilityModelId
+  default_scenario: RiskScenario
+  scenarios: { id: RiskScenario; label: string }[]
   models: SusceptibilityModelManifest[]
+  provenance: {
+    models: Record<string, {
+      parameters: Record<string, number | string | null>
+      selection: string
+      table_hash: string
+    }>
+  }
   training: {
     target: string
     sample: string
     seed: number
     predictors: string[]
     evaluation: string
+    train_years: [number, number]
+    climate_year: number
   }
   value: {
     semantics: 'relative_score'
@@ -101,6 +105,7 @@ export interface NativeCellProperties extends SusceptibilityScores {
   id: string
   grid_x: number
   grid_y: number
+  region?: 'oeste' | 'leste'
   centroid: [number, number]
   aggregation: 'none'
 }
@@ -117,7 +122,7 @@ export interface NativeSectorIndexEntry {
 
 export interface NativeGridIndex {
   schema_version: '1.0'
-  product: 'wildfire_susceptibility_native_index'
+  product: 'wildfire_annual_risk_native_index'
   generated_at: string
   crs: 'EPSG:4326'
   sector_step_degrees: number
@@ -127,12 +132,14 @@ export interface NativeGridIndex {
 
 export interface NativeSusceptibilityManifest {
   schema_version: '1.0'
-  product: 'wildfire_susceptibility'
+  product: 'wildfire_annual_risk'
   label: string
   generated_at: string
   source_period: string
   crs: 'EPSG:4326'
   default_model: SusceptibilityModelId
+  default_scenario: RiskScenario
+  scenarios: { id: RiskScenario; label: string }[]
   models: SusceptibilityModelManifest[]
   training: SusceptibilityManifest['training']
   value: SusceptibilityManifest['value']
@@ -160,12 +167,14 @@ export type SelectedSusceptibilityCell =
   | { kind: 'aggregated'; feature: AggregatedCellFeature }
   | { kind: 'native'; feature: NativeCellFeature }
 
-export const MODEL_SCORE_PROPERTY: Record<
-  SusceptibilityModelId,
-  SusceptibilityScoreProperty
-> = {
-  gradboost: 'score_gradboost',
-  random_forest: 'score_random_forest',
-  logistic_regression: 'score_logistic_regression',
-  fuzzy_knn_k29: 'score_fuzzy_knn_k29',
+export function modelScoreProperty(model: SusceptibilityModelId, scenario: RiskScenario = 'regional'): SusceptibilityScoreProperty {
+  return `score_${scenario}_${model}`
 }
+
+export const MODEL_SCORE_PROPERTY = Object.fromEntries(
+  SUSCEPTIBILITY_MODEL_IDS.map((id) => [id, modelScoreProperty(id)]),
+) as Record<SusceptibilityModelId, SusceptibilityScoreProperty>
+
+export const SCORE_PROPERTIES = (['unico', 'regional'] as const).flatMap(
+  (scenario) => SUSCEPTIBILITY_MODEL_IDS.map((model) => modelScoreProperty(model, scenario)),
+)

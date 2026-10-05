@@ -1,6 +1,9 @@
 import type { Feature, MultiPolygon, Polygon } from 'geojson'
 import {
   MODEL_SCORE_PROPERTY,
+  SCORE_PROPERTIES,
+  modelScoreProperty,
+  type RiskScenario,
   SUSCEPTIBILITY_MODEL_IDS,
   type AggregatedCellCollection,
   type AggregatedCellProperties,
@@ -10,8 +13,7 @@ import {
   type SusceptibilityScoreProperty,
 } from '../types/susceptibility'
 
-const PRODUCT_BASE_URL = '/data/susceptibility/v1/aggregated'
-const SCORE_PROPERTIES = Object.values(MODEL_SCORE_PROPERTY)
+const PRODUCT_BASE_URL = '/data/risk/v1/2025/aggregated'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -27,7 +29,7 @@ function isModelId(value: unknown): value is SusceptibilityModelId {
 
 export function validateManifest(value: unknown): SusceptibilityManifest {
   if (!isRecord(value)) throw new Error('Manifesto do produto de risco inválido.')
-  if (value.schema_version !== '1.0' || value.product !== 'wildfire_susceptibility') {
+  if (value.schema_version !== '1.0' || value.product !== 'wildfire_annual_risk') {
     throw new Error('Contrato do produto de risco não é compatível com o frontend.')
   }
   if (value.crs !== 'EPSG:4326' || typeof value.source_period !== 'string' || !/^\d{4}$/.test(value.source_period)) {
@@ -36,8 +38,8 @@ export function validateManifest(value: unknown): SusceptibilityManifest {
   if (!isRecord(value.training) || value.training.target !== `burned_in_${value.source_period}`) {
     throw new Error('O alvo não corresponde ao ano de referência do produto publicado.')
   }
-  if (!isModelId(value.default_model) || !Array.isArray(value.models) || value.models.length !== 4) {
-    throw new Error('O manifesto não descreve os quatro modelos esperados.')
+  if (value.default_model !== 'random_forest' || !isModelId(value.default_model) || !Array.isArray(value.models) || value.models.length !== 5) {
+    throw new Error('O manifesto não descreve os cinco modelos esperados.')
   }
   const modelIds = new Set<string>()
   for (const model of value.models) {
@@ -47,9 +49,18 @@ export function validateManifest(value: unknown): SusceptibilityManifest {
     if (model.property !== MODEL_SCORE_PROPERTY[model.id] || modelIds.has(model.id)) {
       throw new Error('Mapeamento ou ID de modelo inválido no manifesto.')
     }
+    if (!isRecord(model.properties) || model.properties.unico !== modelScoreProperty(model.id, 'unico') || model.properties.regional !== modelScoreProperty(model.id, 'regional')) {
+      throw new Error('Mapeamento dos cenários inválido.')
+    }
     modelIds.add(model.id)
   }
-  if (!isRecord(value.value) || value.value.semantics !== 'relative_score') {
+  if (value.default_scenario !== 'regional' || !Array.isArray(value.scenarios) || value.scenarios.length !== 2 || new Set(value.scenarios.map((s) => isRecord(s) ? s.id : null)).size !== 2 || !value.scenarios.every((s) => isRecord(s) && ['unico', 'regional'].includes(String(s.id)) && typeof s.label === 'string')) {
+    throw new Error('Cenários de risco inválidos.')
+  }
+  if (value.training.climate_year !== 2024 || !Array.isArray(value.training.train_years) || value.training.train_years.join(',') !== '2007,2024' || value.source_period !== '2025' || value.training.seed !== 42 || !Array.isArray(value.training.predictors) || value.training.predictors.join(',') !== 'veg,dist_estrada,dist_agua,altitude,ur_media_ano,prec_acum_ano') {
+    throw new Error('Protocolo temporal ou preditores incompatíveis.')
+  }
+  if (!isRecord(value.value) || value.value.semantics !== 'relative_score' || value.value.calibrated_probability !== false || !Array.isArray(value.value.domain) || value.value.domain.join(',') !== '0,1') {
     throw new Error('A semântica do produto deve ser relative_score.')
   }
   if (!isRecord(value.representation) || value.representation.type !== 'aggregated_grid') {
@@ -57,6 +68,20 @@ export function validateManifest(value: unknown): SusceptibilityManifest {
   }
   if (!isRecord(value.counts) || value.counts.source_cells !== 307410) {
     throw new Error('A contagem de células científicas do manifesto é inválida.')
+  }
+  if (!isRecord(value.provenance) || !isRecord(value.provenance.models)) {
+    throw new Error('Proveniência dos modelos ausente.')
+  }
+  for (const scope of ['acre', 'oeste', 'leste']) {
+    const fuzzy = value.provenance.models[`fuzzy_knn/${scope}`]
+    if (!isRecord(fuzzy) || !isRecord(fuzzy.parameters) || !Number.isInteger(fuzzy.parameters.k) || Number(fuzzy.parameters.k) < 1) {
+      throw new Error('Parâmetros Fuzzy inválidos na proveniência.')
+    }
+  }
+  if (!isRecord(value.original_grid) || value.original_grid.crs !== 'EPSG:31979' || value.original_grid.cell_count !== 307410 ||
+    typeof value.original_grid.cell_width_m !== 'number' || !Number.isFinite(value.original_grid.cell_width_m) || value.original_grid.cell_width_m <= 0 ||
+    typeof value.original_grid.cell_height_m !== 'number' || !Number.isFinite(value.original_grid.cell_height_m) || value.original_grid.cell_height_m <= 0) {
+    throw new Error('Resolução científica original inválida.')
   }
   if (!Array.isArray(value.bounds) || value.bounds.length !== 4 || !value.bounds.every(Number.isFinite)) {
     throw new Error('Os limites geográficos do manifesto são inválidos.')
@@ -146,6 +171,7 @@ export async function loadSusceptibilityProduct(signal?: AbortSignal): Promise<S
 export function scoreForModel(
   properties: Record<SusceptibilityScoreProperty, number>,
   model: SusceptibilityModelId,
+  scenario: RiskScenario = 'regional',
 ) {
-  return properties[MODEL_SCORE_PROPERTY[model]]
+  return properties[modelScoreProperty(model, scenario)]
 }

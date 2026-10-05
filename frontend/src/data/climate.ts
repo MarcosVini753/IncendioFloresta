@@ -8,7 +8,7 @@ import type {
   ScarCollection,
 } from '../types/climate'
 
-const BASE_URL = '/data/climate/v1/2015'
+const BASE_URL = '/data/climate/v1/2025'
 const VARIABLES: ClimateVariable[] = ['humidity', 'precipitation']
 
 function record(value: unknown): value is Record<string, unknown> {
@@ -25,12 +25,12 @@ function safeFile(value: unknown): value is string {
 
 export function validateClimateManifest(value: unknown): ClimateManifest {
   if (!record(value) || value.schema_version !== '1.0' || value.product !== 'historical_climate_and_scars'
-    || value.year !== 2015 || value.crs !== 'EPSG:4326') {
-    throw new Error('Manifesto de clima de 2015 inválido.')
+    || value.year !== 2025 || value.crs !== 'EPSG:4326') {
+    throw new Error('Manifesto de clima de 2025 inválido.')
   }
   if (!Array.isArray(value.dates) || value.dates.length !== 365
-    || value.dates.some((date, index) => date !== new Date(Date.UTC(2015, 0, index + 1)).toISOString().slice(0, 10))) {
-    throw new Error('Calendário diário de 2015 incompleto.')
+    || value.dates.some((date, index) => date !== new Date(Date.UTC(2025, 0, index + 1)).toISOString().slice(0, 10))) {
+    throw new Error('Calendário diário de 2025 incompleto.')
   }
   if (!Array.isArray(value.cell_order) || value.cell_order.length !== 212
     || value.cell_order.some((id) => typeof id !== 'string')
@@ -100,7 +100,7 @@ export function validateClimateMatrix(value: unknown, variable: ClimateVariable,
 export function validateScarCollection(value: unknown, manifest: ClimateManifest): ScarCollection {
   if (!record(value) || value.type !== 'FeatureCollection' || !Array.isArray(value.features)
     || value.features.length !== manifest.scars.feature_count) {
-    throw new Error('Cicatrizes de 2015 ausentes ou incompletas.')
+    throw new Error('Cicatrizes de 2025 ausentes ou incompletas.')
   }
   value.features.forEach((feature) => {
     if (!record(feature) || feature.type !== 'Feature' || !record(feature.geometry)

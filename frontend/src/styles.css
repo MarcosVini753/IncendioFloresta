@@ -547,6 +547,11 @@ button:disabled {
   line-height: 1.55;
 }
 
+.scientific-product-note p strong {
+  display: inline;
+  margin: 0;
+}
+
 @media (max-width: 1050px) {
   .map-workspace {
     grid-template-columns: 1fr;

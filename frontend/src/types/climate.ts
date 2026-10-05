@@ -6,7 +6,7 @@ export type ClimateStats = [number, number, number] | [null, null, null]
 export interface ClimateManifest {
   schema_version: '1.0'
   product: 'historical_climate_and_scars'
-  year: 2015
+  year: 2025
   generated_at: string
   crs: 'EPSG:4326'
   dates: string[]

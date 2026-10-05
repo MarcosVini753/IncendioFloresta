@@ -10,10 +10,12 @@ import {
 import { scoreForModel } from '../../data/susceptibility'
 import {
   loadNativeSector,
+  nativeFeatureIntersectsViewport,
   NativeSectorCache,
   selectNativeSectors,
 } from '../../data/nativeSusceptibility'
 import type {
+  RiskScenario,
   AggregatedCellCollection,
   AggregatedCellProperties,
   NativeCellCollection,
@@ -25,6 +27,7 @@ import type {
 import { MapLegend } from '../Legend/MapLegend'
 
 interface FireMapProps {
+  scenario: RiskScenario
   model: SusceptibilityModelId
   modelLabel: string
   cells: AggregatedCellCollection
@@ -62,10 +65,11 @@ function buildCellPopup(
   properties: AggregatedCellProperties,
   model: SusceptibilityModelId,
   modelLabel: string,
+  scenario: RiskScenario,
 ) {
   return `<div class="susceptibility-popup">
     <strong>${escapeHtml(properties.id)}</strong>
-    <span>${escapeHtml(modelLabel)}: ${scoreForModel(properties, model).toFixed(3)}</span>
+    <span>${escapeHtml(modelLabel)}: ${scoreForModel(properties, model, scenario).toFixed(3)}</span>
     <span>${properties.n_source_cells.toLocaleString('pt-BR')} células científicas · média</span>
   </div>`
 }
@@ -74,26 +78,28 @@ function buildNativePopup(
   properties: NativeCellProperties,
   model: SusceptibilityModelId,
   modelLabel: string,
+  scenario: RiskScenario,
 ) {
   return `<div class="susceptibility-popup">
     <strong>${escapeHtml(properties.id)}</strong>
     <span>Grade X ${properties.grid_x} · Y ${properties.grid_y}</span>
-    <span>${escapeHtml(modelLabel)}: ${scoreForModel(properties, model).toFixed(3)}</span>
+    <span>${escapeHtml(modelLabel)}: ${scoreForModel(properties, model, scenario).toFixed(3)}</span>
     <span>Célula científica original · sem agregação</span>
   </div>`
 }
 
-function nativeWithValue(collection: NativeCellCollection, model: SusceptibilityModelId) {
+function nativeWithValue(collection: NativeCellCollection, model: SusceptibilityModelId, scenario: RiskScenario) {
   return {
     ...collection,
     features: collection.features.map((feature) => ({
       ...feature,
-      properties: { ...feature.properties, value: scoreForModel(feature.properties, model) },
+      properties: { ...feature.properties, value: scoreForModel(feature.properties, model, scenario) },
     })),
   } as NativeCellCollection
 }
 
 export function FireMap({
+  scenario,
   model,
   modelLabel,
   cells,
@@ -106,6 +112,7 @@ export function FireMap({
 }: FireMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
+  const scenarioRef = useRef(scenario)
   const modelRef = useRef(model)
   const modelLabelRef = useRef(modelLabel)
   const cellsRef = useRef(cells)
@@ -121,6 +128,7 @@ export function FireMap({
   const [nativeError, setNativeError] = useState<string | null>(null)
   const [nativeCellCount, setNativeCellCount] = useState(0)
 
+  scenarioRef.current = scenario
   modelRef.current = model
   modelLabelRef.current = modelLabel
   cellsRef.current = cells
@@ -134,11 +142,11 @@ export function FireMap({
         ...feature,
         properties: {
           ...feature.properties,
-          value: scoreForModel(feature.properties, model),
+          value: scoreForModel(feature.properties, model, scenario),
         },
       })) as AggregatedCellCollection['features'],
     }),
-    [cells, model],
+    [cells, model, scenario],
   )
 
   useEffect(() => {
@@ -154,7 +162,13 @@ export function FireMap({
 
     map.on('load', () => {
       map.addSource(ACRE_SOURCE_ID, { type: 'geojson', data: boundary })
-      map.addSource(CELLS_SOURCE_ID, { type: 'geojson', data: geojson })
+      map.addSource(CELLS_SOURCE_ID, { type: 'geojson', data: {
+        ...cellsRef.current,
+        features: cellsRef.current.features.map((feature) => ({
+          ...feature,
+          properties: { ...feature.properties, value: scoreForModel(feature.properties, modelRef.current, scenarioRef.current) },
+        })),
+      } })
       map.addSource(NATIVE_SOURCE_ID, { type: 'geojson', data: EMPTY_NATIVE })
       map.addLayer({
         id: CELLS_FILL_LAYER_ID,
@@ -236,7 +250,7 @@ export function FireMap({
         popupRef.current?.remove()
         popupRef.current = new Popup({ closeButton: true })
           .setLngLat(event.lngLat)
-          .setHTML(buildCellPopup(cell.properties, modelRef.current, modelLabelRef.current))
+          .setHTML(buildCellPopup(cell.properties, modelRef.current, modelLabelRef.current, scenarioRef.current))
           .addTo(map)
       })
 
@@ -248,7 +262,7 @@ export function FireMap({
         popupRef.current?.remove()
         popupRef.current = new Popup({ closeButton: true })
           .setLngLat(event.lngLat)
-          .setHTML(buildNativePopup(cell.properties, modelRef.current, modelLabelRef.current))
+          .setHTML(buildNativePopup(cell.properties, modelRef.current, modelLabelRef.current, scenarioRef.current))
           .addTo(map)
       })
 
@@ -316,7 +330,7 @@ export function FireMap({
           if (controller.signal.aborted) return
           const features = results.flatMap((result) => {
             if (result.status !== 'fulfilled' || !visibleIds.has(result.value.entry.id)) return []
-            return result.value.collection.features
+            return result.value.collection.features.filter((feature) => nativeFeatureIntersectsViewport(feature, viewport))
           })
           const failedVisible = results.some(
             (result, index) =>
@@ -325,7 +339,7 @@ export function FireMap({
           const collection: NativeCellCollection = { type: 'FeatureCollection', features }
           nativeVisibleRef.current = collection
           const nativeSource = map.getSource(NATIVE_SOURCE_ID) as GeoJSONSource
-          nativeSource.setData(nativeWithValue(collection, modelRef.current))
+          nativeSource.setData(nativeWithValue(collection, modelRef.current, scenarioRef.current))
           setNativeCellCount(features.length)
           setNativeLoading(false)
           setNativeError(
@@ -356,9 +370,10 @@ export function FireMap({
   }, [geojson])
 
   useEffect(() => {
+    popupRef.current?.remove()
     const source = mapRef.current?.getSource(NATIVE_SOURCE_ID) as GeoJSONSource | undefined
-    if (source) source.setData(nativeWithValue(nativeVisibleRef.current, model))
-  }, [model])
+    if (source) source.setData(nativeWithValue(nativeVisibleRef.current, model, scenario))
+  }, [model, scenario])
 
   useEffect(() => {
     refreshNativeRef.current?.()

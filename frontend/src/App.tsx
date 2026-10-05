@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { CellDetails } from './components/CellDetails/CellDetails'
+import { ClimateSeries } from './components/Chart/ClimateSeries'
 import { ClimateDetails } from './components/ClimateDetails/ClimateDetails'
 import { ClimateMap } from './components/Map/ClimateMap'
 import { FireMap } from './components/Map/FireMap'
@@ -11,6 +12,7 @@ import { loadSusceptibilityProduct } from './data/susceptibility'
 import type { ClimateProduct, ClimateVariable } from './types/climate'
 import type {
   NativeGridProduct,
+  RiskScenario,
   SelectedSusceptibilityCell,
   SusceptibilityModelId,
   SusceptibilityProduct,
@@ -26,11 +28,12 @@ export default function App() {
   const [climate, setClimate] = useState<ClimateProduct | null>(null)
   const [climateError, setClimateError] = useState<string | null>(null)
   const [climateVariable, setClimateVariable] = useState<ClimateVariable>('humidity')
-  const [climateDate, setClimateDate] = useState('2015-08-25')
+  const [climateDate, setClimateDate] = useState('2025-08-25')
   const [showScars, setShowScars] = useState(true)
   const [selectedClimateCell, setSelectedClimateCell] = useState<string | null>(null)
   const [product, setProduct] = useState<SusceptibilityProduct | null>(null)
-  const [selectedModel, setSelectedModel] = useState<SusceptibilityModelId>('gradboost')
+  const [selectedModel, setSelectedModel] = useState<SusceptibilityModelId>('random_forest')
+  const [scenario, setScenario] = useState<RiskScenario>('regional')
   const [selectedCell, setSelectedCell] = useState<SelectedSusceptibilityCell | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [nativeProduct, setNativeProduct] = useState<NativeGridProduct | null>(null)
@@ -42,6 +45,7 @@ export default function App() {
       .then((result) => {
         setProduct(result)
         setSelectedModel(result.manifest.default_model)
+        setScenario(result.manifest.default_scenario)
       })
       .catch((error: unknown) => {
         if (!(error instanceof DOMException && error.name === 'AbortError')) {
@@ -91,14 +95,14 @@ export default function App() {
         <div>
           <span className="eyebrow">Produto científico experimental</span>
           <h1>Monitoramento de Incêndios Florestais — Acre</h1>
-          <p>Risco experimental referente a 2016, clima diário de 2015 e observações de fogo.</p>
+          <p>Risco anual experimental — 2025. Clima diário e cicatrizes observadas de 2025.</p>
         </div>
-        <span className="prototype-badge">{section === 'climate' ? 'Clima histórico · cicatrizes mapeadas · 2015' : 'Risco experimental · referência 2016'}</span>
+        <span className="prototype-badge">{section === 'climate' ? 'Clima histórico · cicatrizes mapeadas · 2025' : 'Risco anual experimental — 2025'}</span>
       </header>
 
       <nav className="product-tabs" aria-label="Seção do mapa">
         <button type="button" className={section === 'susceptibility' ? 'active' : undefined} onClick={() => setSection('susceptibility')}>Risco</button>
-        <button type="button" className={section === 'climate' ? 'active' : undefined} onClick={() => setSection('climate')}>Clima e cicatrizes · 2015</button>
+        <button type="button" className={section === 'climate' ? 'active' : undefined} onClick={() => setSection('climate')}>Clima e cicatrizes · 2025</button>
       </nav>
 
       {section === 'climate' ? (
@@ -124,15 +128,16 @@ export default function App() {
                 <ClimateMap product={climate} variable={climateVariable} date={climateDate} showScars={showScars} selectedCellId={selectedClimateCell} onCellSelect={setSelectedClimateCell} />
                 <ClimateDetails product={climate} variable={climateVariable} date={climateDate} cellId={selectedClimateCell} onClear={() => setSelectedClimateCell(null)} />
               </section>
+              <ClimateSeries product={climate} variable={climateVariable} date={climateDate} cellId={selectedClimateCell} />
               <section className="scientific-product-note">
-                <div><span className="eyebrow">Como ler</span><strong>Clima histórico e cicatrizes mapeadas de 2015</strong></div>
-                <p>As cores mostram a média espacial diária. O painel informa mínimo, média e máximo entre pixels climáticos de aproximadamente 0,1° que intersectam cada célula visual de 0,28°. Marcadores vermelhos localizam pixels classificados como cicatriz; ao aproximar, seu contorno aparece. Um dia sem registro não comprova ausência de fogo.</p>
+                <div><span className="eyebrow">Como ler</span><strong>Clima histórico e cicatrizes mapeadas de 2025</strong></div>
+                <p>O clima desta seção é observado em 2025; o risco anual usa clima de 2024. Precipitação é o valor do produto, sem duração de acumulação em 24 horas comprovada. As cores mostram a média espacial diária. O painel informa mínimo, média e máximo entre pixels climáticos de aproximadamente 0,1° que intersectam cada célula visual de 0,28°. Marcadores vermelhos localizam pixels classificados como cicatriz; ao aproximar, seu contorno aparece. Um dia sem registro não comprova ausência de fogo.</p>
               </section>
             </>
           ) : (
             <section className="map-section">
               <div className="map-shell map-status" role="status">
-                <strong>{climateError ? 'Não foi possível carregar o clima histórico.' : 'Carregando clima e cicatrizes de 2015…'}</strong>
+                <strong>{climateError ? 'Não foi possível carregar o clima histórico.' : 'Carregando clima e cicatrizes de 2025…'}</strong>
                 {climateError && <span>{climateError}</span>}
               </div>
             </section>
@@ -141,6 +146,7 @@ export default function App() {
       ) : (
       <>
       <div className="map-controls">
+        {product && <section className="control-group"><span className="control-label">Cenário científico</span><div className="layer-selector">{product.manifest.scenarios.map((item) => <button key={item.id} type="button" className={scenario === item.id ? 'active' : undefined} onClick={() => setScenario(item.id)}>{item.label}</button>)}</div></section>}
         {product ? (
           <ModelSelector
             value={selectedModel}
@@ -160,6 +166,7 @@ export default function App() {
           <section className="map-workspace">
             <div className="map-section">
               <FireMap
+                scenario={scenario}
                 model={selectedModel}
                 modelLabel={activeModel.label}
                 cells={product.cells}
@@ -172,6 +179,7 @@ export default function App() {
               />
             </div>
             <CellDetails
+              scenario={scenario}
               cell={selectedCell}
               model={selectedModel}
               manifest={product.manifest}
@@ -181,14 +189,15 @@ export default function App() {
           <section className="scientific-product-note">
             <div>
               <span className="eyebrow">Leitura correta</span>
-              <strong>Risco experimental referente às cicatrizes de 2016</strong>
+              <strong>Risco anual experimental — 2025</strong>
             </div>
             <p>
-              Ano de referência {product.manifest.source_period}. Os escores são relativos e não
+              Ano-alvo {product.manifest.source_period}; treino 2007–2024, com clima defasado. Para este mapa foi usado o clima de 2024, não o de 2025. Paisagem baseada em insumos de 2003–2013. A divisão Oeste–Leste é científica, não administrativa, e pode produzir descontinuidades. A avaliação de 2025 possui poucas células positivas; não equivale a uma contagem de incêndios. Os escores são relativos e não
               representam probabilidades calibradas nem previsão operacional independente. Cada
               célula visível reúne, por média aritmética, células científicas de aproximadamente
               893 × 598 m. O modelo ativo é{' '}
               <strong>{activeModel.label}</strong>.
+              {selectedModel === 'xgboost' && ' O XGBoost foi retreinado no ambiente atual; suas métricas recalculadas diferem do relatório recebido e estão registradas separadamente no manifesto.'}
             </p>
           </section>
         </>
@@ -203,7 +212,7 @@ export default function App() {
             ) : (
               <>
                 <strong>Carregando o produto científico…</strong>
-                <span>Validando manifesto, limite do Acre e escores dos quatro modelos.</span>
+                <span>Validando manifesto, limite do Acre e escores dos cinco modelos.</span>
               </>
             )}
           </div>

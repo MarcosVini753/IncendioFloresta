@@ -1,12 +1,14 @@
 import { scoreForModel } from '../../data/susceptibility'
 import type {
   SelectedSusceptibilityCell,
+  RiskScenario,
   SusceptibilityManifest,
   SusceptibilityModelId,
 } from '../../types/susceptibility'
 
 interface CellDetailsProps {
   cell: SelectedSusceptibilityCell | null
+  scenario: RiskScenario
   model: SusceptibilityModelId
   manifest: SusceptibilityManifest
   onClear: () => void
@@ -19,14 +21,14 @@ function formatScore(value: number) {
   }).format(value)
 }
 
-export function CellDetails({ cell, model, manifest, onClear }: CellDetailsProps) {
+export function CellDetails({ cell, model, scenario, manifest, onClear }: CellDetailsProps) {
   if (!cell) {
     return (
       <aside className="cell-details cell-details-empty">
         <div>
           <span className="eyebrow">Local selecionado</span>
           <h2>Nenhuma célula selecionada</h2>
-          <p>Clique em uma célula para comparar os quatro escores científicos agregados.</p>
+          <p>Clique em uma célula para comparar os cinco escores científicos agregados.</p>
         </div>
         <span className="cell-details-hint">
           A seleção permanece ativa ao trocar o modelo exibido no mapa.
@@ -37,7 +39,7 @@ export function CellDetails({ cell, model, manifest, onClear }: CellDetailsProps
 
   const properties = cell.feature.properties
   const activeModel = manifest.models.find((candidate) => candidate.id === model)
-  const activeScore = scoreForModel(properties, model)
+  const activeScore = scoreForModel(properties, model, scenario)
 
   return (
     <aside className="cell-details">
@@ -56,19 +58,25 @@ export function CellDetails({ cell, model, manifest, onClear }: CellDetailsProps
       <div className="active-score">
         <span>{activeModel?.label ?? model}</span>
         <strong>{formatScore(activeScore)}</strong>
-        <small>escore relativo</small>
+        <small>escore relativo · {scenario === 'regional' ? 'Oeste–Leste' : 'Acre inteiro'} · 2025</small>
       </div>
 
       <dl className="model-score-list">
         {manifest.models.map((candidate) => (
           <div key={candidate.id} className={candidate.id === model ? 'active' : undefined}>
             <dt>{candidate.label}</dt>
-            <dd>{formatScore(scoreForModel(properties, candidate.id))}</dd>
+            <dd>{formatScore(scoreForModel(properties, candidate.id, scenario))}</dd>
           </div>
         ))}
       </dl>
 
       <dl className="cell-metrics">
+        <div><dt>Treino</dt><dd>2007–2024</dd></div>
+        <div><dt>Clima do modelo</dt><dd>2024</dd></div>
+        {cell.kind === 'native' && cell.feature.properties.region && <div><dt>Região científica</dt><dd>{cell.feature.properties.region === 'oeste' ? 'Oeste' : 'Leste'}</dd></div>}
+        {model === 'fuzzy_knn' && (scenario === 'unico' ? ['acre'] : ['oeste', 'leste']).map((scope) => (
+          <div key={scope}><dt>Vizinhos k · {scope}</dt><dd>{manifest.provenance.models[`fuzzy_knn/${scope}`].parameters.k}</dd></div>
+        ))}
         {cell.kind === 'native' ? (
           <>
             <div><dt>Índice X</dt><dd>{cell.feature.properties.grid_x}</dd></div>
