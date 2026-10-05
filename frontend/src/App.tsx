@@ -1,16 +1,13 @@
 import { useEffect, useState } from 'react'
 import { CellDetails } from './components/CellDetails/CellDetails'
 import { ClimateDetails } from './components/ClimateDetails/ClimateDetails'
-import { HotspotLayerControl } from './components/HotspotControl/HotspotLayerControl'
 import { ClimateMap } from './components/Map/ClimateMap'
 import { FireMap } from './components/Map/FireMap'
 import { ModelSelector } from './components/ModelSelector/ModelSelector'
 import { TimeSlider } from './components/Timeline/TimeSlider'
 import { loadClimateProduct } from './data/climate'
-import { loadInpeHotspots } from './data/inpeHotspots'
 import { loadNativeGridProduct } from './data/nativeSusceptibility'
 import { loadSusceptibilityProduct } from './data/susceptibility'
-import type { InpeHotspotCollection } from './types/inpe'
 import type { ClimateProduct, ClimateVariable } from './types/climate'
 import type {
   NativeGridProduct,
@@ -19,7 +16,7 @@ import type {
   SusceptibilityProduct,
 } from './types/susceptibility'
 
-function formatReferenceDate(value: string | undefined) {
+function formatPtDate(value: string | undefined) {
   const match = value?.match(/^(\d{4})-(\d{2})-(\d{2})/)
   return match ? `${match[3]}/${match[2]}/${match[1]}` : null
 }
@@ -36,9 +33,6 @@ export default function App() {
   const [selectedModel, setSelectedModel] = useState<SusceptibilityModelId>('gradboost')
   const [selectedCell, setSelectedCell] = useState<SelectedSusceptibilityCell | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [hotspots, setHotspots] = useState<InpeHotspotCollection | null>(null)
-  const [showHotspots, setShowHotspots] = useState(true)
-  const [hotspotsError, setHotspotsError] = useState<string | null>(null)
   const [nativeProduct, setNativeProduct] = useState<NativeGridProduct | null>(null)
   const [nativeIndexError, setNativeIndexError] = useState<string | null>(null)
 
@@ -87,25 +81,8 @@ export default function App() {
     return () => controller.abort()
   }, [])
 
-  useEffect(() => {
-    const controller = new AbortController()
-    loadInpeHotspots(controller.signal)
-      .then(setHotspots)
-      .catch((error: unknown) => {
-        if (!(error instanceof DOMException && error.name === 'AbortError')) {
-          setHotspotsError(
-            error instanceof Error ? error.message : 'Erro ao carregar os focos do INPE.',
-          )
-        }
-      })
-    return () => controller.abort()
-  }, [])
-
   const selectedCellId = selectedCell?.feature.properties.id ?? null
   const activeModel = product?.manifest.models.find((model) => model.id === selectedModel)
-  const hotspotReferenceDate = formatReferenceDate(
-    hotspots?.metadata.data_referencia ?? hotspots?.features[0]?.properties.data_hora_gmt ?? undefined,
-  )
   const dailyScars = climate?.scars.features.filter((feature) => feature.properties.date === climateDate).length ?? 0
 
   return (
@@ -116,7 +93,7 @@ export default function App() {
           <h1>Monitoramento de Incêndios Florestais — Acre</h1>
           <p>Risco experimental referente a 2016, clima diário de 2015 e observações de fogo.</p>
         </div>
-        <span className="prototype-badge">{section === 'climate' ? 'Clima histórico · cicatrizes mapeadas · 2015' : 'Risco experimental · referência 2016 · focos INPE reais'}</span>
+        <span className="prototype-badge">{section === 'climate' ? 'Clima histórico · cicatrizes mapeadas · 2015' : 'Risco experimental · referência 2016'}</span>
       </header>
 
       <nav className="product-tabs" aria-label="Seção do mapa">
@@ -137,7 +114,7 @@ export default function App() {
             <section className="control-group climate-scar-control">
               <span className="control-label">Observações</span>
               <label><input type="checkbox" checked={showScars} onChange={(event) => setShowScars(event.target.checked)} /> Cicatrizes observadas no dia</label>
-              <small>{dailyScars} pixels classificados em {formatReferenceDate(climateDate)}</small>
+              <small>{dailyScars} pixels classificados em {formatPtDate(climateDate)}</small>
             </section>
           </div>
           {climate ? (
@@ -176,14 +153,6 @@ export default function App() {
             <span className="control-loading">Carregando produto…</span>
           </section>
         )}
-        <HotspotLayerControl
-          checked={showHotspots}
-          count={hotspots?.features.length ?? null}
-          referenceDate={hotspotReferenceDate}
-          loading={!hotspots && !hotspotsError}
-          error={hotspotsError}
-          onChange={setShowHotspots}
-        />
       </div>
 
       {product && activeModel ? (
@@ -198,8 +167,6 @@ export default function App() {
                 bounds={product.bounds}
                 selectedCellId={selectedCellId}
                 onCellSelect={setSelectedCell}
-                hotspots={hotspots}
-                showHotspots={showHotspots}
                 nativeProduct={nativeProduct}
                 nativeIndexError={nativeIndexError}
               />

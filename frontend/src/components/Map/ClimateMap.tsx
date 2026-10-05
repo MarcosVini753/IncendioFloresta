@@ -175,7 +175,7 @@ export function ClimateMap({ product, variable, date, showScars, selectedCellId,
           <div className="legend-scale"><span>{variable === 'humidity' ? '0%' : '0 mm'}</span><span>{variable === 'humidity' ? '100%' : '60+ mm'}</span></div>
           <small>Cinza: sem dado climático</small>
         </div>
-        {showScars && <div className="hotspot-legend"><strong><i className="scar-swatch" /> Cicatriz observada</strong><span>Detecção no dia selecionado</span></div>}
+        {showScars && <div className="scar-legend"><strong><i className="scar-swatch" /> Cicatriz observada</strong><span>Detecção no dia selecionado</span></div>}
       </div>
       <div className="map-prototype-note">Clima diário histórico · 2015 · estatísticas espaciais por célula de 0,28°</div>
     </div>

@@ -1,7 +1,7 @@
 # Frontend — risco experimental do Acre
 
 Interface React + TypeScript + MapLibre para visualizar o risco experimental
-referente a 2016 e, de forma independente, os focos de calor reais do INPE.
+referente a 2016 e produtos climáticos históricos de 2015.
 O produto de risco usa apenas o ano mais recente do raster de cicatrizes
 disponível no repositório: 2016. Os valores são retrospectivos e não representam
 previsão prospectiva independente.
@@ -75,18 +75,6 @@ Somente as células dos setores visíveis entram na fonte ativa do MapLibre; ao 
 o mapa retorna automaticamente à representação agregada. Não há deploy dedicado para
 o experimento nesta etapa.
 
-## Focos de calor do INPE
-
-O conversor escolhe o CSV diário mais recente e atualiza o GeoJSON versionado:
-
-```bash
-python3 scripts/prepare_inpe_hotspots.py
-```
-
-Os focos são detecções orbitais, não incêndios confirmados. Data de referência,
-toggle, clustering e popup permanecem independentes do modelo de suscetibilidade.
-Os focos de 2026 não aparecem na aba histórica de clima de 2015.
-
 ## Verificar a seção de 2015
 
 1. Abra **Clima e cicatrizes · 2015** e escolha 01/01, 25/08 e 31/12 no slider.
@@ -101,7 +89,7 @@ Os focos de 2026 não aparecem na aba histórica de clima de 2015.
 2. Não há controles ativos de Perigo ou Alerta.
 3. Uma célula selecionada mostra os quatro escores, a média e a contagem de fontes.
 4. A legenda permanece fixa de 0 a 1.
-5. Os focos INPE podem ser ocultados, agrupados e inspecionados sem alterar o produto.
+5. A camada de cicatrizes de 2015 pode ser ligada e desligada sem alterar o produto de risco.
 6. Manifesto, GeoJSON e limite respondem com HTTP 200 e o console não apresenta erros.
 
 Ao conectar o repositório à Vercel, use `frontend` como **Root Directory**.
