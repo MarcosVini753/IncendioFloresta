@@ -116,3 +116,4 @@ Npm dev/build sincronizam as cópias canônicas para pastas geradas e ignoradas.
 Produtos antigos permanecem como legado para regressão, mas não são
 copiados ao build ativo. Site anterior preservado na branch
 archive/risk-2016-before-2025. Perigo intocado; sem novo deploy.
+Postbuild remove somente dist/data/danger, nunca os arquivos locais originais.

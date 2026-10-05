@@ -36,6 +36,8 @@ npm run preview
 Predev/prebuild verificam ambas as origens antes de substituir as cópias
 geradas em public/data/risk/v1/2025 e public/data/climate/v1/2025.
 Não copiam os anos antigos nem alteram os arquivos de Perigo.
+Postbuild exclui apenas a cópia gerada de Perigo em dist, pois Vite copia
+public/ integralmente. Os arquivos locais originais ficam intactos.
 O produto canônico é a única cópia versionada. A exclusão de MapLibre do
 prebundle Vite permanece por compatibilidade WSL/Windows.
 

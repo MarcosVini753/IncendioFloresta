@@ -8,6 +8,7 @@
     "dev": "vite",
     "prebuild": "node scripts/sync-susceptibility.mjs",
     "build": "tsc -b && vite build",
+    "postbuild": "node scripts/prune-unused-products.mjs",
     "test": "vitest run",
     "preview": "vite preview"
   },

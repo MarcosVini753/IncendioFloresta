@@ -106,6 +106,7 @@ def main(url, executable):
         index = index_response.json()
         files = ["/data/risk/v1/2025/aggregated/manifest.json",
                  "/data/risk/v1/2025/aggregated/mapa.geojson",
+                 "/data/risk/v1/2025/aggregated/limite_acre.geojson",
                  "/data/risk/v1/2025/native_sharded_grid/manifest.json",
                  *["/data/risk/v1/2025/native_sharded_grid/" + e["url"] for e in index["sectors"]],
                  *["/data/climate/v1/2025/" + name for name in
