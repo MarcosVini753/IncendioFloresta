@@ -38,3 +38,7 @@ venv/
 # Produtos sincronizados a partir da copia canonica em incendio/produtos
 frontend/public/data/susceptibility/
 frontend/public/data/climate/
+frontend/public/data/risk/
+
+# Pacote científico recebido: insumos e artefatos permanecem locais.
+incednido/

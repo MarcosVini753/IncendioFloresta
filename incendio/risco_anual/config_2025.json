@@ -1,0 +1,26 @@
+{
+  "versao": 1,
+  "centroides": "../../incednido/4_bases_de_dados/centroides2003a2013.xlsx",
+  "fontes": {
+    "cicatriz": ["../../incednido/4_bases_de_dados/novos/Cicatrizes_Acre_2006_2025.tif", "../../incednido/4_bases_de_dados/Cicatrizes_Incendio_Acre_2006_2016.tif"],
+    "precipitacao": ["../../incednido/4_bases_de_dados/Precipitacao_13h_Diaria_Acre_2006_2016.tif", "../../incednido/4_bases_de_dados/novos/Precipitacao_13h_Diaria_Acre_2016_2026.tif"],
+    "umidade": ["../../incednido/4_bases_de_dados/Umidade_Relativa_Diaria_Acre_2006_2016.tif", "../../incednido/4_bases_de_dados/novos/Umidade_Relativa_Diaria_Acre_2016_2026.tif"],
+    "conferir": ["../../incednido/4_bases_de_dados/novos/Cicatrizes_Incendio_Acre_2006_2025_MODIS.tif"]
+  },
+  "divisao": {"tipo": "corte_x_g", "valor_m": 337100},
+  "semente": 42,
+  "cv": {"n_pastas": 10, "agrupamento": "ano", "lado_bloco_m": 25000, "metrica": "pr_auc"},
+  "modelos": ["FuzzyKNN", "RandomForest", "GradBoost", "XGBoost", "RegLogistica"],
+  "espacos": {},
+  "preditores": ["veg", "dist_estrada", "dist_agua", "altitude", "ur_media_ano", "prec_acum_ano"],
+  "clima": {"defasagem_principal": 1, "defasagens_comparacao": [], "ajustar_comparacao": false},
+  "anos_previsao": [2025],
+  "anos_rolantes": [],
+  "cenarios": ["unico", "regional"],
+  "mapas": {"cenarios": ["unico", "regional"]},
+  "min_positivos": 30,
+  "limiares": [50, 80, 90],
+  "gravar_modelos": false,
+  "saida": "../resultados/risco_2025",
+  "banco": "../resultados/risco_2025/parametros.sqlite"
+}

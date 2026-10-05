@@ -18,9 +18,12 @@ __pycache__/
 *.xls
 *.parquet
 *.joblib
+*.sqlite
 *.png
 CSVsF1Score/
 resultados/
+produtos/**/2025-previous/
+produtos/**/2025-staging/
 
 # Metadados de download do Windows
 *.Identifier
