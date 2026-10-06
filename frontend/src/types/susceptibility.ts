@@ -13,6 +13,22 @@ export type RiskScenario = 'unico' | 'regional'
 export type SusceptibilityScoreProperty = `score_${RiskScenario}_${SusceptibilityModelId}`
 export type SusceptibilityScores = Record<SusceptibilityScoreProperty, number>
 
+export const RISK_PRIORITY_CUTS = [1, 5, 10, 20] as const
+export type RiskPriorityCut = (typeof RISK_PRIORITY_CUTS)[number]
+
+export type RiskEvaluationMetrics = {
+  prevalencia: number
+  roc_auc: number
+  pr_auc: number
+  brier: number
+} & Record<`det@${RiskPriorityCut}%`, number>
+
+export interface RiskEvaluation {
+  historical_test_2025: Record<RiskScenario, Record<SusceptibilityModelId, RiskEvaluationMetrics>>
+  test_positive_cells: number
+  notice: string
+}
+
 export interface AggregatedCellProperties extends SusceptibilityScores {
   id: string
   centroid: [number, number]
@@ -87,6 +103,7 @@ export interface SusceptibilityManifest {
     source_cells: number
     features: number
   }
+  evaluation: RiskEvaluation
   bounds: [number, number, number, number]
   files: {
     geojson: string

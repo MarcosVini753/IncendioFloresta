@@ -86,20 +86,48 @@ button:disabled {
   margin-bottom: 14px;
 }
 
+.risk-map-controls {
+  grid-template-columns: minmax(240px, 0.8fr) minmax(260px, 1fr) minmax(260px, 1fr);
+}
+
 .product-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   margin-bottom: 14px;
 }
 
 .product-tabs button {
   border: 1px solid #cad7d0;
   border-radius: 9px;
-  padding: 10px 14px;
+  display: grid;
+  gap: 5px;
+  padding: 14px 16px;
   background: #fff;
   color: #395045;
   font-weight: 750;
+  text-align: left;
+}
+
+.product-tabs button:focus-visible,
+.scientific-note-details summary:focus-visible {
+  outline: 3px solid #40836a;
+  outline-offset: 3px;
+}
+
+.product-tabs button:not(.active):hover {
+  background: #eaf2ed;
+}
+
+.product-tab-title {
+  font-size: 1rem;
+}
+
+.product-tab-description {
+  color: #52685c;
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 .product-tabs button.active {
@@ -108,14 +136,20 @@ button:disabled {
   color: #fff;
 }
 
-.climate-scar-control label {
+.product-tabs button.active .product-tab-description {
+  color: #e0ece5;
+}
+
+.climate-scar-control label,
+.risk-scar-control label {
   display: flex;
   align-items: center;
   gap: 8px;
   font-weight: 700;
 }
 
-.climate-scar-control small {
+.climate-scar-control small,
+.risk-scar-control small {
   display: block;
   margin-top: 6px;
   color: #68766f;
@@ -140,6 +174,21 @@ button:disabled {
   margin-right: 4px;
   background: #e94431;
   vertical-align: middle;
+}
+
+.risk-scar-swatch {
+  background: #8e2b92;
+  flex: 0 0 12px;
+}
+
+.overlay-error {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  margin-top: 8px;
+  color: #813622;
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
 }
 
 .control-group {
@@ -313,6 +362,11 @@ button:disabled {
   color: #59675f;
   font-size: 0.74rem;
   font-weight: 700;
+  pointer-events: none;
+}
+
+.map-container .maplibregl-popup {
+  z-index: 3;
 }
 
 .susceptibility-popup {
@@ -552,6 +606,119 @@ button:disabled {
   margin: 0;
 }
 
+.scientific-note-details {
+  margin-top: 12px;
+}
+
+.scientific-note-details summary {
+  width: fit-content;
+  color: #274f3d;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.scientific-note-details[open] summary {
+  margin-bottom: 10px;
+}
+
+.scientific-product-note .model-validation-note {
+  margin-top: 10px;
+}
+
+.risk-evaluation {
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid #d7e0db;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.risk-evaluation h2 {
+  margin: 4px 0;
+  font-size: 1.2rem;
+}
+
+.risk-evaluation p {
+  color: #52655a;
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
+.risk-evaluation-model {
+  margin: 6px 0 16px;
+}
+
+.risk-evaluation-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.risk-evaluation-stats > div {
+  padding: 16px;
+  border-radius: 12px;
+  background: #f3f7f4;
+}
+
+.risk-evaluation-stats .risk-evaluation-highlight {
+  background: #e8f1eb;
+}
+
+.risk-evaluation-stats dt {
+  min-height: 2.6em;
+  color: #395345;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.risk-evaluation-stats dd {
+  margin: 8px 0;
+  color: #203d2f;
+  font-size: 1.6rem;
+  font-weight: 800;
+}
+
+.risk-evaluation-stats small {
+  display: block;
+  color: #52655a;
+  line-height: 1.4;
+}
+
+.risk-evaluation-limit {
+  padding: 10px 12px;
+  border-left: 3px solid #bc872f;
+  background: #fcf6e9;
+}
+
+.evaluation-table-wrapper {
+  overflow-x: auto;
+}
+
+.evaluation-priority-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.evaluation-priority-table caption {
+  padding-bottom: 10px;
+  text-align: left;
+  color: #52655a;
+}
+
+.evaluation-priority-table th,
+.evaluation-priority-table td {
+  padding: 10px;
+  border-bottom: 1px solid #e0e8e3;
+  text-align: left;
+}
+
+.evaluation-priority-table thead {
+  background: #f3f7f4;
+}
+
 @media (max-width: 1050px) {
   .map-workspace {
     grid-template-columns: 1fr;
@@ -601,6 +768,14 @@ button:disabled {
 @media (max-width: 560px) {
   .app-shell {
     padding: 12px;
+  }
+
+  .product-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .risk-evaluation-stats {
+    grid-template-columns: 1fr;
   }
 
   .layer-selector {

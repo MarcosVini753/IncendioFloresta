@@ -2,6 +2,7 @@ import type { Feature, MultiPolygon, Polygon } from 'geojson'
 import {
   MODEL_SCORE_PROPERTY,
   SCORE_PROPERTIES,
+  RISK_PRIORITY_CUTS,
   modelScoreProperty,
   type RiskScenario,
   SUSCEPTIBILITY_MODEL_IDS,
@@ -60,6 +61,9 @@ export function validateManifest(value: unknown): SusceptibilityManifest {
   if (value.training.climate_year !== 2024 || !Array.isArray(value.training.train_years) || value.training.train_years.join(',') !== '2007,2024' || value.source_period !== '2025' || value.training.seed !== 42 || !Array.isArray(value.training.predictors) || value.training.predictors.join(',') !== 'veg,dist_estrada,dist_agua,altitude,ur_media_ano,prec_acum_ano') {
     throw new Error('Protocolo temporal ou preditores incompatíveis.')
   }
+  if (value.training.evaluation !== 'target_year_held_out') {
+    throw new Error('A avaliação deve usar o ano-alvo fora do treino.')
+  }
   if (!isRecord(value.value) || value.value.semantics !== 'relative_score' || value.value.calibrated_probability !== false || !Array.isArray(value.value.domain) || value.value.domain.join(',') !== '0,1') {
     throw new Error('A semântica do produto deve ser relative_score.')
   }
@@ -68,6 +72,36 @@ export function validateManifest(value: unknown): SusceptibilityManifest {
   }
   if (!isRecord(value.counts) || value.counts.source_cells !== 307410) {
     throw new Error('A contagem de células científicas do manifesto é inválida.')
+  }
+  const evaluation = value.evaluation
+  if (!isRecord(evaluation) || !Number.isInteger(evaluation.test_positive_cells)
+    || Number(evaluation.test_positive_cells) <= 0
+    || Number(evaluation.test_positive_cells) > value.counts.source_cells
+    || !isRecord(evaluation.historical_test_2025) || typeof evaluation.notice !== 'string') {
+    throw new Error('Avaliação histórica de 2025 ausente ou inválida.')
+  }
+  const prevalence = Number(evaluation.test_positive_cells) / value.counts.source_cells
+  for (const scenario of ['unico', 'regional']) {
+    const metricsByModel = evaluation.historical_test_2025[scenario]
+    if (!isRecord(metricsByModel)) throw new Error('Cenário ausente na avaliação histórica.')
+    for (const model of SUSCEPTIBILITY_MODEL_IDS) {
+      const metrics = metricsByModel[model]
+      if (!isRecord(metrics) || !['prevalencia', 'roc_auc', 'pr_auc', 'brier', ...RISK_PRIORITY_CUTS.map((cut) => `det@${cut}%`)].every((key) => isFiniteScore(metrics[key]))) {
+        throw new Error(`Métricas inválidas na avaliação de ${scenario}/${model}.`)
+      }
+      if (Math.abs(Number(metrics.prevalencia) - prevalence) > 1e-12) {
+        throw new Error('Prevalência da avaliação diverge da cobertura científica.')
+      }
+      let previous = 0
+      for (const cut of RISK_PRIORITY_CUTS) {
+        const fraction = Number(metrics[`det@${cut}%`])
+        const found = fraction * Number(evaluation.test_positive_cells)
+        if (fraction < previous || Math.abs(found - Math.round(found)) > 1e-8) {
+          throw new Error('Contagens dos cortes de avaliação inconsistentes.')
+        }
+        previous = fraction
+      }
+    }
   }
   if (!isRecord(value.provenance) || !isRecord(value.provenance.models)) {
     throw new Error('Proveniência dos modelos ausente.')

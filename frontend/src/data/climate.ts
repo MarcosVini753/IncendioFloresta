@@ -6,6 +6,7 @@ import type {
   ClimateStats,
   ClimateVariable,
   ScarCollection,
+  ScarProduct,
 } from '../types/climate'
 
 const BASE_URL = '/data/climate/v1/2025'
@@ -51,7 +52,7 @@ export function validateClimateManifest(value: unknown): ClimateManifest {
   if (!record(value.grid) || value.grid.step_degrees !== 0.28 || !finite(value.grid.source_step_degrees)
     || !record(value.statistics) || value.statistics.scope !== 'spatial_per_day'
     || !record(variables) || !VARIABLES.every((name) => record(variables[name]) && typeof variables[name].unit === 'string')
-    || !record(value.scars) || !Number.isInteger(value.scars.feature_count)) {
+    || !record(value.scars) || !Number.isInteger(value.scars.feature_count) || Number(value.scars.feature_count) < 0) {
     throw new Error('Metadados do produto climático inválidos.')
   }
   return value as unknown as ClimateManifest
@@ -106,6 +107,8 @@ export function validateScarCollection(value: unknown, manifest: ClimateManifest
     if (!record(feature) || feature.type !== 'Feature' || !record(feature.geometry)
       || !['Polygon', 'MultiPolygon'].includes(String(feature.geometry.type))
       || !record(feature.properties) || !Number.isInteger(feature.properties.day_of_year)
+      || Number(feature.properties.day_of_year) < 1 || Number(feature.properties.day_of_year) > manifest.dates.length
+      || typeof feature.properties.date !== 'string'
       || feature.properties.date !== manifest.dates[Number(feature.properties.day_of_year) - 1]
       || !Array.isArray(feature.properties.center) || feature.properties.center.length !== 2
       || !feature.properties.center.every(finite)) {
@@ -146,6 +149,12 @@ export async function loadClimateProduct(signal?: AbortSignal): Promise<ClimateP
     precipitation: validateClimateMatrix(precipitation, 'precipitation', manifest),
     scars: validateScarCollection(scars, manifest),
   }
+}
+
+export async function loadScarProduct(signal?: AbortSignal): Promise<ScarProduct> {
+  const manifest = validateClimateManifest(await fetchJson(`${BASE_URL}/manifest.json`, signal))
+  const scars = validateScarCollection(await fetchJson(`${BASE_URL}/${manifest.files.scars}`, signal), manifest)
+  return { manifest, scars }
 }
 
 export function cellStats(product: ClimateProduct, variable: ClimateVariable, date: string, cellId: string): ClimateStats {

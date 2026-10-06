@@ -5,11 +5,12 @@ import { ClimateDetails } from './components/ClimateDetails/ClimateDetails'
 import { ClimateMap } from './components/Map/ClimateMap'
 import { FireMap } from './components/Map/FireMap'
 import { ModelSelector } from './components/ModelSelector/ModelSelector'
+import { RiskEvaluation } from './components/RiskEvaluation/RiskEvaluation'
 import { TimeSlider } from './components/Timeline/TimeSlider'
-import { loadClimateProduct } from './data/climate'
+import { loadClimateProduct, loadScarProduct } from './data/climate'
 import { loadNativeGridProduct } from './data/nativeSusceptibility'
 import { loadSusceptibilityProduct } from './data/susceptibility'
-import type { ClimateProduct, ClimateVariable } from './types/climate'
+import type { ClimateProduct, ClimateVariable, ScarProduct } from './types/climate'
 import type {
   NativeGridProduct,
   RiskScenario,
@@ -30,6 +31,11 @@ export default function App() {
   const [climateVariable, setClimateVariable] = useState<ClimateVariable>('humidity')
   const [climateDate, setClimateDate] = useState('2025-08-25')
   const [showScars, setShowScars] = useState(true)
+  const [showRiskScars, setShowRiskScars] = useState(true)
+  const [riskScars, setRiskScars] = useState<ScarProduct | null>(null)
+  const [riskScarsLoading, setRiskScarsLoading] = useState(false)
+  const [riskScarsError, setRiskScarsError] = useState<string | null>(null)
+  const [riskScarsRetry, setRiskScarsRetry] = useState(0)
   const [selectedClimateCell, setSelectedClimateCell] = useState<string | null>(null)
   const [product, setProduct] = useState<SusceptibilityProduct | null>(null)
   const [selectedModel, setSelectedModel] = useState<SusceptibilityModelId>('random_forest')
@@ -62,7 +68,11 @@ export default function App() {
     const controller = new AbortController()
     setClimateError(null)
     loadClimateProduct(controller.signal)
-      .then(setClimate)
+      .then((result) => {
+        setClimate(result)
+        setRiskScars({ manifest: result.manifest, scars: result.scars })
+        setRiskScarsError(null)
+      })
       .catch((error: unknown) => {
         if (!(error instanceof DOMException && error.name === 'AbortError')) {
           setClimateError(error instanceof Error ? error.message : 'Erro ao carregar clima histórico.')
@@ -70,6 +80,25 @@ export default function App() {
       })
     return () => controller.abort()
   }, [section, climate])
+
+  useEffect(() => {
+    if (section !== 'susceptibility' || !showRiskScars || riskScars) {
+      setRiskScarsLoading(false)
+      return
+    }
+    const controller = new AbortController()
+    setRiskScarsLoading(true)
+    setRiskScarsError(null)
+    loadScarProduct(controller.signal)
+      .then(setRiskScars)
+      .catch((error: unknown) => {
+        if (!controller.signal.aborted) {
+          setRiskScarsError(error instanceof Error ? error.message : 'Erro ao carregar as cicatrizes de 2025.')
+        }
+      })
+      .finally(() => { if (!controller.signal.aborted) setRiskScarsLoading(false) })
+    return () => controller.abort()
+  }, [section, showRiskScars, riskScars, riskScarsRetry])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -95,14 +124,34 @@ export default function App() {
         <div>
           <span className="eyebrow">Produto científico experimental</span>
           <h1>Monitoramento de Incêndios Florestais — Acre</h1>
-          <p>Risco 2025 é um escore calculado pelo modelo; clima e cicatrizes são observações de 2025 para contexto.</p>
+          <p>Risco calculado e dados observados do Acre em 2025.</p>
         </div>
         <span className="prototype-badge">{section === 'climate' ? 'Clima histórico · cicatrizes mapeadas · 2025' : 'Risco anual experimental — 2025'}</span>
       </header>
 
       <nav className="product-tabs" aria-label="Seção do mapa">
-        <button type="button" className={section === 'susceptibility' ? 'active' : undefined} onClick={() => setSection('susceptibility')}>Risco</button>
-        <button type="button" className={section === 'climate' ? 'active' : undefined} onClick={() => setSection('climate')}>Clima e cicatrizes · 2025</button>
+        <button
+          type="button"
+          className={section === 'susceptibility' ? 'active' : undefined}
+          aria-pressed={section === 'susceptibility'}
+          aria-labelledby="risk-tab-label"
+          aria-describedby="risk-tab-description"
+          onClick={() => setSection('susceptibility')}
+        >
+          <span id="risk-tab-label" className="product-tab-title">Risco</span>
+          <span id="risk-tab-description" className="product-tab-description">Resultado do modelo · 2025 · clima de 2024</span>
+        </button>
+        <button
+          type="button"
+          className={section === 'climate' ? 'active' : undefined}
+          aria-pressed={section === 'climate'}
+          aria-labelledby="climate-tab-label"
+          aria-describedby="climate-tab-description"
+          onClick={() => setSection('climate')}
+        >
+          <span id="climate-tab-label" className="product-tab-title">Clima e cicatrizes · 2025</span>
+          <span id="climate-tab-description" className="product-tab-description">Dados observados · calendário diário</span>
+        </button>
       </nav>
 
       {section === 'climate' ? (
@@ -131,7 +180,13 @@ export default function App() {
               <ClimateSeries product={climate} variable={climateVariable} date={climateDate} cellId={selectedClimateCell} />
               <section className="scientific-product-note">
                 <div><span className="eyebrow">Dados observados · 2025</span><strong>Clima e cicatrizes dão contexto ao resultado do modelo</strong></div>
-                <p>Esta seção mostra dados observados de 2025, não escores produzidos pelo modelo: o clima descreve as condições daquele ano e as cicatrizes ajudam a contextualizar e avaliar o mapa de Risco. As cicatrizes são pixels classificados em um raster — não são uma contagem de incêndios confirmados — e o inventário disponível é limitado; a ausência de registro num dia não comprova ausência de fogo. A precipitação é o valor do produto, sem duração de acumulação em 24 horas comprovada. As cores mostram a média espacial diária; o painel informa mínimo, média e máximo entre pixels climáticos de aproximadamente 0,1° que intersectam cada célula visual de 0,28°. Marcadores vermelhos localizam pixels classificados como cicatriz; ao aproximar, seu contorno aparece.</p>
+                <div>
+                  <p>Umidade, precipitação e cicatrizes observadas em 2025 ajudam a avaliar o Risco. As cicatrizes são pixels classificados, não uma contagem de incêndios confirmados. O inventário é limitado.</p>
+                  <details className="scientific-note-details">
+                    <summary>Como ler as observações</summary>
+                    <p>As cores mostram a média espacial diária. Mínimo, média e máximo descrevem os pixels climáticos de aproximadamente 0,1° que intersectam cada célula visual de 0,28°, não extremos ao longo do dia. A duração de acumulação da precipitação em 24 horas não está comprovada. Marcadores vermelhos localizam cicatrizes; ao aproximar, seu contorno aparece. Um dia sem registro não comprova ausência de fogo. O clima exibido é de 2025; o Risco anual utiliza clima de 2024.</p>
+                  </details>
+                </div>
               </section>
             </>
           ) : (
@@ -145,7 +200,7 @@ export default function App() {
         </>
       ) : (
       <>
-      <div className="map-controls">
+      <div className="map-controls risk-map-controls">
         {product && <section className="control-group"><span className="control-label">Cenário científico</span><div className="layer-selector">{product.manifest.scenarios.map((item) => <button key={item.id} type="button" className={scenario === item.id ? 'active' : undefined} onClick={() => setScenario(item.id)}>{item.label}</button>)}</div></section>}
         {product ? (
           <ModelSelector
@@ -159,6 +214,12 @@ export default function App() {
             <span className="control-loading">Carregando produto…</span>
           </section>
         )}
+        <section className="control-group risk-scar-control">
+          <span className="control-label">Observações sobre o Risco</span>
+          <label><input type="checkbox" checked={showRiskScars} onChange={(event) => setShowRiskScars(event.target.checked)} /><i className="scar-swatch risk-scar-swatch" /> Cicatrizes observadas · 2025</label>
+          <small role="status">{riskScarsLoading ? 'Carregando o inventário anual…' : riskScars ? `${riskScars.scars.features.length} pixels classificados · todo o ano` : 'Inventário anual de pixels classificados; cobertura limitada.'}</small>
+          {showRiskScars && riskScarsError && <div className="overlay-error" role="alert"><span>{riskScarsError}</span><button type="button" className="clear-selection" onClick={() => setRiskScarsRetry((value) => value + 1)}>Tentar novamente</button></div>}
+        </section>
       </div>
 
       {product && activeModel ? (
@@ -176,6 +237,8 @@ export default function App() {
                 onCellSelect={setSelectedCell}
                 nativeProduct={nativeProduct}
                 nativeIndexError={nativeIndexError}
+                scars={riskScars?.scars ?? null}
+                showScars={showRiskScars}
               />
             </div>
             <CellDetails
@@ -186,19 +249,22 @@ export default function App() {
               onClear={() => setSelectedCell(null)}
             />
           </section>
+          <RiskEvaluation manifest={product.manifest} model={selectedModel} scenario={scenario} />
           <section className="scientific-product-note">
             <div>
               <span className="eyebrow">Resultado calculado pelo modelo</span>
               <strong>Risco anual experimental — 2025</strong>
             </div>
-            <p>
-              Este mapa é um escore calculado pelo modelo para 2025, reconstruído com dados de treino de 2007–2024 e clima de 2024 — não uma medição direta das condições de fogo em 2025. É experimental, não uma previsão operacional. Paisagem baseada em insumos de 2003–2013. A divisão Oeste–Leste é científica, não administrativa, e pode produzir descontinuidades. A avaliação de 2025 possui poucas células positivas; não equivale a uma contagem de incêndios. Os escores são relativos e não
-              representam probabilidades calibradas. Cada
-              célula visível reúne, por média aritmética, células científicas de aproximadamente
-              893 × 598 m. O modelo ativo é{' '}
-              <strong>{activeModel.label}</strong>.
-              {selectedModel === 'xgboost' && ' O XGBoost foi retreinado no ambiente atual; suas métricas recalculadas diferem do relatório recebido e estão registradas separadamente no manifesto.'}
-            </p>
+            <div>
+              <p>
+                Risco de 2025 calculado por <strong>{activeModel.label}</strong>, com treino de 2007–2024 e clima de 2024. Os percentuais mostram um escore relativo, não a chance de ocorrer um incêndio. Resultado experimental, sem uso operacional.
+              </p>
+              {selectedModel === 'xgboost' && <p className="model-validation-note">XGBoost: as métricas recalculadas diferem do relatório recebido; ambas estão registradas no manifesto.</p>}
+              <details className="scientific-note-details">
+                <summary>Dados e limites do modelo</summary>
+                <p>A paisagem usa insumos de 2003–2013. A divisão Oeste–Leste segue um corte científico, não limites administrativos, e pode gerar descontinuidades. A avaliação de 2025 tem poucas células positivas. Os escores não são probabilidades calibradas nem medições diretas de fogo. Na malha agregada, cada valor é a média de células científicas de aproximadamente 893 × 598 m; na grade original, é o escore da célula individual.</p>
+              </details>
+            </div>
           </section>
         </>
       ) : (

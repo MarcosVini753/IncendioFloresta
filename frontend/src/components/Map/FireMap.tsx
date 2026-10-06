@@ -26,6 +26,7 @@ import type {
 } from '../../types/susceptibility'
 import { MapLegend } from '../Legend/MapLegend'
 import { formatRelativeScorePercent } from '../../utils/formatRelativeScore'
+import type { ScarCollection } from '../../types/climate'
 
 interface FireMapProps {
   scenario: RiskScenario
@@ -38,6 +39,8 @@ interface FireMapProps {
   onCellSelect: (cell: SelectedSusceptibilityCell | null) => void
   nativeProduct: NativeGridProduct | null
   nativeIndexError: string | null
+  scars: ScarCollection | null
+  showScars: boolean
 }
 
 const CELLS_SOURCE_ID = 'susceptibility-cells'
@@ -51,8 +54,26 @@ const NATIVE_SELECTED_LAYER_ID = 'native-susceptibility-selected'
 const ACRE_SOURCE_ID = 'acre-boundary'
 const ACRE_OUTLINE_LAYER_ID = 'acre-outline'
 const NATIVE_ZOOM = 8.5
+const SCARS_SOURCE_ID = 'risk-observed-scars'
+const SCAR_POINTS_SOURCE_ID = 'risk-observed-scar-points'
+const SCARS_FILL_LAYER_ID = 'risk-observed-scars-fill'
+const SCARS_LINE_LAYER_ID = 'risk-observed-scars-line'
+const SCAR_POINTS_LAYER_ID = 'risk-observed-scar-markers'
+const SCAR_COLOR = '#8e2b92'
 
 const EMPTY_NATIVE: NativeCellCollection = { type: 'FeatureCollection', features: [] }
+const EMPTY_SCARS: ScarCollection = { type: 'FeatureCollection', features: [] }
+
+function scarMarkers(scars: ScarCollection) {
+  return {
+    type: 'FeatureCollection' as const,
+    features: scars.features.map((scar) => ({
+      type: 'Feature' as const,
+      properties: scar.properties,
+      geometry: { type: 'Point' as const, coordinates: scar.properties.center },
+    })),
+  }
+}
 
 const HTML_ENTITIES: Record<string, string> = {
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;',
@@ -110,6 +131,8 @@ export function FireMap({
   onCellSelect,
   nativeProduct,
   nativeIndexError,
+  scars,
+  showScars,
 }: FireMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
@@ -124,6 +147,8 @@ export function FireMap({
   const nativeAbortRef = useRef<AbortController | null>(null)
   const refreshNativeRef = useRef<(() => void) | null>(null)
   const popupRef = useRef<Popup | null>(null)
+  const scarsRef = useRef(scars ?? EMPTY_SCARS)
+  const showScarsRef = useRef(showScars)
   const [nativeMode, setNativeMode] = useState(false)
   const [nativeLoading, setNativeLoading] = useState(false)
   const [nativeError, setNativeError] = useState<string | null>(null)
@@ -135,6 +160,8 @@ export function FireMap({
   cellsRef.current = cells
   onCellSelectRef.current = onCellSelect
   nativeProductRef.current = nativeProduct
+  scarsRef.current = scars ?? EMPTY_SCARS
+  showScarsRef.current = showScars
 
   const geojson = useMemo<AggregatedCellCollection>(
     () => ({
@@ -171,6 +198,8 @@ export function FireMap({
         })),
       } })
       map.addSource(NATIVE_SOURCE_ID, { type: 'geojson', data: EMPTY_NATIVE })
+      map.addSource(SCARS_SOURCE_ID, { type: 'geojson', generateId: true, data: scarsRef.current })
+      map.addSource(SCAR_POINTS_SOURCE_ID, { type: 'geojson', generateId: true, data: scarMarkers(scarsRef.current) })
       map.addLayer({
         id: CELLS_FILL_LAYER_ID,
         type: 'fill',
@@ -236,14 +265,32 @@ export function FireMap({
         source: ACRE_SOURCE_ID,
         paint: { 'line-color': '#173f32', 'line-width': 2.4, 'line-opacity': 0.95 },
       })
+      const scarVisibility = showScarsRef.current ? 'visible' : 'none'
+      map.addLayer({
+        id: SCARS_FILL_LAYER_ID, type: 'fill', source: SCARS_SOURCE_ID,
+        minzoom: NATIVE_ZOOM, layout: { visibility: scarVisibility },
+        paint: { 'fill-color': SCAR_COLOR, 'fill-opacity': 0.72 },
+      })
+      map.addLayer({
+        id: SCARS_LINE_LAYER_ID, type: 'line', source: SCARS_SOURCE_ID,
+        minzoom: NATIVE_ZOOM, layout: { visibility: scarVisibility },
+        paint: { 'line-color': '#48194e', 'line-width': 1.2 },
+      })
+      map.addLayer({
+        id: SCAR_POINTS_LAYER_ID, type: 'circle', source: SCAR_POINTS_SOURCE_ID,
+        maxzoom: NATIVE_ZOOM, layout: { visibility: scarVisibility },
+        paint: { 'circle-color': SCAR_COLOR, 'circle-radius': 4.5,
+          'circle-stroke-color': '#fff', 'circle-stroke-width': 1.2 },
+      })
       map.fitBounds(bounds, { padding: 44, duration: 0 })
 
-      for (const layerId of [CELLS_FILL_LAYER_ID, NATIVE_FILL_LAYER_ID]) {
+      for (const layerId of [CELLS_FILL_LAYER_ID, NATIVE_FILL_LAYER_ID, SCARS_FILL_LAYER_ID, SCAR_POINTS_LAYER_ID]) {
         map.on('mouseenter', layerId, () => { map.getCanvas().style.cursor = 'pointer' })
         map.on('mouseleave', layerId, () => { map.getCanvas().style.cursor = '' })
       }
 
       map.on('click', CELLS_FILL_LAYER_ID, (event: MapLayerMouseEvent) => {
+        if (map.queryRenderedFeatures(event.point, { layers: [SCARS_FILL_LAYER_ID, SCAR_POINTS_LAYER_ID] }).length) return
         const id = event.features?.[0]?.properties?.id as string | undefined
         const cell = cellsRef.current.features.find((feature) => feature.properties.id === id)
         if (!cell) return
@@ -256,6 +303,7 @@ export function FireMap({
       })
 
       map.on('click', NATIVE_FILL_LAYER_ID, (event: MapLayerMouseEvent) => {
+        if (map.queryRenderedFeatures(event.point, { layers: [SCARS_FILL_LAYER_ID, SCAR_POINTS_LAYER_ID] }).length) return
         const id = event.features?.[0]?.properties?.id as string | undefined
         const cell = nativeVisibleRef.current.features.find((feature) => feature.properties.id === id)
         if (!cell) return
@@ -266,6 +314,31 @@ export function FireMap({
           .setHTML(buildNativePopup(cell.properties, modelRef.current, modelLabelRef.current, scenarioRef.current))
           .addTo(map)
       })
+
+      const onScarClick = (event: MapLayerMouseEvent) => {
+        const index = event.features?.[0]?.id
+        const scar = typeof index === 'number' ? scarsRef.current.features[index] : undefined
+        if (!scar) return
+        const underlying = map.queryRenderedFeatures(map.project(scar.properties.center), { layers: [CELLS_FILL_LAYER_ID, NATIVE_FILL_LAYER_ID] })[0]
+        const id = underlying?.properties?.id
+        const original = nativeVisibleRef.current.features.find((feature) => feature.properties.id === id)
+        const aggregated = cellsRef.current.features.find((feature) => feature.properties.id === id)
+        const selected: SelectedSusceptibilityCell | null = original
+          ? { kind: 'native', feature: original }
+          : aggregated ? { kind: 'aggregated', feature: aggregated } : null
+        if (selected) onCellSelectRef.current(selected)
+        const date = scar.properties.date.split('-').reverse().join('/')
+        const score = selected
+          ? `<span>${escapeHtml(modelLabelRef.current)}: ${escapeHtml(formatRelativeScorePercent(scoreForModel(selected.feature.properties, modelRef.current, scenarioRef.current)))} (escore relativo)</span>`
+          : ''
+        popupRef.current?.remove()
+        popupRef.current = new Popup({ closeButton: true, maxWidth: '300px' })
+          .setLngLat(scar.properties.center)
+          .setHTML(`<div class="susceptibility-popup"><strong>Cicatriz observada · 2025</strong><span>Data registrada: ${escapeHtml(date)}</span><span>Pixel classificado no raster; inventário limitado.</span>${score}</div>`)
+          .addTo(map)
+      }
+      map.on('click', SCARS_FILL_LAYER_ID, onScarClick)
+      map.on('click', SCAR_POINTS_LAYER_ID, onScarClick)
 
       const setNativeVisibility = (visible: boolean) => {
         const aggregatedVisibility = visible ? 'none' : 'visible'
@@ -390,10 +463,23 @@ export function FireMap({
     }
   }, [selectedCellId])
 
+  useEffect(() => {
+    const map = mapRef.current
+    const collection = scars ?? EMPTY_SCARS
+    const source = map?.getSource(SCARS_SOURCE_ID) as GeoJSONSource | undefined
+    const points = map?.getSource(SCAR_POINTS_SOURCE_ID) as GeoJSONSource | undefined
+    source?.setData(collection)
+    points?.setData(scarMarkers(collection))
+    for (const layer of [SCARS_FILL_LAYER_ID, SCARS_LINE_LAYER_ID, SCAR_POINTS_LAYER_ID]) {
+      if (map?.getLayer(layer)) map.setLayoutProperty(layer, 'visibility', showScars ? 'visible' : 'none')
+    }
+    popupRef.current?.remove()
+  }, [scars, showScars])
+
   return (
     <div className="map-shell">
       <div ref={containerRef} className="map-container" />
-      <MapLegend modelLabel={modelLabel} />
+      <MapLegend modelLabel={modelLabel} showScars={showScars && scars !== null} />
       <div className="map-prototype-note">
         {nativeMode
           ? nativeLoading

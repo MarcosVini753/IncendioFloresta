@@ -40,6 +40,11 @@ export interface ScarProperties {
 
 export type ScarCollection = FeatureCollection<Polygon | MultiPolygon, ScarProperties>
 
+export interface ScarProduct {
+  manifest: ClimateManifest
+  scars: ScarCollection
+}
+
 export interface ClimateProduct {
   manifest: ClimateManifest
   grid: ClimateGrid

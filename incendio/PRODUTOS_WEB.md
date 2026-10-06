@@ -60,6 +60,20 @@ Não é uma contagem de incêndios nem prova completude das observações.
 As fontes anuais e bandas são conferidas; a completude do levantamento
 é uma limitação científica que não pode ser garantida pelo código.
 
+O frontend expõe o teste territorial recalculado de 2025 para o par
+modelo/cenário ativo. A fração de positivas nos maiores escores é convertida
+em contagem usando as 39 células positivas; AUC-ROC e AP são exibidas como
+métricas, sem confundi-las com percentuais dos escores. O campo `pr_auc`
+foi produzido por `average_precision_score`, portanto a interface o nomeia
+precisão média (AP). Os números usam a grade científica anterior à média
+visual e não variam com seleção de célula ou zoom.
+
+A sobreposição anual usa os 59 pixels do produto de cicatrizes de 2025.
+Essa contagem e as 39 células científicas positivas representam unidades
+espaciais distintas. O controle anual do Risco e o controle diário do Clima
+são independentes. O produto científico e suas métricas não são alterados
+pela visualização dessas observações.
+
 ## Contrato, geração e retomada
 
 Produtos canônicos:
