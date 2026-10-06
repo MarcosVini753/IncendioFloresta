@@ -95,7 +95,7 @@ export default function App() {
         <div>
           <span className="eyebrow">Produto científico experimental</span>
           <h1>Monitoramento de Incêndios Florestais — Acre</h1>
-          <p>Risco anual experimental — 2025. Clima diário e cicatrizes observadas de 2025.</p>
+          <p>Risco 2025 é um escore calculado pelo modelo; clima e cicatrizes são observações de 2025 para contexto.</p>
         </div>
         <span className="prototype-badge">{section === 'climate' ? 'Clima histórico · cicatrizes mapeadas · 2025' : 'Risco anual experimental — 2025'}</span>
       </header>
@@ -130,8 +130,8 @@ export default function App() {
               </section>
               <ClimateSeries product={climate} variable={climateVariable} date={climateDate} cellId={selectedClimateCell} />
               <section className="scientific-product-note">
-                <div><span className="eyebrow">Como ler</span><strong>Clima histórico e cicatrizes mapeadas de 2025</strong></div>
-                <p>O clima desta seção é observado em 2025; o risco anual usa clima de 2024. Precipitação é o valor do produto, sem duração de acumulação em 24 horas comprovada. As cores mostram a média espacial diária. O painel informa mínimo, média e máximo entre pixels climáticos de aproximadamente 0,1° que intersectam cada célula visual de 0,28°. Marcadores vermelhos localizam pixels classificados como cicatriz; ao aproximar, seu contorno aparece. Um dia sem registro não comprova ausência de fogo.</p>
+                <div><span className="eyebrow">Dados observados · 2025</span><strong>Clima e cicatrizes dão contexto ao resultado do modelo</strong></div>
+                <p>Esta seção mostra dados observados de 2025, não escores produzidos pelo modelo: o clima descreve as condições daquele ano e as cicatrizes ajudam a contextualizar e avaliar o mapa de Risco. As cicatrizes são pixels classificados em um raster — não são uma contagem de incêndios confirmados — e o inventário disponível é limitado; a ausência de registro num dia não comprova ausência de fogo. A precipitação é o valor do produto, sem duração de acumulação em 24 horas comprovada. As cores mostram a média espacial diária; o painel informa mínimo, média e máximo entre pixels climáticos de aproximadamente 0,1° que intersectam cada célula visual de 0,28°. Marcadores vermelhos localizam pixels classificados como cicatriz; ao aproximar, seu contorno aparece.</p>
               </section>
             </>
           ) : (
@@ -188,12 +188,12 @@ export default function App() {
           </section>
           <section className="scientific-product-note">
             <div>
-              <span className="eyebrow">Leitura correta</span>
+              <span className="eyebrow">Resultado calculado pelo modelo</span>
               <strong>Risco anual experimental — 2025</strong>
             </div>
             <p>
-              Ano-alvo {product.manifest.source_period}; treino 2007–2024, com clima defasado. Para este mapa foi usado o clima de 2024, não o de 2025. Paisagem baseada em insumos de 2003–2013. A divisão Oeste–Leste é científica, não administrativa, e pode produzir descontinuidades. A avaliação de 2025 possui poucas células positivas; não equivale a uma contagem de incêndios. Os escores são relativos e não
-              representam probabilidades calibradas nem previsão operacional independente. Cada
+              Este mapa é um escore calculado pelo modelo para 2025, reconstruído com dados de treino de 2007–2024 e clima de 2024 — não uma medição direta das condições de fogo em 2025. É experimental, não uma previsão operacional. Paisagem baseada em insumos de 2003–2013. A divisão Oeste–Leste é científica, não administrativa, e pode produzir descontinuidades. A avaliação de 2025 possui poucas células positivas; não equivale a uma contagem de incêndios. Os escores são relativos e não
+              representam probabilidades calibradas. Cada
               célula visível reúne, por média aritmética, células científicas de aproximadamente
               893 × 598 m. O modelo ativo é{' '}
               <strong>{activeModel.label}</strong>.

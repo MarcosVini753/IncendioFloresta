@@ -25,6 +25,7 @@ import type {
   SusceptibilityModelId,
 } from '../../types/susceptibility'
 import { MapLegend } from '../Legend/MapLegend'
+import { formatRelativeScorePercent } from '../../utils/formatRelativeScore'
 
 interface FireMapProps {
   scenario: RiskScenario
@@ -69,7 +70,7 @@ function buildCellPopup(
 ) {
   return `<div class="susceptibility-popup">
     <strong>${escapeHtml(properties.id)}</strong>
-    <span>${escapeHtml(modelLabel)}: ${scoreForModel(properties, model, scenario).toFixed(3)}</span>
+    <span>${escapeHtml(modelLabel)}: ${escapeHtml(formatRelativeScorePercent(scoreForModel(properties, model, scenario)))} (escore relativo)</span>
     <span>${properties.n_source_cells.toLocaleString('pt-BR')} células científicas · média</span>
   </div>`
 }
@@ -83,7 +84,7 @@ function buildNativePopup(
   return `<div class="susceptibility-popup">
     <strong>${escapeHtml(properties.id)}</strong>
     <span>Grade X ${properties.grid_x} · Y ${properties.grid_y}</span>
-    <span>${escapeHtml(modelLabel)}: ${scoreForModel(properties, model, scenario).toFixed(3)}</span>
+    <span>${escapeHtml(modelLabel)}: ${escapeHtml(formatRelativeScorePercent(scoreForModel(properties, model, scenario)))} (escore relativo)</span>
     <span>Célula científica original · sem agregação</span>
   </div>`
 }

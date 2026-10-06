@@ -1,4 +1,5 @@
 import { scoreForModel } from '../../data/susceptibility'
+import { formatRelativeScorePercent } from '../../utils/formatRelativeScore'
 import type {
   SelectedSusceptibilityCell,
   RiskScenario,
@@ -12,13 +13,6 @@ interface CellDetailsProps {
   model: SusceptibilityModelId
   manifest: SusceptibilityManifest
   onClear: () => void
-}
-
-function formatScore(value: number) {
-  return new Intl.NumberFormat('pt-BR', {
-    minimumFractionDigits: 3,
-    maximumFractionDigits: 3,
-  }).format(value)
 }
 
 export function CellDetails({ cell, model, scenario, manifest, onClear }: CellDetailsProps) {
@@ -57,15 +51,15 @@ export function CellDetails({ cell, model, scenario, manifest, onClear }: CellDe
 
       <div className="active-score">
         <span>{activeModel?.label ?? model}</span>
-        <strong>{formatScore(activeScore)}</strong>
-        <small>escore relativo · {scenario === 'regional' ? 'Oeste–Leste' : 'Acre inteiro'} · 2025</small>
+        <strong>{formatRelativeScorePercent(activeScore)}</strong>
+        <small>escala do escore relativo · {scenario === 'regional' ? 'Oeste–Leste' : 'Acre inteiro'} · 2025</small>
       </div>
 
       <dl className="model-score-list">
         {manifest.models.map((candidate) => (
           <div key={candidate.id} className={candidate.id === model ? 'active' : undefined}>
             <dt>{candidate.label}</dt>
-            <dd>{formatScore(scoreForModel(properties, candidate.id, scenario))}</dd>
+            <dd>{formatRelativeScorePercent(scoreForModel(properties, candidate.id, scenario))}</dd>
           </div>
         ))}
       </dl>
