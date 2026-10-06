@@ -29,9 +29,9 @@ export function ClimateSeries({ product, variable, date, cellId }: Props) {
         <Tooltip labelFormatter={(value) => String(value).split('-').reverse().join('/')} />
         <Legend />
         <ReferenceLine x={date} stroke="#173f32" strokeDasharray="5 5" />
-        <Line type="linear" dataKey="min" name="Mínimo espacial" stroke="#4279a0" dot={false} />
-        <Line type="linear" dataKey="mean" name="Média espacial ponderada" stroke="#173f32" strokeWidth={2} dot={false} />
-        <Line type="linear" dataKey="max" name="Máximo espacial" stroke="#bb6336" dot={false} />
+        <Line type="linear" dataKey="min" name="Mínimo espacial" stroke="#4279a0" dot={false} isAnimationActive={false} />
+        <Line type="linear" dataKey="mean" name="Média espacial ponderada" stroke="#173f32" strokeWidth={2} dot={false} isAnimationActive={false} />
+        <Line type="linear" dataKey="max" name="Máximo espacial" stroke="#bb6336" dot={false} isAnimationActive={false} />
       </LineChart>
     </ResponsiveContainer></div>
   </section>

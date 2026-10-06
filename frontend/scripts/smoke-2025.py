@@ -93,6 +93,8 @@ def main(url, executable):
             if not page.locator(".cell-details-empty").count():
                 break
         expect(page.get_by_label("Série climática anual")).to_be_visible()
+        expect(page.locator(".recharts-line-curve")).to_have_count(3)
+        assert all(len(value or "") > 500 for value in page.locator(".recharts-line-curve").evaluate_all("(nodes) => nodes.map((node) => node.getAttribute('d'))"))
         page.screenshot(path="/tmp/incendio-climate-2025.png", full_page=True)
         page.get_by_role("button", name="Risco", exact=True).click()
         expect(page.locator("#susceptibility-model")).to_have_value("random_forest")
