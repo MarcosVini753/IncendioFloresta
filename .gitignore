@@ -39,6 +39,10 @@ venv/
 frontend/public/data/susceptibility/
 frontend/public/data/climate/
 frontend/public/data/risk/
+frontend/public/data/danger/v1/2015/
+
+# Tese recebida e produto experimental mantidos apenas localmente.
+/Silva_IsaacDayanBastosDa_D.pdf
 
 # Pacote científico recebido: insumos e artefatos permanecem locais.
 incednido/
