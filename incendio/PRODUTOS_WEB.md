@@ -1,133 +1,100 @@
-# Produtos web — Risco e Clima de 2025
+# Produtos web — entrega do professor v2
 
-## Ambiente e fontes
+## Ambiente e geração
 
-O pacote recebido em incednido/ continua local e ignorado. Código anual
-foi integrado em risco_anual/, isolado do pipeline legado e do Perigo.
-O JSON de configuração documenta caminhos relativos dos TIFFs e da
-planilha; ajuste-os se os insumos estiverem em outra pasta.
+O código recebido foi isolado em risco_anual_v2, preservando os pipelines
+anteriores e a pasta original entrega_professor_v2. Dados brutos, SQLite,
+Parquet, Joblib, imagens, ambientes e checkpoints ficam locais e ignorados.
+Somente código, configuração, parâmetros portáveis e produtos web são versionados.
 
-```bash
-cd incendio
-python3 -m venv .venv
-.venv/bin/python -m pip install -r risco_anual/requirements.txt
-.venv/bin/python exportar_risco_2025.py
-.venv/bin/python exportar_clima_2025.py
-.venv/bin/python exportar_risco_2025.py --validate-only
-.venv/bin/python exportar_clima_2025.py --validate-only
-.venv/bin/python -m unittest discover -s tests -v
-```
+Na raiz, preparar uma vez um ambiente Python 3.11:
 
-Os parâmetros recebidos foram selecionados com Python 3.11.9,
-scikit-learn 1.9.0 e XGBoost 3.2.0. A geração registra as versões efetivas;
-não oculta diferenças de ambiente. Impressão da tabela de treinamento,
-preditores, semente, corte, folds e espaço de busca devem coincidir antes
-de reutilizar os vencedores. Divergências acionam a mesma seleção agrupada
-por ano, somente para o modelo/escopo afetado.
+~~~bash
+uv venv --python 3.11 incendio/risco_anual_v2/.venv
+uv pip install --python incendio/risco_anual_v2/.venv/bin/python -r incendio/risco_anual_v2/requirements.txt
+incendio/risco_anual_v2/.venv/bin/python incendio/exportar_risco_professor_v2.py
+incendio/risco_anual_v2/.venv/bin/python incendio/exportar_risco_professor_v2.py --validate-only
+~~~
 
-## Protocolo de risco anual
+XGBoost 3.2.0 é executado em CPU. Rasterio 1.4.4 é usado porque 1.5.2 exige
+Python 3.12 ou superior. Versões efetivas e backend são registrados.
+A configuração contém caminhos relativos para os insumos locais; não usar
+nomes de arquivo para deduzir o período das bandas.
 
-- Ano-alvo 2025; treinamento 2007–2024, nunca cicatrizes de 2025.
-- Semente 42; balanceamento 1:1 separado por ano e região.
-- Preditores: vegetação, distância à estrada, distância à água, altitude,
-  umidade média anual e precipitação acumulada anual.
-- Defasagem de um ano: previsão 2025 usa clima 2024.
-- Cinco modelos: Random Forest, GradBoost, Regressão Logística, Fuzzy k-NN
-  exato e XGBoost. O k é selecionado por escopo; não é fixado em 29.
-- Cenários: Acre inteiro e Oeste–Leste (x UTM < 337100 m = Oeste).
-  O corte não é administrativo. Padrão: Random Forest regional.
+## Protocolo
 
-Resultado experimental, relativo em [0,1] e não calibrado. Não representa
-perda financeira, previsão operacional ou reprodução integral da tese.
-Paisagem baseada em insumos 2003–2013. Modelos regionais podem apresentar
-descontinuidade no corte.
+- Previsão anual experimental de 2025, treino de 2007–2024, semente 42.
+- Seis preditores: vegetação categórica, distâncias à estrada e à água,
+  altitude, umidade média anual e precipitação acumulada anual.
+- Clima defasado em um ano, interpolado por método bilinear: mapa de 2025 usa 2024.
+- Quatro modelos: Random Forest, GradBoost, Regressão Logística e XGBoost.
+- Cenários: todos, todos_regional, razao_1x19 e todos_historico.
+- Regional usa o corte UTM científico x < 337100 m para Oeste.
+- Histórico acrescenta anos desde última queima, histórico decaído e
+  queima no ano anterior, sem acessar cicatrizes do ano-alvo.
+- Regional e histórico reutilizam os parâmetros de todos, como no pacote recebido.
+- Parâmetros próprios de todos e razao_1x19 são conferidos por impressão
+  da tabela, preditores, espaço de busca, amostragem e protocolo. Divergências
+  científicas refazem somente o ajuste afetado, com validação por ano no mapa inteiro.
+- O escore de 1:19 recebe a correção de amostragem do professor. Essa correção
+  não demonstra calibração; manter a semântica relative_score.
 
-O manifesto separa CV balanceada agrupada por ano, avaliações históricas
-recebidas de 2016, avaliação rolante recebida de 2017–2024 e métricas
-recalculadas de 2025 no território completo. Não comparar diretamente
-PR-AUC de CV balanceada com PR-AUC territorial.
+A paisagem mantém insumos de 2003–2013. A divisão regional não é administrativa.
+O produto não é previsão operacional nem reprodução integral da tese.
 
-Oito combinações modelo/cenário reproduziram exatamente PR-AUC e ROC-AUC
-recebidas de 2025. XGBoost reproduziu os dados e parâmetros, mas suas duas
-combinações tiveram métricas diferentes após retreinamento neste ambiente.
-O manifesto registra ambas, seus deltas e o ambiente. Não se promete
-reprodução bit a bit. Multithreading/ordem de somas podem afetar o resultado
-segundo a [FAQ oficial do XGBoost](https://xgboost.readthedocs.io/en/release_3.1.0/faq.html);
-isso é uma explicação possível, não uma causa comprovada neste caso.
+## Contrato e auditoria
 
-Em 2025 há apenas 39 células científicas positivas no alvo recebido.
-Não é uma contagem de incêndios nem prova completude das observações.
-As fontes anuais e bandas são conferidas; a completude do levantamento
-é uma limitação científica que não pode ser garantida pelo código.
+O produto ativo usa contrato 2.0 em produtos/risco/v2/2025, com manifesto e
+malha agregada, além de manifesto, índice e setores da grade científica.
+Cada célula contém 16 propriedades score_<cenario>_<modelo> em [0,1] e
+16 percentile_<cenario>_<modelo> em [0,100].
 
-O frontend expõe o teste territorial recalculado de 2025 para o par
-modelo/cenário ativo. A fração de positivas nos maiores escores é convertida
-em contagem usando as 39 células positivas; AUC-ROC e AP são exibidas como
-métricas, sem confundi-las com percentuais dos escores. O campo `pr_auc`
-foi produzido por `average_precision_score`, portanto a interface o nomeia
-precisão média (AP). Os números usam a grade científica anterior à média
-visual e não variam com seleção de célula ou zoom.
+Percentis são calculados sobre as 307.410 células estaduais de cada par,
+após juntar as regiões, com rank médio nos empates, conforme o código recebido.
+Não são probabilidades nem percentuais de área queimada.
 
-A sobreposição anual usa os 59 pixels do produto de cicatrizes de 2025.
-Essa contagem e as 39 células científicas positivas representam unidades
-espaciais distintas. O controle anual do Risco e o controle diário do Clima
-são independentes. O produto científico e suas métricas não são alterados
-pela visualização dessas observações.
+A malha visual de 0,28° contém 212 células AC-RxxCxx recortadas pelo Acre.
+Agrega por média aritmética tanto escores quanto percentis científicos;
+não calcula um novo ranking visual. A grade original mantém IDs AC-Y<Y>-X<X>,
+cantos reais em UTM 19S reprojetados e dimensões aproximadas de 893 × 598 m.
 
-## Contrato, geração e retomada
+A geração confere domínios, cobertura, IDs únicos e médias agregadas/nativas.
+Somente as 16 combinações completas podem ser publicadas. Arquivos são
+gerados em staging e auditados antes do rename para o diretório canônico.
+Uma versão anterior do produto fica em backup local durante a substituição.
+Uma interrupção entre renames pode exigir restaurar esse backup; não removê-lo
+nem reaproveitar staging sem verificar o estado.
 
-Produtos canônicos:
+## Retomada e avaliação
 
-- produtos/risco/v1/2025/aggregated: manifesto, 212 polígonos recortados
-  pelo limite versionado do Acre e limite.
-- produtos/risco/v1/2025/native_sharded_grid: manifesto, índice e 212
-  setores, totalizando 307.410 IDs científicos únicos.
-- produtos/clima/v1/2025: manifesto, grade, limite, matrizes diárias
-  de umidade/precipitação e cicatrizes.
+O cache em resultados/risco_professor_v2 guarda a base e checkpoints por
+cenário/modelo/escopo, com ordem das células, impressão da tabela, hashes,
+preditores, períodos, parâmetros, correção, versões e backend.
+Reexecutar o mesmo comando retoma previsões e seleções já concluídas.
+Uma seleção interrompida antes de finalizar seus candidatos é refeita.
 
-Geometrias armazenam dez propriedades score_<cenario>_<modelo>,
-declaradas no manifesto. Agregação aritmética mean, IDs AC-RxxCxx,
-contagem de fontes e centroide representativo. Na grade original,
-IDs AC-Y<Y>-X<X>, cantos reais reprojetados de EPSG:31979 e agregação none.
-O frontend consome exclusivamente 2025.
+A avaliação de 2025 é recalculada nas células científicas; o manifesto compara
+as métricas com as recebidas e registra diferenças. Não copiar métricas antigas
+para previsões novas. Relatórios de 2017–2024 são preservados como evidência
+recebida separada; não foram reprocessados nem usados para selecionar pelo teste
+de 2025. O campo pr_auc corresponde à precisão média (AP).
 
-Checkpoints por modelo/escopo em resultados/risco_2025/checkpoints
-registram parâmetros, impressão da tabela, hashes de fontes e ordem,
-períodos, preditores, versões e backend. Reexecute o mesmo comando
-para retomar. Checkpoints incompatíveis ou inválidos são recalculados.
-Nenhum lançamento parcial é permitido.
+O inventário tem 39 células científicas positivas em 2025. Os 59 pixels
+de cicatrizes do raster representam outra unidade, não incêndios confirmados.
 
-O produto é escrito e auditado em pasta temporária antes de substituir
-o ativo. Se já existir produto, ele é movido para 2025-previous;
-preserve/mova esse backup local antes de uma terceira geração.
-Não o inclua no commit. Os dois renames não constituem uma transação:
-interrupção no intervalo pode exigir restaurar o backup.
+## Observações e entrega
 
-## Clima e cicatrizes
+Os oito insumos da nova pasta tiveram hashes idênticos aos da versão anterior.
+Clima e cicatrizes permanecem em produtos/clima/v1/2025: 365 dias, médias
+espaciais ponderadas e extremos espaciais. Se os hashes mudarem, o exportador
+regenera o produto observado antes da publicação. Não afirmar chuva de 24 horas.
 
-Arquivos novos chamados 2016_2026 contêm bandas de 2016–2025.
-Datas são lidas das descrições das bandas, nunca inferidas do nome.
-O produto 2025 possui 365 dias e matrizes de 365 × 212 × 3.
+A branch archive/risk-2025-before-professor-v2 preserva o site anterior.
+O pipeline legado e o produto risco/v1 continuam disponíveis para reprodução,
+mas só v2 e clima ativo são sincronizados para o novo site. Não alterar Perigo.
 
-Estatísticas espaciais por dia: mínimo/máximo entre pixels válidos
-intersectantes e média ponderada pela área geodésica de interseção.
-Sem cobertura, os três valores são null. Pixels climáticos de 0,1°:
-não há detalhamento climático na grade de 893 × 598 m.
-O período de acumulação da precipitação não está documentado.
-
-Cicatrizes usam a banda anual 2025, com valores positivos como dia do ano,
-recortadas pelo limite do Acre. Cicatriz não é foco orbital pontual nem
-um incêndio confirmado individualmente.
-
-## Versionamento e sincronização
-
-Versionar código, documentação, requisitos, parâmetros portáveis, métricas
-compactas e produtos públicos. TIFF, XLSX, Parquet, Joblib, PNG, SQLite,
-caches, ambientes e Zone.Identifier ficam locais. Pacote bruto recebido,
-PDF da tese e artefatos locais de Perigo não entram nos commits.
-
-Npm dev/build sincronizam as cópias canônicas para pastas geradas e ignoradas.
-Produtos antigos permanecem como legado para regressão, mas não são
-copiados ao build ativo. Site anterior preservado na branch
-archive/risk-2016-before-2025. Perigo intocado; sem novo deploy.
-Postbuild remove somente dist/data/danger, nunca os arquivos locais originais.
+O processamento usa a sessão tmux risk-professor-v2 e export.log no cache.
+A finalização usa risk-professor-v2-delivery, delivery.log e delivery.json.
+Ela só integra e envia a main depois da auditoria, builds, HTTP e conferência
+breve do navegador. Se a main ou a cópia preparada mudarem durante o cálculo,
+a integração para sem sobrescrever alterações concorrentes.

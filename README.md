@@ -1,22 +1,27 @@
 # Incêndios Florestais — Acre
 
-Aplicação React + MapLibre para explorar dois produtos de naturezas distintas:
+Aplicação React + MapLibre para explorar resultados de modelos e observações de 2025.
 
-- risco anual experimental de 2025, com cinco modelos e cenários Acre inteiro/Oeste–Leste;
-- clima diário e cicatrizes observadas de 2025, com 365 datas.
+- Risco anual experimental da entrega do professor v2: quatro modelos e quatro cenários.
+- Clima diário e cicatrizes observadas de 2025: calendário de 365 datas.
+- Padrão inicial: Random Forest com histórico de queimadas.
+- Mapa colorido pelo índice percentil de 0 a 100; escore do modelo mostrado separadamente no clique.
 
-O mapa não apresenta previsão operacional, perigo diário nem alerta. Os escores de
-risco são valores relativos entre 0 e 1 e não probabilidades calibradas.
-O mapa anual usa treino 2007–2024 e clima de 2024; a seção climática exibe 2025.
-O site anterior está preservado em `archive/risk-2016-before-2025`.
+Percentil é posição relativa no ranking, não porcentagem de chance de incêndio.
+Os escores também não são probabilidades calibradas. Treino de 2007–2024, clima
+de 2024 e, no cenário com histórico, apenas queimadas anteriores a 2025.
+O clima e as cicatrizes exibidos são observações de 2025, com cobertura limitada.
+Perigo, Alerta e INPE não fazem parte desta entrega.
+
+A versão anterior foi preservada em archive/risk-2025-before-professor-v2.
 
 ## Estrutura
 
-- `incendio/`: pipeline científico e cópia canônica dos produtos web;
-- `frontend/`: interface e sincronização automática do produto canônico;
-- `incendio/risco_anual/`: novo pipeline anual isolado, parâmetros e proveniência;
-- `incednido/`: pacote bruto local e ignorado, não publicado;
-- `data/raw/`: dados legados, sem sobreposição INPE ativa nesta entrega.
+- incendio/risco_anual_v2/: código científico isolado, configuração e parâmetros recebidos portáveis.
+- incendio/produtos/risco/v2/2025/: produto canônico agregado e setores científicos.
+- incendio/produtos/clima/v1/2025/: produto observado mantido após conferência de hashes.
+- frontend/: interface e sincronização das únicas cópias canônicas ativas.
+- entrega_professor_v2/ e incednido/: insumos recebidos locais e ignorados.
+- Os pipelines anteriores e os artefatos locais de Perigo permanecem preservados.
 
-Consulte [incendio/PRODUTOS_WEB.md](incendio/PRODUTOS_WEB.md) para reproduzir os produtos e
-[frontend/README.md](frontend/README.md) para executar e validar a interface.
+Veja [geração e proveniência](incendio/PRODUTOS_WEB.md) e [execução do frontend](frontend/README.md).
