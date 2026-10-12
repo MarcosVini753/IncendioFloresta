@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import argparse
 import functools
+import hashlib
 import http.server
 import json
 import os
@@ -17,6 +18,7 @@ from pathlib import Path
 from urllib.request import urlopen
 
 REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO / "incendio"))
 CACHE = REPO / "incendio/resultados/risco_professor_v2"
 PRODUCT = REPO / "incendio/produtos/risco/v2/2025"
 PYTHON = REPO / "incendio/risco_anual_v2/.venv/bin/python"
@@ -60,7 +62,7 @@ def check_http_and_browser(worktree):
     paths += [f"{base}/native_sharded_grid/{name}" for name in ("manifest.json", "index.json")]
     paths += [f"{base}/native_sharded_grid/{entry['url']}" for entry in index["sectors"]]
     paths += [f"data/climate/v1/2025/{name}" for name in ("manifest.json", "grid.geojson", "boundary.geojson", "humidity.json", "precipitation.json", "scars.geojson")]
-    if (dist / "data/risk/v1").exists() or (dist / "data/danger").exists():
+    if (dist / "data/risk/v1").exists() or any((dist / "data" / name).exists() for name in ("danger", "inpe", "susceptibility")):
         raise RuntimeError("Produto antigo ou Perigo indevidamente incluído no dist.")
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(QuietHandler, directory=str(dist)))
     thread = threading.Thread(target=server.serve_forever, daemon=True)
@@ -110,9 +112,19 @@ def finalize(args):
         raise RuntimeError("Produto incompleto.")
     if any(p.stat().st_size >= 100_000_000 for p in PRODUCT.rglob("*") if p.is_file()):
         raise RuntimeError("Artefato excede o limite por arquivo para publicação Git.")
-    for commit, allowed in [(args.frontend_commit, ("frontend/",)), (args.docs_commit, ("README.md", "frontend/README.md", "incendio/PRODUTOS_WEB.md"))]:
+    from risco_anual_v2.pipeline import config
+    cfg = config.carregar(REPO / "incendio/risco_anual_v2/config_2025.json")
+    declared = {item["file"]: item["sha256"] for item in manifest["provenance"]["sources"]}
+    for path in (cfg.centroides, *cfg.cicatriz, *cfg.precipitacao, *cfg.umidade, *cfg.conferir):
+        digest = hashlib.sha256()
+        with path.open("rb") as stream:
+            for block in iter(lambda: stream.read(1024 * 1024), b""):
+                digest.update(block)
+        if digest.hexdigest() != declared[path.name]:
+            raise RuntimeError(f"Insumo alterado durante o cálculo: {path.name}")
+    for commit in args.commits:
         changed = run("git", "diff-tree", "--no-commit-id", "--name-only", "-r", commit, capture=True).splitlines()
-        if not changed or any(not any(path.startswith(prefix) for prefix in allowed) for path in changed):
+        if not changed or any(not (path.startswith("frontend/") or path in ("README.md", "incendio/PRODUTOS_WEB.md")) for path in changed):
             raise RuntimeError("Commit preparado contém caminhos fora do escopo esperado.")
     worktree_changes = run("git", "status", "--porcelain", cwd=worktree, capture=True)
     if any(line != "?? incendio/produtos/risco/v2" for line in worktree_changes.splitlines()):
@@ -131,8 +143,8 @@ def finalize(args):
     state("integrating_main")
     run("git", "add", "incendio/produtos/risco/v2/2025")
     run("git", "commit", "-m", "feat(data): publish complete professor v2 risk product for 2025")
-    run("git", "cherry-pick", args.frontend_commit, args.docs_commit)
-    if run("git", "diff", args.docs_commit, "--", "frontend", "README.md", "incendio/PRODUTOS_WEB.md", capture=True):
+    run("git", "cherry-pick", *args.commits)
+    if run("git", "diff", args.commits[-1], "--", "frontend", "README.md", "incendio/PRODUTOS_WEB.md", capture=True):
         raise RuntimeError("Código integrado difere do código verificado.")
     run("npm", "run", "build", cwd=REPO / "frontend", timeout=600)
     if run("git", "status", "--porcelain", capture=True):
@@ -145,8 +157,7 @@ def finalize(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--expected-main", required=True)
-    parser.add_argument("--frontend-commit", required=True)
-    parser.add_argument("--docs-commit", required=True)
+    parser.add_argument("--commits", nargs="+", required=True)
     parser.add_argument("--worktree", type=Path, required=True)
     args = parser.parse_args()
     try:
