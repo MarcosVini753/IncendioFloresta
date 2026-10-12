@@ -489,7 +489,7 @@ export function FireMap({
             : nativeError || `${nativeCellCount.toLocaleString('pt-BR')} células científicas visíveis · sem agregação`
           : nativeIndexError
             ? `Grade científica indisponível: ${nativeIndexError}`
-            : 'Visualização agregada em 0,28° · aproxime até o zoom 8,5 para visualizar a grade científica original'}
+            : 'Médias dos escores e percentis em células de 0,28° · aproxime até o zoom 8,5 para visualizar a grade científica original'}
       </div>
     </div>
   )

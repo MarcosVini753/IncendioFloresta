@@ -94,6 +94,20 @@ export function validateManifest(value: unknown): SusceptibilityManifest {
     throw new Error('Avaliação histórica de 2025 ausente ou inválida.')
   }
   const prevalence = Number(evaluation.test_positive_cells) / 307410
+  const historicalIds = new Set<string>()
+  for (const row of evaluation.received_rolling_2017_2024) {
+    if (!isRecord(row) || typeof row.ano !== 'string' || !/^(201[7-9]|202[0-4])$/.test(row.ano)
+      || !RISK_SCENARIO_IDS.includes(row.cenario as RiskScenario) || !isModelId(row.model_id)
+      || typeof row.pr_auc !== 'string' || !isFiniteScore(Number(row.pr_auc))
+      || typeof row.roc_auc !== 'string' || !isFiniteScore(Number(row.roc_auc))
+      || !Number.isInteger(Number(row.n_positivos)) || Number(row.n_positivos) <= 0 || Number(row.n_positivos) > 307410) {
+      throw new Error('Relatórios históricos recebidos inválidos.')
+    }
+    historicalIds.add(`${row.ano}/${row.cenario}/${row.model_id}`)
+  }
+  if (historicalIds.size !== 128 || evaluation.received_rolling_2017_2024.length !== 128) {
+    throw new Error('Relatórios históricos recebidos incompletos ou duplicados.')
+  }
   for (const scenario of RISK_SCENARIO_IDS) {
     const byModel = evaluation.historical_test_2025[scenario]
     if (!isRecord(byModel)) throw new Error('Cenário ausente na avaliação histórica.')
