@@ -1,5 +1,5 @@
 import { validateManifest } from './susceptibility'
-import { MODEL_SCORE_PROPERTY, SUSCEPTIBILITY_MODEL_IDS, SCORE_PROPERTIES } from '../types/susceptibility'
+import { MODEL_SCORE_PROPERTY, SUSCEPTIBILITY_MODEL_IDS, SCORE_PROPERTIES, PERCENTILE_PROPERTIES } from '../types/susceptibility'
 import type {
   NativeCellCollection,
   NativeCellProperties,
@@ -10,7 +10,7 @@ import type {
   SusceptibilityModelId,
 } from '../types/susceptibility'
 
-const NATIVE_BASE_URL = '/data/risk/v1/2025/native_sharded_grid'
+const NATIVE_BASE_URL = '/data/risk/v2/2025/native_sharded_grid'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -25,7 +25,7 @@ function isBbox(value: unknown): value is [number, number, number, number] {
 }
 
 export function validateNativeManifest(value: unknown): NativeSusceptibilityManifest {
-  if (!isRecord(value) || value.schema_version !== '1.0' || value.product !== 'wildfire_annual_risk') {
+  if (!isRecord(value) || value.schema_version !== '2.0' || value.product !== 'wildfire_annual_risk') {
     throw new Error('Manifesto da grade científica original inválido.')
   }
   if (value.crs !== 'EPSG:4326' || value.default_model !== 'random_forest') {
@@ -37,8 +37,8 @@ export function validateNativeManifest(value: unknown): NativeSusceptibilityMani
   if (!isRecord(value.training) || value.training.target !== `burned_in_${value.source_period}`) {
     throw new Error('O alvo da grade científica diverge do ano de referência.')
   }
-  if (!Array.isArray(value.models) || value.models.length !== 5) {
-    throw new Error('A grade científica não informa os cinco modelos.')
+  if (!Array.isArray(value.models) || value.models.length !== 4) {
+    throw new Error('A grade científica não informa os quatro modelos.')
   }
   for (const model of value.models) {
     if (!isRecord(model) || !isModelId(model.id) || model.property !== MODEL_SCORE_PROPERTY[model.id]) {
@@ -59,7 +59,7 @@ export function validateNativeManifest(value: unknown): NativeSusceptibilityMani
 }
 
 export function validateNativeIndex(value: unknown, manifest: NativeSusceptibilityManifest): NativeGridIndex {
-  if (!isRecord(value) || value.schema_version !== '1.0' || value.product !== 'wildfire_annual_risk_native_index') {
+  if (!isRecord(value) || value.schema_version !== '2.0' || value.product !== 'wildfire_annual_risk_native_index') {
     throw new Error('Índice de setores da grade científica inválido.')
   }
   if (value.feature_count !== manifest.counts.features || !Array.isArray(value.sectors)) {
@@ -122,6 +122,12 @@ export function validateNativeSector(value: unknown, entry: NativeSectorIndexEnt
       const score = properties[property]
       if (typeof score !== 'number' || !Number.isFinite(score) || score < 0 || score > 1) {
         throw new Error(`Escore ${property} inválido em ${properties.id}.`)
+      }
+    }
+    for (const property of PERCENTILE_PROPERTIES) {
+      const percentile = properties[property]
+      if (typeof percentile !== 'number' || !Number.isFinite(percentile) || percentile < 0 || percentile > 100) {
+        throw new Error(`Percentil ${property} inválido em ${properties.id}.`)
       }
     }
     ids.add(properties.id)

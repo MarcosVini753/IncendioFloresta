@@ -39,7 +39,7 @@ export default function App() {
   const [selectedClimateCell, setSelectedClimateCell] = useState<string | null>(null)
   const [product, setProduct] = useState<SusceptibilityProduct | null>(null)
   const [selectedModel, setSelectedModel] = useState<SusceptibilityModelId>('random_forest')
-  const [scenario, setScenario] = useState<RiskScenario>('regional')
+  const [scenario, setScenario] = useState<RiskScenario>('todos_historico')
   const [selectedCell, setSelectedCell] = useState<SelectedSusceptibilityCell | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [nativeProduct, setNativeProduct] = useState<NativeGridProduct | null>(null)
@@ -124,7 +124,7 @@ export default function App() {
         <div>
           <span className="eyebrow">Produto científico experimental</span>
           <h1>Monitoramento de Incêndios Florestais — Acre</h1>
-          <p>Risco calculado e dados observados do Acre em 2025.</p>
+          <p>Risco calculado pela entrega v2 e dados observados do Acre em 2025.</p>
         </div>
         <span className="prototype-badge">{section === 'climate' ? 'Clima histórico · cicatrizes mapeadas · 2025' : 'Risco anual experimental — 2025'}</span>
       </header>
@@ -139,7 +139,7 @@ export default function App() {
           onClick={() => setSection('susceptibility')}
         >
           <span id="risk-tab-label" className="product-tab-title">Risco</span>
-          <span id="risk-tab-description" className="product-tab-description">Resultado do modelo · 2025 · clima de 2024</span>
+          <span id="risk-tab-description" className="product-tab-description">Índice percentil do modelo · 2025 · clima de 2024</span>
         </button>
         <button
           type="button"
@@ -257,12 +257,12 @@ export default function App() {
             </div>
             <div>
               <p>
-                Risco de 2025 calculado por <strong>{activeModel.label}</strong>, com treino de 2007–2024 e clima de 2024. Os percentuais mostram um escore relativo, não a chance de ocorrer um incêndio. Resultado experimental, sem uso operacional.
+                Risco de 2025 calculado por <strong>{activeModel.label}</strong>, com treino de 2007–2024 e clima de 2024. O mapa mostra a posição relativa no ranking de risco. O escore aparece separadamente no clique; nenhum dos dois representa uma chance calibrada de incêndio. Resultado experimental, sem uso operacional.
               </p>
-              {selectedModel === 'xgboost' && <p className="model-validation-note">XGBoost: as métricas recalculadas diferem do relatório recebido; ambas estão registradas no manifesto.</p>}
+              {selectedModel === 'xgboost' && <p className="model-validation-note">XGBoost executado em CPU. As métricas recalculadas e a comparação com o relatório recebido estão registradas no manifesto.</p>}
               <details className="scientific-note-details">
                 <summary>Dados e limites do modelo</summary>
-                <p>A paisagem usa insumos de 2003–2013. A divisão Oeste–Leste segue um corte científico, não limites administrativos, e pode gerar descontinuidades. A avaliação de 2025 tem poucas células positivas. Os escores não são probabilidades calibradas nem medições diretas de fogo. Na malha agregada, cada valor é a média de células científicas de aproximadamente 893 × 598 m; na grade original, é o escore da célula individual.</p>
+                <p>A paisagem usa insumos de 2003–2013. A divisão Oeste–Leste segue um corte científico, não limites administrativos, e pode gerar descontinuidades. A avaliação de 2025 tem poucas células positivas. Os escores não são probabilidades calibradas nem medições diretas de fogo. No cenário com histórico, somente queimadas anteriores a 2025 são preditores. A amostra 1:19 utiliza correção de amostragem. Na malha agregada, escores e percentis são médias de células científicas de aproximadamente 893 × 598 m; na grade original, são valores individuais.</p>
               </details>
             </div>
           </section>
@@ -278,7 +278,7 @@ export default function App() {
             ) : (
               <>
                 <strong>Carregando o produto científico…</strong>
-                <span>Validando manifesto, limite do Acre e escores dos cinco modelos.</span>
+                <span>Validando manifesto, limite do Acre e percentis e escores dos quatro modelos.</span>
               </>
             )}
           </div>

@@ -4,7 +4,7 @@ import path from 'node:path'
 
 const frontendRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const products = [
-  { source: '../incendio/produtos/risco/v1/2025', target: 'public/data/risk/v1/2025', label: 'risco anual 2025' },
+  { source: '../incendio/produtos/risco/v2/2025', target: 'public/data/risk/v2/2025', label: 'risco anual 2025 · professor v2' },
   { source: '../incendio/produtos/clima/v1/2025', target: 'public/data/climate/v1/2025', label: 'clima histórico 2025' },
 ]
 
@@ -34,6 +34,6 @@ for (const product of products) {
   }
   await rm(destination, { recursive: true, force: true })
   await mkdir(path.dirname(destination), { recursive: true })
-  await cp(source, destination, { recursive: true })
+  await cp(source, destination, { recursive: true, dereference: true })
   console.log(`Produto de ${product.label} sincronizado em ${destination}`)
 }

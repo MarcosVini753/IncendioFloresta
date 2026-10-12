@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import manifestText from '../../../incendio/produtos/risco/v1/2025/native_sharded_grid/manifest.json?raw'
-import { SCORE_PROPERTIES } from '../types/susceptibility'
+import manifestText from '../../../incendio/produtos/risco/v2/2025/native_sharded_grid/manifest.json?raw'
+import { SCORE_PROPERTIES, PERCENTILE_PROPERTIES } from '../types/susceptibility'
 import {
   loadNativeSector,
   nativeFeatureIntersectsViewport,
@@ -32,7 +32,7 @@ const collection: NativeCellCollection = {
     geometry: { type: 'Polygon', coordinates: [[[-74, -11], [-73.99, -11], [-73.99, -10.99], [-74, -10.99], [-74, -11]]] },
     properties: {
       id: 'AC-Y1-X2', grid_x: 2, grid_y: 1, centroid: [-73.995, -10.995], aggregation: 'none',
-      ...Object.fromEntries(SCORE_PROPERTIES.map((property) => [property, 0.5])) as Record<typeof SCORE_PROPERTIES[number], number>,
+      ...Object.fromEntries([...SCORE_PROPERTIES, ...PERCENTILE_PROPERTIES].map((property) => [property, 0.5])) as Record<typeof SCORE_PROPERTIES[number] | typeof PERCENTILE_PROPERTIES[number], number>,
     },
   }],
 }
@@ -51,7 +51,7 @@ describe('contratos públicos', () => {
   it('rejeita setor vazio no índice e no arquivo', () => {
     const emptyEntry = { ...entry, feature_count: 0 }
     expect(() => validateNativeIndex({
-      schema_version: '1.0',
+      schema_version: '2.0',
       product: 'wildfire_annual_risk_native_index',
       feature_count: 307410,
       sectors: [emptyEntry],

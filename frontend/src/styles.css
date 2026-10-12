@@ -801,3 +801,10 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+/* Professor v2: quatro cenários e valores com escalas explicitamente distintas. */
+.risk-map-controls { grid-template-columns: minmax(0, 1.65fr) minmax(0, 0.75fr) minmax(0, 1fr); }
+.risk-map-controls .layer-selector { flex-wrap: wrap; }
+.model-score-list dd small { display: block; font-size: 0.72rem; color: var(--muted); font-weight: 400; }
+.map-legend small { display: block; margin-top: 0.4rem; max-width: 18rem; font-size: 0.7rem; }
+@media (max-width: 900px) { .risk-map-controls { grid-template-columns: 1fr; } }

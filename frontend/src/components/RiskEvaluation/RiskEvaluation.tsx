@@ -18,13 +18,16 @@ export function RiskEvaluation({ manifest, model, scenario }: RiskEvaluationProp
   const priorities = riskPriorityResults(metrics, positiveCells)
   const topTen = priorities.find((item) => item.cut === 10)!
   const modelLabel = manifest.models.find((item) => item.id === model)?.label ?? model
+  const historical = manifest.evaluation.received_rolling_2017_2024
+    .filter((row) => row.cenario === scenario && row.model_id === model)
+    .sort((a, b) => Number(a.ano) - Number(b.ano))
   const scenarioLabel = manifest.scenarios.find((item) => item.id === scenario)?.label ?? scenario
 
   return (
     <section className="risk-evaluation" aria-labelledby="risk-evaluation-title">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">Avaliação histórica · {manifest.source_period}</span>
+          <span className="eyebrow">Teste recalculado · {manifest.source_period}</span>
           <h2 id="risk-evaluation-title">Como o modelo se saiu em 2025</h2>
         </div>
       </div>
@@ -62,7 +65,18 @@ export function RiskEvaluation({ manifest, model, scenario }: RiskEvaluationProp
             ))}</tbody>
           </table>
         </div>
-        <p>AUC-ROC e precisão média (AP) são métricas de desempenho, não probabilidades de incêndio. O campo PR-AUC do produto foi calculado como precisão média (AP). A proporção de positivas no conjunto é {decimal(metrics.prevalencia * 100, 4)}%. As métricas de validação com amostra balanceada e os relatórios de outros anos usam protocolos diferentes e não são comparados diretamente a este teste.</p>
+        <p>AUC-ROC e precisão média (AP) são métricas de desempenho, não probabilidades de incêndio. O campo PR-AUC do produto foi calculado como precisão média (AP). A proporção de positivas no conjunto é {decimal(metrics.prevalencia * 100, 4)}%. A v2 seleciona parâmetros com validação por ano no mapa inteiro. Os resultados de anos e protocolos diferentes não são apresentados como diretamente equivalentes.</p>
+      </details>
+      <details className="scientific-note-details">
+        <summary>Relatórios históricos recebidos · 2017–2024</summary>
+        <p>Resultados fornecidos pelo professor, não recalculados nesta entrega. Random Forest com histórico foi escolhido pela média histórica desse cenário, não pelo resultado de 2025. Diferenças de ambiente e backend estão registradas no manifesto.</p>
+        <div className="evaluation-table-wrapper">
+          <table className="evaluation-priority-table">
+            <caption>{modelLabel} · {scenarioLabel} · avaliação rolante recebida</caption>
+            <thead><tr><th scope="col">Ano</th><th scope="col">Positivas</th><th scope="col">AUC-ROC</th><th scope="col">AP</th></tr></thead>
+            <tbody>{historical.map((row) => <tr key={row.ano}><th scope="row">{row.ano}</th><td>{row.n_positivos}</td><td>{decimal(Number(row.roc_auc), 3)}</td><td>{decimal(Number(row.pr_auc), 6)}</td></tr>)}</tbody>
+          </table>
+        </div>
       </details>
     </section>
   )

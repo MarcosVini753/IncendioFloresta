@@ -4,14 +4,15 @@ export const SUSCEPTIBILITY_MODEL_IDS = [
   'gradboost',
   'random_forest',
   'logistic_regression',
-  'fuzzy_knn',
   'xgboost',
 ] as const
 
 export type SusceptibilityModelId = (typeof SUSCEPTIBILITY_MODEL_IDS)[number]
-export type RiskScenario = 'unico' | 'regional'
+export const RISK_SCENARIO_IDS = ['todos', 'todos_regional', 'razao_1x19', 'todos_historico'] as const
+export type RiskScenario = (typeof RISK_SCENARIO_IDS)[number]
 export type SusceptibilityScoreProperty = `score_${RiskScenario}_${SusceptibilityModelId}`
-export type SusceptibilityScores = Record<SusceptibilityScoreProperty, number>
+export type SusceptibilityPercentileProperty = `percentile_${RiskScenario}_${SusceptibilityModelId}`
+export type SusceptibilityScores = Record<SusceptibilityScoreProperty, number> & Record<SusceptibilityPercentileProperty, number>
 
 export const RISK_PRIORITY_CUTS = [1, 5, 10, 20] as const
 export type RiskPriorityCut = (typeof RISK_PRIORITY_CUTS)[number]
@@ -27,6 +28,14 @@ export interface RiskEvaluation {
   historical_test_2025: Record<RiskScenario, Record<SusceptibilityModelId, RiskEvaluationMetrics>>
   test_positive_cells: number
   notice: string
+  received_rolling_2017_2024: {
+    ano: string
+    cenario: RiskScenario
+    model_id: SusceptibilityModelId
+    pr_auc: string
+    roc_auc: string
+    n_positivos: string
+  }[]
 }
 
 export interface AggregatedCellProperties extends SusceptibilityScores {
@@ -47,16 +56,15 @@ export interface SusceptibilityModelManifest {
   label: string
   property: SusceptibilityScoreProperty
   properties: Record<RiskScenario, SusceptibilityScoreProperty>
+  percentile_properties: Record<RiskScenario, SusceptibilityPercentileProperty>
   validation: {
-    protocol: 'group_kfold_by_year_balanced'
+    protocol: 'group_kfold_by_year_full_map'
     folds: number
-    roc_auc: number | null
-    pr_auc: number | null
   }
 }
 
 export interface SusceptibilityManifest {
-  schema_version: '1.0'
+  schema_version: '2.0'
   product: 'wildfire_annual_risk'
   label: string
   generated_at: string
@@ -69,15 +77,17 @@ export interface SusceptibilityManifest {
   provenance: {
     models: Record<string, {
       parameters: Record<string, number | string | null>
-      selection: string
+      selection: { selection: string; parameter_source_scenario: string }
       table_hash: string
     }>
   }
   training: {
     target: string
-    sample: string
     seed: number
     predictors: string[]
+    history_predictors: string[]
+    interpolation: 'bilinear'
+    categorical_vegetation: true
     evaluation: string
     train_years: [number, number]
     climate_year: number
@@ -86,6 +96,14 @@ export interface SusceptibilityManifest {
     semantics: 'relative_score'
     domain: [number, number]
     calibrated_probability: false
+  }
+  percentile: {
+    semantics: 'statewide_rank_percentile'
+    domain: [0, 100]
+    population: 307410
+    ties: 'average'
+    aggregation: 'mean_of_native_percentiles'
+    notice: string
   }
   original_grid: {
     crs: string
@@ -138,7 +156,7 @@ export interface NativeSectorIndexEntry {
 }
 
 export interface NativeGridIndex {
-  schema_version: '1.0'
+  schema_version: '2.0'
   product: 'wildfire_annual_risk_native_index'
   generated_at: string
   crs: 'EPSG:4326'
@@ -148,7 +166,7 @@ export interface NativeGridIndex {
 }
 
 export interface NativeSusceptibilityManifest {
-  schema_version: '1.0'
+  schema_version: '2.0'
   product: 'wildfire_annual_risk'
   label: string
   generated_at: string
@@ -160,6 +178,7 @@ export interface NativeSusceptibilityManifest {
   models: SusceptibilityModelManifest[]
   training: SusceptibilityManifest['training']
   value: SusceptibilityManifest['value']
+  percentile: SusceptibilityManifest['percentile']
   original_grid: SusceptibilityManifest['original_grid']
   representation: {
     type: 'native_sharded_grid'
@@ -184,7 +203,7 @@ export type SelectedSusceptibilityCell =
   | { kind: 'aggregated'; feature: AggregatedCellFeature }
   | { kind: 'native'; feature: NativeCellFeature }
 
-export function modelScoreProperty(model: SusceptibilityModelId, scenario: RiskScenario = 'regional'): SusceptibilityScoreProperty {
+export function modelScoreProperty(model: SusceptibilityModelId, scenario: RiskScenario = 'todos_historico'): SusceptibilityScoreProperty {
   return `score_${scenario}_${model}`
 }
 
@@ -192,6 +211,14 @@ export const MODEL_SCORE_PROPERTY = Object.fromEntries(
   SUSCEPTIBILITY_MODEL_IDS.map((id) => [id, modelScoreProperty(id)]),
 ) as Record<SusceptibilityModelId, SusceptibilityScoreProperty>
 
-export const SCORE_PROPERTIES = (['unico', 'regional'] as const).flatMap(
+export const SCORE_PROPERTIES = RISK_SCENARIO_IDS.flatMap(
   (scenario) => SUSCEPTIBILITY_MODEL_IDS.map((model) => modelScoreProperty(model, scenario)),
+)
+
+export function modelPercentileProperty(model: SusceptibilityModelId, scenario: RiskScenario = 'todos_historico'): SusceptibilityPercentileProperty {
+  return `percentile_${scenario}_${model}`
+}
+
+export const PERCENTILE_PROPERTIES = RISK_SCENARIO_IDS.flatMap(
+  (scenario) => SUSCEPTIBILITY_MODEL_IDS.map((model) => modelPercentileProperty(model, scenario)),
 )

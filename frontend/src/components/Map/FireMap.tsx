@@ -7,7 +7,7 @@ import {
   type GeoJSONSource,
   type MapLayerMouseEvent,
 } from 'maplibre-gl'
-import { scoreForModel } from '../../data/susceptibility'
+import { percentileForModel, scoreForModel } from '../../data/susceptibility'
 import {
   loadNativeSector,
   nativeFeatureIntersectsViewport,
@@ -25,7 +25,7 @@ import type {
   SusceptibilityModelId,
 } from '../../types/susceptibility'
 import { MapLegend } from '../Legend/MapLegend'
-import { formatRelativeScorePercent } from '../../utils/formatRelativeScore'
+import { formatModelScorePercent, formatRiskPercentile } from '../../utils/formatRelativeScore'
 import type { ScarCollection } from '../../types/climate'
 
 interface FireMapProps {
@@ -91,7 +91,8 @@ function buildCellPopup(
 ) {
   return `<div class="susceptibility-popup">
     <strong>${escapeHtml(properties.id)}</strong>
-    <span>${escapeHtml(modelLabel)}: ${escapeHtml(formatRelativeScorePercent(scoreForModel(properties, model, scenario)))} (escore relativo)</span>
+    <span>${escapeHtml(modelLabel)} · índice percentil: ${escapeHtml(formatRiskPercentile(percentileForModel(properties, model, scenario)))}</span>
+    <span>Escore do modelo: ${escapeHtml(formatModelScorePercent(scoreForModel(properties, model, scenario)))} (não é chance de incêndio)</span>
     <span>${properties.n_source_cells.toLocaleString('pt-BR')} células científicas · média</span>
   </div>`
 }
@@ -105,7 +106,8 @@ function buildNativePopup(
   return `<div class="susceptibility-popup">
     <strong>${escapeHtml(properties.id)}</strong>
     <span>Grade X ${properties.grid_x} · Y ${properties.grid_y}</span>
-    <span>${escapeHtml(modelLabel)}: ${escapeHtml(formatRelativeScorePercent(scoreForModel(properties, model, scenario)))} (escore relativo)</span>
+    <span>${escapeHtml(modelLabel)} · índice percentil: ${escapeHtml(formatRiskPercentile(percentileForModel(properties, model, scenario)))}</span>
+    <span>Escore do modelo: ${escapeHtml(formatModelScorePercent(scoreForModel(properties, model, scenario)))} (não é chance de incêndio)</span>
     <span>Célula científica original · sem agregação</span>
   </div>`
 }
@@ -115,7 +117,7 @@ function nativeWithValue(collection: NativeCellCollection, model: Susceptibility
     ...collection,
     features: collection.features.map((feature) => ({
       ...feature,
-      properties: { ...feature.properties, value: scoreForModel(feature.properties, model, scenario) },
+      properties: { ...feature.properties, value: percentileForModel(feature.properties, model, scenario) },
     })),
   } as NativeCellCollection
 }
@@ -170,7 +172,7 @@ export function FireMap({
         ...feature,
         properties: {
           ...feature.properties,
-          value: scoreForModel(feature.properties, model, scenario),
+          value: percentileForModel(feature.properties, model, scenario),
         },
       })) as AggregatedCellCollection['features'],
     }),
@@ -194,7 +196,7 @@ export function FireMap({
         ...cellsRef.current,
         features: cellsRef.current.features.map((feature) => ({
           ...feature,
-          properties: { ...feature.properties, value: scoreForModel(feature.properties, modelRef.current, scenarioRef.current) },
+          properties: { ...feature.properties, value: percentileForModel(feature.properties, modelRef.current, scenarioRef.current) },
         })),
       } })
       map.addSource(NATIVE_SOURCE_ID, { type: 'geojson', data: EMPTY_NATIVE })
@@ -207,7 +209,7 @@ export function FireMap({
         paint: {
           'fill-color': [
             'interpolate', ['linear'], ['coalesce', ['get', 'value'], -1],
-            -1, '#9ca3af', 0, '#1a9850', 0.5, '#fee08b', 1, '#d73027',
+            -1, '#9ca3af', 0, '#1a9850', 50, '#fee08b', 100, '#d73027',
           ],
           'fill-opacity': 0.74,
         },
@@ -236,7 +238,7 @@ export function FireMap({
         paint: {
           'fill-color': [
             'interpolate', ['linear'], ['coalesce', ['get', 'value'], -1],
-            -1, '#9ca3af', 0, '#1a9850', 0.5, '#fee08b', 1, '#d73027',
+            -1, '#9ca3af', 0, '#1a9850', 50, '#fee08b', 100, '#d73027',
           ],
           'fill-opacity': 0.76,
         },
@@ -329,7 +331,7 @@ export function FireMap({
         if (selected) onCellSelectRef.current(selected)
         const date = scar.properties.date.split('-').reverse().join('/')
         const score = selected
-          ? `<span>${escapeHtml(modelLabelRef.current)}: ${escapeHtml(formatRelativeScorePercent(scoreForModel(selected.feature.properties, modelRef.current, scenarioRef.current)))} (escore relativo)</span>`
+          ? `<span>${escapeHtml(modelLabelRef.current)} · índice percentil: ${escapeHtml(formatRiskPercentile(percentileForModel(selected.feature.properties, modelRef.current, scenarioRef.current)))}</span><span>Escore do modelo: ${escapeHtml(formatModelScorePercent(scoreForModel(selected.feature.properties, modelRef.current, scenarioRef.current)))} (não é chance de incêndio)</span>`
           : ''
         popupRef.current?.remove()
         popupRef.current = new Popup({ closeButton: true, maxWidth: '300px' })

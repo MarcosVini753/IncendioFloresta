@@ -4,6 +4,10 @@ import {
   SCORE_PROPERTIES,
   RISK_PRIORITY_CUTS,
   modelScoreProperty,
+  modelPercentileProperty,
+  PERCENTILE_PROPERTIES,
+  RISK_SCENARIO_IDS,
+  type SusceptibilityPercentileProperty,
   type RiskScenario,
   SUSCEPTIBILITY_MODEL_IDS,
   type AggregatedCellCollection,
@@ -14,7 +18,7 @@ import {
   type SusceptibilityScoreProperty,
 } from '../types/susceptibility'
 
-const PRODUCT_BASE_URL = '/data/risk/v1/2025/aggregated'
+const PRODUCT_BASE_URL = '/data/risk/v2/2025/aggregated'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -30,7 +34,7 @@ function isModelId(value: unknown): value is SusceptibilityModelId {
 
 export function validateManifest(value: unknown): SusceptibilityManifest {
   if (!isRecord(value)) throw new Error('Manifesto do produto de risco inválido.')
-  if (value.schema_version !== '1.0' || value.product !== 'wildfire_annual_risk') {
+  if (value.schema_version !== '2.0' || value.product !== 'wildfire_annual_risk') {
     throw new Error('Contrato do produto de risco não é compatível com o frontend.')
   }
   if (value.crs !== 'EPSG:4326' || typeof value.source_period !== 'string' || !/^\d{4}$/.test(value.source_period)) {
@@ -39,90 +43,93 @@ export function validateManifest(value: unknown): SusceptibilityManifest {
   if (!isRecord(value.training) || value.training.target !== `burned_in_${value.source_period}`) {
     throw new Error('O alvo não corresponde ao ano de referência do produto publicado.')
   }
-  if (value.default_model !== 'random_forest' || !isModelId(value.default_model) || !Array.isArray(value.models) || value.models.length !== 5) {
-    throw new Error('O manifesto não descreve os cinco modelos esperados.')
+  if (value.default_model !== 'random_forest' || !Array.isArray(value.models) || value.models.length !== 4) {
+    throw new Error('O manifesto não descreve os quatro modelos esperados.')
   }
   const modelIds = new Set<string>()
   for (const model of value.models) {
-    if (!isRecord(model) || !isModelId(model.id) || typeof model.label !== 'string') {
-      throw new Error('Modelo inválido no manifesto do produto de risco.')
-    }
-    if (model.property !== MODEL_SCORE_PROPERTY[model.id] || modelIds.has(model.id)) {
+    if (!isRecord(model) || !isModelId(model.id) || typeof model.label !== 'string'
+      || model.property !== MODEL_SCORE_PROPERTY[model.id] || modelIds.has(model.id)) {
       throw new Error('Mapeamento ou ID de modelo inválido no manifesto.')
     }
-    if (!isRecord(model.properties) || model.properties.unico !== modelScoreProperty(model.id, 'unico') || model.properties.regional !== modelScoreProperty(model.id, 'regional')) {
-      throw new Error('Mapeamento dos cenários inválido.')
+    const properties = model.properties, percentiles = model.percentile_properties
+    if (!isRecord(properties) || !isRecord(percentiles)
+      || !RISK_SCENARIO_IDS.every((scenario) => properties[scenario] === modelScoreProperty(model.id as SusceptibilityModelId, scenario)
+        && percentiles[scenario] === modelPercentileProperty(model.id as SusceptibilityModelId, scenario))) {
+      throw new Error('Mapeamento dos cenários ou percentis inválido.')
     }
     modelIds.add(model.id)
   }
-  if (value.default_scenario !== 'regional' || !Array.isArray(value.scenarios) || value.scenarios.length !== 2 || new Set(value.scenarios.map((s) => isRecord(s) ? s.id : null)).size !== 2 || !value.scenarios.every((s) => isRecord(s) && ['unico', 'regional'].includes(String(s.id)) && typeof s.label === 'string')) {
+  if (value.default_scenario !== 'todos_historico' || !Array.isArray(value.scenarios) || value.scenarios.length !== 4
+    || new Set(value.scenarios.map((s) => isRecord(s) ? s.id : null)).size !== 4
+    || !value.scenarios.every((s) => isRecord(s) && RISK_SCENARIO_IDS.includes(s.id as RiskScenario) && typeof s.label === 'string')) {
     throw new Error('Cenários de risco inválidos.')
   }
-  if (value.training.climate_year !== 2024 || !Array.isArray(value.training.train_years) || value.training.train_years.join(',') !== '2007,2024' || value.source_period !== '2025' || value.training.seed !== 42 || !Array.isArray(value.training.predictors) || value.training.predictors.join(',') !== 'veg,dist_estrada,dist_agua,altitude,ur_media_ano,prec_acum_ano') {
+  if (value.training.climate_year !== 2024 || !Array.isArray(value.training.train_years)
+    || value.training.train_years.join(',') !== '2007,2024' || value.source_period !== '2025' || value.training.seed !== 42
+    || !Array.isArray(value.training.predictors)
+    || value.training.predictors.join(',') !== 'veg,dist_estrada,dist_agua,altitude,ur_media_ano,prec_acum_ano'
+    || value.training.interpolation !== 'bilinear' || value.training.categorical_vegetation !== true
+    || !Array.isArray(value.training.history_predictors)
+    || value.training.history_predictors.join(',') !== 'anos_desde_ultima_queima,historico_decaido,queimou_ano_anterior') {
     throw new Error('Protocolo temporal ou preditores incompatíveis.')
   }
-  if (value.training.evaluation !== 'target_year_held_out') {
-    throw new Error('A avaliação deve usar o ano-alvo fora do treino.')
-  }
-  if (!isRecord(value.value) || value.value.semantics !== 'relative_score' || value.value.calibrated_probability !== false || !Array.isArray(value.value.domain) || value.value.domain.join(',') !== '0,1') {
+  if (value.training.evaluation !== 'target_year_held_out') throw new Error('A avaliação deve usar o ano-alvo fora do treino.')
+  if (!isRecord(value.value) || value.value.semantics !== 'relative_score' || value.value.calibrated_probability !== false
+    || !Array.isArray(value.value.domain) || value.value.domain.join(',') !== '0,1') {
     throw new Error('A semântica do produto deve ser relative_score.')
   }
-  if (!isRecord(value.representation) || value.representation.type !== 'aggregated_grid') {
-    throw new Error('O produto não representa a grade agregada esperada.')
+  if (!isRecord(value.percentile) || value.percentile.semantics !== 'statewide_rank_percentile'
+    || !Array.isArray(value.percentile.domain) || value.percentile.domain.join(',') !== '0,100'
+    || value.percentile.population !== 307410 || value.percentile.ties !== 'average'
+    || value.percentile.aggregation !== 'mean_of_native_percentiles') {
+    throw new Error('Contrato de percentis inválido.')
   }
-  if (!isRecord(value.counts) || value.counts.source_cells !== 307410) {
-    throw new Error('A contagem de células científicas do manifesto é inválida.')
-  }
+  if (!isRecord(value.representation) || value.representation.type !== 'aggregated_grid') throw new Error('Grade agregada incompatível.')
+  if (!isRecord(value.counts) || value.counts.source_cells !== 307410 || value.counts.features !== 212) throw new Error('Cobertura científica inválida.')
   const evaluation = value.evaluation
-  if (!isRecord(evaluation) || !Number.isInteger(evaluation.test_positive_cells)
-    || Number(evaluation.test_positive_cells) <= 0
-    || Number(evaluation.test_positive_cells) > value.counts.source_cells
-    || !isRecord(evaluation.historical_test_2025) || typeof evaluation.notice !== 'string') {
+  if (!isRecord(evaluation) || !Number.isInteger(evaluation.test_positive_cells) || Number(evaluation.test_positive_cells) <= 0
+    || Number(evaluation.test_positive_cells) > 307410 || !isRecord(evaluation.historical_test_2025)
+    || typeof evaluation.notice !== 'string' || !Array.isArray(evaluation.received_rolling_2017_2024)) {
     throw new Error('Avaliação histórica de 2025 ausente ou inválida.')
   }
-  const prevalence = Number(evaluation.test_positive_cells) / value.counts.source_cells
-  for (const scenario of ['unico', 'regional']) {
-    const metricsByModel = evaluation.historical_test_2025[scenario]
-    if (!isRecord(metricsByModel)) throw new Error('Cenário ausente na avaliação histórica.')
+  const prevalence = Number(evaluation.test_positive_cells) / 307410
+  for (const scenario of RISK_SCENARIO_IDS) {
+    const byModel = evaluation.historical_test_2025[scenario]
+    if (!isRecord(byModel)) throw new Error('Cenário ausente na avaliação histórica.')
     for (const model of SUSCEPTIBILITY_MODEL_IDS) {
-      const metrics = metricsByModel[model]
+      const metrics = byModel[model]
       if (!isRecord(metrics) || !['prevalencia', 'roc_auc', 'pr_auc', 'brier', ...RISK_PRIORITY_CUTS.map((cut) => `det@${cut}%`)].every((key) => isFiniteScore(metrics[key]))) {
         throw new Error(`Métricas inválidas na avaliação de ${scenario}/${model}.`)
       }
-      if (Math.abs(Number(metrics.prevalencia) - prevalence) > 1e-12) {
-        throw new Error('Prevalência da avaliação diverge da cobertura científica.')
-      }
+      if (Math.abs(Number(metrics.prevalencia) - prevalence) > 1e-12) throw new Error('Prevalência divergente.')
       let previous = 0
       for (const cut of RISK_PRIORITY_CUTS) {
-        const fraction = Number(metrics[`det@${cut}%`])
-        const found = fraction * Number(evaluation.test_positive_cells)
-        if (fraction < previous || Math.abs(found - Math.round(found)) > 1e-8) {
-          throw new Error('Contagens dos cortes de avaliação inconsistentes.')
-        }
+        const fraction = Number(metrics[`det@${cut}%`]), count = fraction * Number(evaluation.test_positive_cells)
+        if (fraction < previous || Math.abs(count - Math.round(count)) > 1e-8) throw new Error('Contagens de avaliação inconsistentes.')
         previous = fraction
       }
     }
   }
-  if (!isRecord(value.provenance) || !isRecord(value.provenance.models)) {
-    throw new Error('Proveniência dos modelos ausente.')
-  }
-  for (const scope of ['acre', 'oeste', 'leste']) {
-    const fuzzy = value.provenance.models[`fuzzy_knn/${scope}`]
-    if (!isRecord(fuzzy) || !isRecord(fuzzy.parameters) || !Number.isInteger(fuzzy.parameters.k) || Number(fuzzy.parameters.k) < 1) {
-      throw new Error('Parâmetros Fuzzy inválidos na proveniência.')
+  if (!isRecord(value.provenance) || !isRecord(value.provenance.models)) throw new Error('Proveniência dos modelos ausente.')
+  for (const scenario of RISK_SCENARIO_IDS) {
+    for (const model of SUSCEPTIBILITY_MODEL_IDS) {
+      for (const scope of scenario === 'todos_regional' ? ['oeste', 'leste'] : ['acre']) {
+        const record = value.provenance.models[`${scenario}/${model}/${scope}`]
+        if (!isRecord(record) || !isRecord(record.parameters) || typeof record.table_hash !== 'string'
+          || record.seed !== 42 || record.target_year !== 2025 || record.climate_year !== 2024) {
+          throw new Error('Proveniência científica incompleta.')
+        }
+      }
     }
   }
-  if (!isRecord(value.original_grid) || value.original_grid.crs !== 'EPSG:31979' || value.original_grid.cell_count !== 307410 ||
-    typeof value.original_grid.cell_width_m !== 'number' || !Number.isFinite(value.original_grid.cell_width_m) || value.original_grid.cell_width_m <= 0 ||
-    typeof value.original_grid.cell_height_m !== 'number' || !Number.isFinite(value.original_grid.cell_height_m) || value.original_grid.cell_height_m <= 0) {
+  if (!isRecord(value.original_grid) || value.original_grid.crs !== 'EPSG:31979' || value.original_grid.cell_count !== 307410
+    || typeof value.original_grid.cell_width_m !== 'number' || !Number.isFinite(value.original_grid.cell_width_m) || value.original_grid.cell_width_m <= 0
+    || typeof value.original_grid.cell_height_m !== 'number' || !Number.isFinite(value.original_grid.cell_height_m) || value.original_grid.cell_height_m <= 0) {
     throw new Error('Resolução científica original inválida.')
   }
-  if (!Array.isArray(value.bounds) || value.bounds.length !== 4 || !value.bounds.every(Number.isFinite)) {
-    throw new Error('Os limites geográficos do manifesto são inválidos.')
-  }
-  if (!isRecord(value.files) || typeof value.files.geojson !== 'string' || typeof value.files.boundary !== 'string') {
-    throw new Error('O manifesto não informa os arquivos públicos esperados.')
-  }
+  if (!Array.isArray(value.bounds) || value.bounds.length !== 4 || !value.bounds.every(Number.isFinite)) throw new Error('Limites geográficos inválidos.')
+  if (!isRecord(value.files) || typeof value.files.geojson !== 'string' || typeof value.files.boundary !== 'string') throw new Error('Arquivos públicos ausentes.')
   return value as unknown as SusceptibilityManifest
 }
 
@@ -142,6 +149,12 @@ function validateProperties(value: unknown): AggregatedCellProperties {
   for (const property of SCORE_PROPERTIES) {
     if (!isFiniteScore(value[property])) {
       throw new Error(`Célula ${value.id} possui ${property} fora de [0, 1].`)
+    }
+  }
+  for (const property of PERCENTILE_PROPERTIES) {
+    const percentile = value[property]
+    if (typeof percentile !== 'number' || !Number.isFinite(percentile) || percentile < 0 || percentile > 100) {
+      throw new Error(`Célula ${value.id} possui ${property} fora de [0, 100].`)
     }
   }
   return value as unknown as AggregatedCellProperties
@@ -205,7 +218,15 @@ export async function loadSusceptibilityProduct(signal?: AbortSignal): Promise<S
 export function scoreForModel(
   properties: Record<SusceptibilityScoreProperty, number>,
   model: SusceptibilityModelId,
-  scenario: RiskScenario = 'regional',
+  scenario: RiskScenario = 'todos_historico',
 ) {
   return properties[modelScoreProperty(model, scenario)]
+}
+
+export function percentileForModel(
+  properties: Record<SusceptibilityPercentileProperty, number>,
+  model: SusceptibilityModelId,
+  scenario: RiskScenario = 'todos_historico',
+) {
+  return properties[modelPercentileProperty(model, scenario)]
 }
