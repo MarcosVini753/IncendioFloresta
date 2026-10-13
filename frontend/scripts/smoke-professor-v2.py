@@ -17,7 +17,7 @@ def run(url):
         errors = []
         page.on("pageerror", lambda error: errors.append(str(error)))
         page.goto(url)
-        select = page.get_by_label("Modelo de risco", exact=True)
+        select = page.get_by_role("combobox", name="Modelo de risco", exact=True)
         expect(select).to_have_value("random_forest")
         expect(page.get_by_role("button", name="Todas + histórico de queimadas", exact=True)).to_have_class("active")
         for scenario in manifest["scenarios"]:
@@ -54,8 +54,12 @@ def run(url):
             canvas.dblclick(position=position)
             page.wait_for_timeout(300)
         expect(page.locator(".map-prototype-note")).to_contain_text("células científicas visíveis", timeout=30000)
+        # A resposta dos setores chega antes de o worker do MapLibre renderizar
+        # a nova fonte. Não clicar enquanto a camada ainda está sendo desenhada.
+        page.wait_for_timeout(1500)
         for x, y in [(0.5, 0.5), (0.55, 0.55), (0.45, 0.55)]:
             canvas.click(position={"x": box["width"] * x, "y": box["height"] * y})
+            page.wait_for_timeout(250)
             if "Célula científica original" in page.locator(".cell-details").inner_text():
                 break
         expect(page.locator(".cell-details")).to_contain_text("Célula científica original")
