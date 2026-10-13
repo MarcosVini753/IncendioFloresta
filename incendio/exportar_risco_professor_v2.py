@@ -25,6 +25,7 @@ import rasterio
 from threadpoolctl import threadpool_limits
 
 from risco_anual_v2 import geometria as web
+from risco_anual_v2.pipeline import geo
 from risco_anual_v2.pipeline import ajuste, avaliacao, config, fontes, modelos, rodada_v2
 
 BASE = Path(__file__).resolve().parent
@@ -115,47 +116,74 @@ def verify_observations(sources):
     return {name: {"sha256": current[name], "matches_previous": current[name] == previous.get(name)} for name in names}
 
 
-def validate_product(root, native_scores=None):
-    manifest = json.loads((root / "aggregated/manifest.json").read_text())
-    collection = json.loads((root / "aggregated/mapa.geojson").read_text())
+def validate_product(root, native_scores=None, aggregate_dir=None):
+    aggregate_dir = Path(aggregate_dir) if aggregate_dir is not None else root / "aggregated"
+    manifest = json.loads((aggregate_dir / "manifest.json").read_text())
+    collection = json.loads((aggregate_dir / "mapa.geojson").read_text())
     index = json.loads((root / "native_sharded_grid/index.json").read_text())
     aggregates = {f["properties"]["id"]: f["properties"] for f in collection["features"]}
-    if manifest["schema_version"] != "2.0" or len(aggregates) != 212 or sum(p["n_source_cells"] for p in aggregates.values()) != 307410:
+    if manifest["schema_version"] != "2.0" or len(aggregates) != manifest["counts"]["features"] or len(aggregates) <= 212 or sum(p["n_source_cells"] for p in aggregates.values()) != 307410:
         raise ValueError("Cobertura ou contrato agregado incorreto.")
     if manifest["training"]["train_years"] != [2007, 2024] or manifest["training"]["climate_year"] != 2024:
         raise ValueError("Protocolo temporal incorreto.")
-    if manifest["representation"].get("color_aggregation") != "max" or manifest["representation"].get("color_property_prefix") != "max_":
-        raise ValueError("A cor agregada deve representar o maior percentil nativo.")
+    if manifest["representation"].get("grid_size_m") != 5000 or manifest["representation"].get("color_statistic") != "mean_native_percentile_classified":
+        raise ValueError("A malha visual deve usar médias em quadrados de 5 km.")
+    aggregate_ids = {cell_id: row for row, cell_id in enumerate(aggregates)}
+    counts = np.zeros(len(aggregates), dtype=np.int32)
+    sums = np.zeros((len(aggregates), len(web.SCORE_COLUMNS)), dtype=np.float64)
+    class_counts = np.zeros((len(aggregates), len(web.PERCENTILE_COLUMNS), len(web.RISK_CLASSES)), dtype=np.int32)
     seen = set()
     for entry in index["sectors"]:
         features = json.loads((root / "native_sharded_grid" / entry["url"]).read_text())["features"]
-        if len(features) != entry["feature_count"] or len(features) != aggregates[entry["id"]]["n_source_cells"]:
+        if len(features) != entry["feature_count"]:
             raise ValueError("Contagem do setor inválida.")
         for feature in features:
             props = feature["properties"]
             if props["id"] in seen:
                 raise ValueError("ID científico repetido.")
             seen.add(props["id"])
-        for column in web.SCORE_COLUMNS:
-            values = np.asarray([f["properties"][column] for f in features], dtype=float)
-            limit = 100 if column.startswith("percentile_") else 1
-            if not np.isfinite(values).all() or ((values < 0) | (values > limit)).any():
-                raise ValueError(f"Domínio inválido: {column}")
-            if not np.isclose(values.mean(), aggregates[entry["id"]][column], atol=2e-8, rtol=0):
-                raise ValueError(f"Média agregada divergente: {entry['id']}/{column}")
-            if column in web.PERCENTILE_COLUMNS:
-                maximum = aggregates[entry["id"]][f"max_{column}"]
-                if not np.isfinite(maximum) or not np.isclose(values.max(), maximum, atol=2e-8, rtol=0):
-                    raise ValueError(f"Máximo visual divergente: {entry['id']}/{column}")
+            x, y = geo.XG_B + props["grid_x"] * geo.XG_A, geo.YG_B + props["grid_y"] * geo.YG_A
+            cell_id = f"AC-5KM-E{int(np.floor(x / web.VISUAL_CELL_SIZE_M)):03d}N{int(np.floor(y / web.VISUAL_CELL_SIZE_M)):04d}"
+            if cell_id not in aggregate_ids:
+                raise ValueError("Célula científica sem quadrado visual correspondente.")
+            row = aggregate_ids[cell_id]
+            counts[row] += 1
+            values = np.asarray([props[column] for column in web.SCORE_COLUMNS], dtype=np.float64)
+            if not np.isfinite(values).all() or ((values[:len(web.MODELS) * len(web.SCENARIOS)] < 0)
+                    | (values[:len(web.MODELS) * len(web.SCENARIOS)] > 1)).any():
+                raise ValueError("Escore nativo inválido.")
+            score_count = len(web.SCORE_COLUMNS) // 2
+            if ((values[score_count:] < 0) | (values[score_count:] > 100)).any():
+                raise ValueError("Percentil nativo inválido.")
+            sums[row] += values
+            for column_index, column in enumerate(web.PERCENTILE_COLUMNS):
+                class_index = int(web._risk_class_ids(np.asarray([props[column]]))[0])
+                class_counts[row, column_index, class_index] += 1
     if len(seen) != 307410 or index["feature_count"] != 307410:
         raise ValueError("Grade científica incompleta.")
+    for cell_id, row in aggregate_ids.items():
+        properties = aggregates[cell_id]
+        count = int(counts[row])
+        if count != properties["n_source_cells"] or count <= 0:
+            raise ValueError(f"Contagem de células-fonte divergente em {cell_id}.")
+        means = sums[row] / count
+        for column, value in zip(web.SCORE_COLUMNS, means):
+            if not np.isclose(value, properties[column], atol=2e-8, rtol=0):
+                raise ValueError(f"Média agregada divergente: {cell_id}/{column}")
+        for percentile_index, column in enumerate(web.PERCENTILE_COLUMNS):
+            scenario, model = column.removeprefix("percentile_").rsplit("_", 1)
+            for class_index, risk_class in enumerate(web.RISK_CLASSES):
+                field = web.class_share_property(scenario, model, risk_class["id"])
+                expected = round(class_counts[row, percentile_index, class_index] / count, 8)
+                if not np.isclose(expected, properties[field], atol=1e-8, rtol=0):
+                    raise ValueError(f"Proporção por classe divergente: {cell_id}/{field}")
     if native_scores is not None:
         for scenario in web.SCENARIOS:
             for model in web.MODELS:
                 expected = avaliacao.indice_percentil(native_scores[f"score_{scenario}_{model}"].to_numpy())
                 if not np.allclose(expected, native_scores[f"percentile_{scenario}_{model}"], atol=1e-10, rtol=0):
                     raise ValueError("Percentil não corresponde ao ranking estadual.")
-    print("Auditoria aprovada: 16 combinações, 212 médias e máximos visuais, 307410 IDs únicos, escores e percentis.", flush=True)
+    print(f"Auditoria aprovada: 16 combinações, {len(aggregates)} médias/classes em quadrados de 5 km, 307410 IDs únicos.", flush=True)
 
 
 def export(cfg_path):
@@ -279,12 +307,11 @@ if __name__ == "__main__":
     parser.add_argument("--config", type=Path, default=MODULE / "config_2025.json")
     actions = parser.add_mutually_exclusive_group()
     actions.add_argument("--validate-only", action="store_true")
-    actions.add_argument("--refresh-display-maxima", action="store_true", help="Atualiza cores máximas a partir dos setores existentes, sem treinar modelos.")
+    actions.add_argument("--refresh-visual-grid", action="store_true", help="Refaz a malha visual de 5 km a partir dos setores existentes, sem treinar modelos.")
     args = parser.parse_args()
     with threadpool_limits(limits=2):
-        if args.refresh_display_maxima:
-            web.atualizar_maximos_visuais(OUTPUT)
-            validate_product(OUTPUT)
+        if args.refresh_visual_grid:
+            web.atualizar_grade_visual(OUTPUT, validate_product)
         elif args.validate_only:
             validate_product(OUTPUT)
         else:

@@ -4,11 +4,13 @@ import json
 import math
 import shutil
 from collections import defaultdict
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
+from affine import Affine
 import numpy as np
 import pandas as pd
+import rasterio.features
+import rasterio.warp
 from .pipeline import geo
 BASE = Path(__file__).resolve().parents[1]
 LIMITE = BASE / "recursos/limite_acre.geojson"
@@ -18,13 +20,35 @@ MODELS = ("gradboost", "random_forest", "logistic_regression", "xgboost")
 SCENARIOS = ("todos", "todos_regional", "razao_1x19", "todos_historico")
 SCORE_COLUMNS = tuple(f"{kind}_{scenario}_{model}" for kind in ("score", "percentile") for scenario in SCENARIOS for model in MODELS)
 PERCENTILE_COLUMNS = tuple(column for column in SCORE_COLUMNS if column.startswith("percentile_"))
+VISUAL_CELL_SIZE_M = 5_000
+RISK_CLASSES = (
+    {"id": "very_low", "label": "Muito baixo", "lower": 0, "upper": 50},
+    {"id": "low", "label": "Baixo", "lower": 50, "upper": 70},
+    {"id": "moderate", "label": "Moderado", "lower": 70, "upper": 90},
+    {"id": "high", "label": "Alto", "lower": 90, "upper": 95},
+    {"id": "very_high", "label": "Muito alto", "lower": 95, "upper": 100},
+)
 
 
-def color_representation():
+def class_share_property(scenario: str, model: str, class_id: str) -> str:
+    return f"class_share_{scenario}_{model}_{class_id}"
+
+
+def _risk_class_ids(percentiles: np.ndarray) -> np.ndarray:
+    return np.clip(np.searchsorted([50, 70, 90, 95], percentiles, side="right"), 0, len(RISK_CLASSES) - 1)
+
+
+def visual_representation():
     return {
-        "color_aggregation": "max",
-        "color_property_prefix": "max_",
-        "notice": "A cor da célula visual representa o maior percentil de suas células científicas; escores e percentis médios permanecem disponíveis no painel.",
+        "type": "aggregated_grid",
+        "grid_size_m": VISUAL_CELL_SIZE_M,
+        "grid_crs": "EPSG:31979",
+        "aggregation": "arithmetic_mean",
+        "color_statistic": "mean_native_percentile_classified",
+        "risk_classes": list(RISK_CLASSES),
+        "class_share_semantics": "fraction_of_source_cells_in_each_fixed_percentile_class",
+        "area_approximation": "source_cell_count; scientific cells have similar dimensions",
+        "notice": "Cada quadrado visual agrega células científicas de cerca de 893 × 598 m. A cor classifica a média dos percentis; a distribuição por classe no clique conta as células-fonte.",
     }
 
 def _json_dump(path: Path, value: Any) -> None:
@@ -140,107 +164,128 @@ def sector_id(row: int, column: int) -> str:
     return f"AC-R{row + 1:02d}C{column + 1:02d}"
 
 def exportar_agregado(scores: pd.DataFrame, boundary: dict[str, Any], generated_at: str, output: Path, manifest_base: dict):
-    bounds = geometry_bounds(boundary["geometry"])
-    rows, columns = sector_indices(scores["lon"], scores["lat"], bounds)
-    work = scores.copy()
-    work["_row"], work["_column"] = rows, columns
-    grouped = work.groupby(["_row", "_column"], sort=True)
+    grouped = scores.copy()
+    projected_x = geo.XG_B + grouped["X"].to_numpy(dtype=np.float64) * geo.XG_A
+    projected_y = geo.YG_B + grouped["Y"].to_numpy(dtype=np.float64) * geo.YG_A
+    grouped["_tile_x"] = np.floor(projected_x / VISUAL_CELL_SIZE_M).astype(np.int32)
+    grouped["_tile_y"] = np.floor(projected_y / VISUAL_CELL_SIZE_M).astype(np.int32)
+    grouped["_class"] = np.column_stack([_risk_class_ids(np.round(grouped[column].to_numpy(dtype=np.float64), 9)) for column in PERCENTILE_COLUMNS]).tolist()
     features = []
-    for (row, column), group in grouped:
-        west = bounds[0] + int(column) * GRID_STEP
-        south = bounds[1] + int(row) * GRID_STEP
-        east = min(west + GRID_STEP, bounds[2])
-        north = min(south + GRID_STEP, bounds[3])
-        geometry = clip_boundary(boundary["geometry"], (west, south, east, north))
-        if geometry is None:
-            raise ValueError(f"Setor com celulas-fonte nao intersecta o limite: {row}/{column}")
+    for (tile_y, tile_x), group in grouped.groupby(["_tile_y", "_tile_x"], sort=True):
         properties = {
-            "id": sector_id(int(row), int(column)),
+            "id": f"AC-5KM-E{int(tile_x):03d}N{int(tile_y):04d}",
             "centroid": [_round(group["lon"].mean()), _round(group["lat"].mean())],
             "n_source_cells": int(len(group)),
             "aggregation": "mean",
         }
-        for score in SCORE_COLUMNS:
-            properties[score] = _round(group[score].astype(np.float64).mean())
-        for column in PERCENTILE_COLUMNS:
-            properties[f"max_{column}"] = _round(group[column].max())
-        features.append(
-            {"type": "Feature", "id": properties["id"], "properties": properties, "geometry": geometry}
-        )
+        for column in SCORE_COLUMNS:
+            properties[column] = _round(group[column].mean())
+        classes = np.vstack(group["_class"].to_numpy())
+        for pair, percentile_column in enumerate(PERCENTILE_COLUMNS):
+            scenario, model = percentile_column.removeprefix("percentile_").rsplit("_", 1)
+            counts = np.bincount(classes[:, pair], minlength=len(RISK_CLASSES))
+            for index, risk_class in enumerate(RISK_CLASSES):
+                properties[class_share_property(scenario, model, risk_class["id"])] = _round(counts[index] / len(group), 8)
+        features.append({"type": "Feature", "id": properties["id"], "properties": properties})
 
-    count = sum(feature["properties"]["n_source_cells"] for feature in features)
-    if count != len(scores):
-        raise ValueError(f"Agregacao perdeu celulas: soma={count}; fonte={len(scores)}")
+    if sum(feature["properties"]["n_source_cells"] for feature in features) != len(scores):
+        raise ValueError("Agregação de 5 km perdeu células científicas.")
+    geometry_by_id = _visual_geometries(scores)
+    for feature in features:
+        feature["geometry"] = geometry_by_id[feature["properties"]["id"]]
 
-    if output.exists():
-        shutil.rmtree(output)
-    output.mkdir(parents=True)
+    bounds = geometry_bounds(boundary["geometry"])
+    output.mkdir(parents=True, exist_ok=True)
     _json_dump(output / "mapa.geojson", {"type": "FeatureCollection", "features": features})
     _json_dump(output / "limite_acre.geojson", boundary)
     manifest = dict(manifest_base)
-    manifest.update(
-        {
-            "representation": {
-                "type": "aggregated_grid",
-                "step_degrees": GRID_STEP,
-                "aggregation": "mean",
-                **color_representation(),
-            },
-            "counts": {"source_cells": len(scores), "features": len(features)},
-            "bounds": list(map(_round, bounds)),
-            "files": {"geojson": "mapa.geojson", "boundary": "limite_acre.geojson"},
-        }
-    )
+    manifest.update({
+        "representation": visual_representation(),
+        "counts": {"source_cells": len(scores), "features": len(features)},
+        "bounds": list(map(_round, bounds)),
+        "files": {"geojson": "mapa.geojson", "boundary": "limite_acre.geojson"},
+    })
     _json_dump(output / "manifest.json", manifest)
-    print(f"Produto agregado: {len(features)} features; {count} celulas-fonte -> {output}")
+    print(f"Produto visual: {len(features)} quadrados de ~5 km; {len(scores)} células-fonte.", flush=True)
     return features
 
 
-def atualizar_maximos_visuais(root: Path):
-    """Atualiza somente a representação agregada a partir dos setores publicados.
+def _visual_geometries(scores: pd.DataFrame):
+    xs = scores["X"].to_numpy(dtype=np.int32)
+    ys = scores["Y"].to_numpy(dtype=np.int32)
+    x_min, x_max, y_min, y_max = int(xs.min()), int(xs.max()), int(ys.min()), int(ys.max())
+    tile_x = np.floor((geo.XG_B + xs.astype(np.float64) * geo.XG_A) / VISUAL_CELL_SIZE_M).astype(np.int32)
+    tile_y = np.floor((geo.YG_B + ys.astype(np.float64) * geo.YG_A) / VISUAL_CELL_SIZE_M).astype(np.int32)
+    tile_keys = sorted(set(zip(tile_y.tolist(), tile_x.tolist())))
+    key_to_id = {key: f"AC-5KM-E{key[1]:03d}N{key[0]:04d}" for key in tile_keys}
+    key_to_code = {key: index + 1 for index, key in enumerate(tile_keys)}
+    labels = np.zeros((y_max - y_min + 1, x_max - x_min + 1), dtype=np.int32)
+    rows = y_max - ys
+    columns = xs - x_min
+    labels[rows, columns] = [key_to_code[(row, column)] for row, column in zip(tile_y, tile_x)]
+    transform = Affine(
+        geo.XG_A, 0, geo.XG_B + x_min * geo.XG_A - geo.XG_A / 2,
+        0, -geo.YG_A, geo.YG_B + (y_max + 0.5) * geo.YG_A,
+    )
+    geometries: dict[str, list[dict]] = defaultdict(list)
+    for geometry, code in rasterio.features.shapes(labels, mask=labels > 0, transform=transform, connectivity=4):
+        geometries[key_to_id[tile_keys[int(code) - 1]]].append(rasterio.warp.transform_geom("EPSG:31979", "EPSG:4326", geometry, precision=9))
+    output = {}
+    for cell_id, parts in geometries.items():
+        output[cell_id] = parts[0] if len(parts) == 1 else {"type": "MultiPolygon", "coordinates": [part["coordinates"] for part in parts]}
+    if set(output) != set(key_to_id.values()):
+        raise ValueError("Geometria ausente em um quadrado visual de 5 km.")
+    return output
 
-    Não treina modelos, não recalcula rankings e não modifica as previsões nativas.
-    Todos os setores são conferidos antes de substituir os dois JSONs agregados.
-    """
-    aggregated = root / "aggregated"
-    collection = json.loads((aggregated / "mapa.geojson").read_text())
-    manifest = json.loads((aggregated / "manifest.json").read_text())
+
+def atualizar_grade_visual(root: Path, validate_product):
+    """Refaz a malha de 5 km a partir das previsões nativas já publicadas."""
     index = json.loads((root / "native_sharded_grid/index.json").read_text())
-    cells = {feature["properties"]["id"]: feature["properties"] for feature in collection["features"]}
-    if len(cells) != 212 or len(collection["features"]) != 212 or len(index["sectors"]) != 212:
-        raise ValueError("Cobertura visual inválida.")
-    seen, sectors = set(), set()
-    for entry in index["sectors"]:
-        if entry["id"] in sectors or entry["id"] not in cells:
-            raise ValueError("Setor ausente ou duplicado.")
-        sectors.add(entry["id"])
-        features = json.loads((root / "native_sharded_grid" / entry["url"]).read_text())["features"]
-        props = cells[entry["id"]]
-        if not features or len(features) != entry["feature_count"] or len(features) != props["n_source_cells"]:
-            raise ValueError("Contagem de células-fonte divergente.")
-        for feature in features:
-            cell_id = feature["properties"]["id"]
-            if cell_id in seen:
-                raise ValueError("ID nativo duplicado.")
-            seen.add(cell_id)
-        for column in SCORE_COLUMNS:
-            values = np.asarray([feature["properties"][column] for feature in features], dtype=float)
-            limit = 100 if column.startswith("percentile_") else 1
-            if not np.isfinite(values).all() or ((values < 0) | (values > limit)).any():
-                raise ValueError(f"Domínio inválido: {column}")
-            if not np.isclose(values.mean(), props[column], atol=2e-8, rtol=0):
-                raise ValueError(f"Média divergente: {entry['id']}/{column}")
-            if column in PERCENTILE_COLUMNS:
-                props[f"max_{column}"] = _round(values.max())
-    if len(seen) != 307410 or sectors != set(cells):
-        raise ValueError("Grade científica incompleta.")
-    manifest["representation"].update(color_representation())
-    manifest["representation"]["color_updated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    for name, value in (("mapa.geojson", collection), ("manifest.json", manifest)):
-        temporary = aggregated / f"{name}.tmp"
-        _json_dump(temporary, value)
-        temporary.replace(aggregated / name)
-    print("Cor atualizada: máximo nativo para 16 combinações em 212 células; médias e previsões preservadas.", flush=True)
+    expected_count = index["feature_count"]
+    native = np.empty((expected_count, 4 + len(SCORE_COLUMNS)), dtype=np.float64)
+    seen = set()
+    offset = 0
+    for sector in index["sectors"]:
+        collection = json.loads((root / "native_sharded_grid" / sector["url"]).read_text())
+        if len(collection["features"]) != sector["feature_count"]:
+            raise ValueError(f"Setor incompleto: {sector['id']}")
+        for feature in collection["features"]:
+            properties = feature["properties"]
+            if properties["id"] in seen:
+                raise ValueError(f"ID científico duplicado: {properties['id']}")
+            seen.add(properties["id"])
+            native[offset, :4] = (properties["grid_x"], properties["grid_y"],
+                                  properties["centroid"][0], properties["centroid"][1])
+            native[offset, 4:] = [properties[column] for column in SCORE_COLUMNS]
+            offset += 1
+    if len(seen) != 307410:
+        raise ValueError(f"Grade científica incompleta: {len(seen)} células.")
+    if offset != expected_count or expected_count != 307410:
+        raise ValueError(f"Contagem nativa inesperada: {offset} células.")
+    native = pd.DataFrame(native, columns=["X", "Y", "lon", "lat", *SCORE_COLUMNS])
+    native["x_g"] = geo.XG_B + native["X"] * geo.XG_A
+    native["y_g2"] = geo.YG_B + native["Y"] * geo.YG_A
+    root = Path(root)
+    original_manifest = json.loads((root / "aggregated/manifest.json").read_text())
+    manifest_base = {key: value for key, value in original_manifest.items()
+                     if key not in {"representation", "counts", "bounds", "files"}}
+    temporary = root / "aggregated-5km-staging"
+    if temporary.exists():
+        shutil.rmtree(temporary)
+    exportar_agregado(native, carregar_limite(), original_manifest["generated_at"], temporary, manifest_base)
+    validate_product(root, aggregate_dir=temporary)
+    backup_root = BASE / "resultados/risco_professor_v2"
+    backup_root.mkdir(parents=True, exist_ok=True)
+    backup = backup_root / f"previous-aggregated-grid-{int(__import__('time').time())}"
+    current = root / "aggregated"
+    current.replace(backup)
+    try:
+        temporary.replace(current)
+    except BaseException:
+        backup.replace(current)
+        raise
+    new_manifest = json.loads((current / "manifest.json").read_text())
+    print(f"Malha visual atualizada: {new_manifest['counts']['features']} quadrados de cerca de 5 km.", flush=True)
 
 def exportar_nativo(scores: pd.DataFrame, boundary: dict[str, Any], generated_at: str, output: Path, manifest_base: dict):
     bounds = geometry_bounds(boundary["geometry"])
