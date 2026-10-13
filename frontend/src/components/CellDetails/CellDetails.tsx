@@ -1,4 +1,4 @@
-import { percentileForModel, scoreForModel } from '../../data/susceptibility'
+import { displayPercentileForModel, percentileForModel, scoreForModel } from '../../data/susceptibility'
 import { formatModelScorePercent, formatRiskPercentile } from '../../utils/formatRelativeScore'
 import type {
   SelectedSusceptibilityCell,
@@ -34,7 +34,7 @@ export function CellDetails({ cell, model, scenario, manifest, onClear }: CellDe
   const properties = cell.feature.properties
   const activeModel = manifest.models.find((candidate) => candidate.id === model)
   const activeScore = scoreForModel(properties, model, scenario)
-  const activePercentile = percentileForModel(properties, model, scenario)
+  const activePercentile = displayPercentileForModel(properties, model, scenario)
   const scenarioLabel = manifest.scenarios.find((item) => item.id === scenario)?.label ?? scenario
 
   return (
@@ -54,8 +54,9 @@ export function CellDetails({ cell, model, scenario, manifest, onClear }: CellDe
       <div className="active-score">
         <span>{activeModel?.label ?? model}</span>
         <strong>{formatRiskPercentile(activePercentile)}</strong>
-        <span>Escore do modelo: {formatModelScorePercent(activeScore)}</span>
-        <small>índice percentil · {scenarioLabel} · 2025</small>
+        {cell.kind === 'aggregated' && <span>Percentil médio: {formatRiskPercentile(percentileForModel(properties, model, scenario))}</span>}
+        <span>Escore {cell.kind === 'aggregated' ? 'médio ' : ''}do modelo: {formatModelScorePercent(activeScore)}</span>
+        <small>{cell.kind === 'aggregated' ? 'maior percentil · define a cor' : 'índice percentil'} · {scenarioLabel} · 2025</small>
         <small>Posição relativa no ranking de risco; não é chance de incêndio.</small>
       </div>
 
@@ -63,7 +64,7 @@ export function CellDetails({ cell, model, scenario, manifest, onClear }: CellDe
         {manifest.models.map((candidate) => (
           <div key={candidate.id} className={candidate.id === model ? 'active' : undefined}>
             <dt>{candidate.label}</dt>
-            <dd><strong>{formatRiskPercentile(percentileForModel(properties, candidate.id, scenario))}</strong><small>percentil · escore {formatModelScorePercent(scoreForModel(properties, candidate.id, scenario))}</small></dd>
+            <dd><strong>{formatRiskPercentile(displayPercentileForModel(properties, candidate.id, scenario))}</strong><small>{cell.kind === 'aggregated' ? 'maior percentil · escore médio' : 'percentil · escore'} {formatModelScorePercent(scoreForModel(properties, candidate.id, scenario))}</small></dd>
           </div>
         ))}
       </dl>
@@ -86,9 +87,10 @@ export function CellDetails({ cell, model, scenario, manifest, onClear }: CellDe
           </div>
         )}
         <div>
-          <dt>Agregação</dt>
-          <dd>{cell.kind === 'native' ? 'Nenhuma' : 'Média'}</dd>
+          <dt>Cor do mapa</dt>
+          <dd>{cell.kind === 'native' ? 'Percentil individual' : 'Maior percentil'}</dd>
         </div>
+        {cell.kind === 'aggregated' && <div><dt>Escores do painel</dt><dd>Média</dd></div>}
         <div>
           <dt>Latitude</dt>
           <dd>{properties.centroid[1].toFixed(4)}</dd>
@@ -102,7 +104,7 @@ export function CellDetails({ cell, model, scenario, manifest, onClear }: CellDe
       <p className="cell-details-note">
         {cell.kind === 'native'
           ? 'Centroide da célula original.'
-          : 'Valores e coordenadas representativas: médias das células-fonte; o percentil não é recalculado nesta malha.'}{' '}
+          : 'A cor usa o maior percentil das células-fonte, não a média. Escores, percentil médio e coordenadas representativas permanecem médias; o ranking estadual não é recalculado.'}{' '}
         Dimensões aproximadas: {Math.round(manifest.original_grid.cell_width_m)} ×{' '}
         {Math.round(manifest.original_grid.cell_height_m)} m.
       </p>

@@ -12,6 +12,7 @@ export const RISK_SCENARIO_IDS = ['todos', 'todos_regional', 'razao_1x19', 'todo
 export type RiskScenario = (typeof RISK_SCENARIO_IDS)[number]
 export type SusceptibilityScoreProperty = `score_${RiskScenario}_${SusceptibilityModelId}`
 export type SusceptibilityPercentileProperty = `percentile_${RiskScenario}_${SusceptibilityModelId}`
+export type AggregatedMaxPercentileProperty = `max_${SusceptibilityPercentileProperty}`
 export type SusceptibilityScores = Record<SusceptibilityScoreProperty, number> & Record<SusceptibilityPercentileProperty, number>
 
 export const RISK_PRIORITY_CUTS = [1, 5, 10, 20] as const
@@ -38,7 +39,7 @@ export interface RiskEvaluation {
   }[]
 }
 
-export interface AggregatedCellProperties extends SusceptibilityScores {
+export interface AggregatedCellProperties extends SusceptibilityScores, Record<AggregatedMaxPercentileProperty, number> {
   id: string
   centroid: [number, number]
   n_source_cells: number
@@ -115,6 +116,8 @@ export interface SusceptibilityManifest {
     type: 'aggregated_grid'
     step_degrees: number
     aggregation: 'mean'
+    color_aggregation: 'max'
+    color_property_prefix: 'max_'
     notice: string
   }
   counts: {
@@ -222,3 +225,7 @@ export function modelPercentileProperty(model: SusceptibilityModelId, scenario: 
 export const PERCENTILE_PROPERTIES = RISK_SCENARIO_IDS.flatMap(
   (scenario) => SUSCEPTIBILITY_MODEL_IDS.map((model) => modelPercentileProperty(model, scenario)),
 )
+
+export function modelMaxPercentileProperty(model: SusceptibilityModelId, scenario: RiskScenario = 'todos_historico'): AggregatedMaxPercentileProperty {
+  return `max_${modelPercentileProperty(model, scenario)}`
+}

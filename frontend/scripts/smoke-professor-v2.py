@@ -41,7 +41,9 @@ def run(url):
                 break
         expect(page.locator(".model-score-list > div")).to_have_count(4)
         assert "%" not in page.locator(".active-score strong").inner_text()
-        expect(page.locator(".active-score")).to_contain_text("Escore do modelo")
+        expect(page.locator(".active-score")).to_contain_text("maior percentil · define a cor")
+        expect(page.locator(".active-score")).to_contain_text("Escore médio do modelo")
+        expect(page.locator(".active-score")).to_contain_text("Percentil médio")
         scars = page.get_by_role("checkbox", name="Cicatrizes observadas · 2025")
         scars.uncheck()
         expect(page.locator(".risk-scar-legend")).to_have_count(0)

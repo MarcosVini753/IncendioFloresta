@@ -13,8 +13,11 @@ não 95% de chance de incêndio. No clique, o escore aparece separadamente,
 em escala percentual e com precisão adaptativa para valores pequenos.
 Nenhuma das duas escalas é uma probabilidade calibrada ou previsão operacional.
 
-Na malha agregada de 212 células, escores e percentis são médias das células
-científicas, sem recalcular o ranking sobre a malha visual. No zoom 8,5,
+Na malha agregada de 212 células, a cor e o valor principal usam o **maior
+percentil das células científicas do setor**, ou seja, a cor mais forte entre
+as células menores. O painel também informa o percentil médio e o escore médio.
+Isso não significa que todo o setor tenha o risco máximo. O ranking estadual
+não é recalculado sobre a malha visual. No zoom 8,5,
 entram setores da grade original de 307.410 células, com margem de um setor,
 cancelamento de requisições e cache LRU de 32 setores. O painel compara os
 quatro modelos do cenário selecionado. Trocas de modelo/cenário são locais.

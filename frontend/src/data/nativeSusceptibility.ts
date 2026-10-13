@@ -45,7 +45,8 @@ export function validateNativeManifest(value: unknown): NativeSusceptibilityMani
       throw new Error('Modelo inválido no manifesto da grade científica.')
     }
   }
-  validateManifest({ ...value, representation: { type: 'aggregated_grid' }, counts: { source_cells: 307410, features: 212 }, files: { geojson: 'mapa.geojson', boundary: 'limite_acre.geojson' } })
+  // Reuse validation of the shared scientific metadata; native colors remain individual.
+  validateManifest({ ...value, representation: { type: 'aggregated_grid', aggregation: 'mean', color_aggregation: 'max', color_property_prefix: 'max_' }, counts: { source_cells: 307410, features: 212 }, files: { geojson: 'mapa.geojson', boundary: 'limite_acre.geojson' } })
   if (!isRecord(value.representation) || value.representation.type !== 'native_sharded_grid') {
     throw new Error('Representação nativa incompatível.')
   }

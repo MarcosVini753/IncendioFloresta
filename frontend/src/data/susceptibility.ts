@@ -5,6 +5,7 @@ import {
   RISK_PRIORITY_CUTS,
   modelScoreProperty,
   modelPercentileProperty,
+  modelMaxPercentileProperty,
   PERCENTILE_PROPERTIES,
   RISK_SCENARIO_IDS,
   type SusceptibilityPercentileProperty,
@@ -12,6 +13,7 @@ import {
   SUSCEPTIBILITY_MODEL_IDS,
   type AggregatedCellCollection,
   type AggregatedCellProperties,
+  type NativeCellProperties,
   type SusceptibilityManifest,
   type SusceptibilityModelId,
   type SusceptibilityProduct,
@@ -86,6 +88,10 @@ export function validateManifest(value: unknown): SusceptibilityManifest {
     throw new Error('Contrato de percentis inválido.')
   }
   if (!isRecord(value.representation) || value.representation.type !== 'aggregated_grid') throw new Error('Grade agregada incompatível.')
+  if (value.representation.aggregation !== 'mean' || value.representation.color_aggregation !== 'max'
+    || value.representation.color_property_prefix !== 'max_') {
+    throw new Error('A cor agregada deve indicar o máximo dos percentis nativos, preservando as médias.')
+  }
   if (!isRecord(value.counts) || value.counts.source_cells !== 307410 || value.counts.features !== 212) throw new Error('Cobertura científica inválida.')
   const evaluation = value.evaluation
   if (!isRecord(evaluation) || !Number.isInteger(evaluation.test_positive_cells) || Number(evaluation.test_positive_cells) <= 0
@@ -170,6 +176,10 @@ function validateProperties(value: unknown): AggregatedCellProperties {
     if (typeof percentile !== 'number' || !Number.isFinite(percentile) || percentile < 0 || percentile > 100) {
       throw new Error(`Célula ${value.id} possui ${property} fora de [0, 100].`)
     }
+    const maximum = value[`max_${property}`]
+    if (typeof maximum !== 'number' || !Number.isFinite(maximum) || maximum < percentile || maximum > 100) {
+      throw new Error(`Célula ${value.id} possui máximo de ${property} inválido.`)
+    }
   }
   return value as unknown as AggregatedCellProperties
 }
@@ -243,4 +253,14 @@ export function percentileForModel(
   scenario: RiskScenario = 'todos_historico',
 ) {
   return properties[modelPercentileProperty(model, scenario)]
+}
+
+export function displayPercentileForModel(
+  properties: AggregatedCellProperties | NativeCellProperties,
+  model: SusceptibilityModelId,
+  scenario: RiskScenario = 'todos_historico',
+) {
+  return properties.aggregation === 'mean'
+    ? properties[modelMaxPercentileProperty(model, scenario)]
+    : percentileForModel(properties, model, scenario)
 }

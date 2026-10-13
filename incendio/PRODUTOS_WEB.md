@@ -54,16 +54,31 @@ após juntar as regiões, com rank médio nos empates, conforme o código recebi
 Não são probabilidades nem percentuais de área queimada.
 
 A malha visual de 0,28° contém 212 células AC-RxxCxx recortadas pelo Acre.
-Agrega por média aritmética tanto escores quanto percentis científicos;
-não calcula um novo ranking visual. A grade original mantém IDs AC-Y<Y>-X<X>,
+Agrega por média aritmética tanto escores quanto percentis científicos,
+preservados para consulta. A cor usa o **máximo percentil nativo** de cada
+setor: 16 propriedades adicionais `max_percentile_<cenario>_<modelo>`.
+O manifesto distingue `aggregation: mean` dos dados e `color_aggregation: max`,
+com `color_property_prefix: max_`, da visualização. Isso destaca a célula-fonte
+de maior risco, não indica que todo o setor tenha aquele risco e não calcula
+um novo ranking visual. A grade original mantém IDs AC-Y<Y>-X<X>,
 cantos reais em UTM 19S reprojetados e dimensões aproximadas de 893 × 598 m.
 
-A geração confere domínios, cobertura, IDs únicos e médias agregadas/nativas.
+A geração confere domínios, cobertura, IDs únicos, médias e máximos agregados/nativos.
 Somente as 16 combinações completas podem ser publicadas. Arquivos são
 gerados em staging e auditados antes do rename para o diretório canônico.
 Uma versão anterior do produto fica em backup local durante a substituição.
 Uma interrupção entre renames pode exigir restaurar esse backup; não removê-lo
 nem reaproveitar staging sem verificar o estado.
+
+Para atualizar somente as cores de um produto v2 já publicado, sem treinar
+modelos nem modificar os setores nativos:
+
+~~~bash
+incendio/risco_anual_v2/.venv/bin/python incendio/exportar_risco_professor_v2.py --refresh-display-maxima
+~~~
+
+O comando confere todos os setores antes de gravar o GeoJSON e o manifesto
+agregados, registra `color_updated_at` e preserva as médias, previsões e métricas.
 
 ## Retomada e avaliação
 
