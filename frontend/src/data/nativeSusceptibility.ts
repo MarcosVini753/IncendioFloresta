@@ -1,4 +1,5 @@
 import { validateManifest } from './susceptibility'
+import { RISK_CLASSES } from './riskClasses'
 import { MODEL_SCORE_PROPERTY, SUSCEPTIBILITY_MODEL_IDS, SCORE_PROPERTIES, PERCENTILE_PROPERTIES } from '../types/susceptibility'
 import type {
   NativeCellCollection,
@@ -45,8 +46,8 @@ export function validateNativeManifest(value: unknown): NativeSusceptibilityMani
       throw new Error('Modelo inválido no manifesto da grade científica.')
     }
   }
-  // Reuse validation of the shared scientific metadata; native colors remain individual.
-  validateManifest({ ...value, representation: { type: 'aggregated_grid', aggregation: 'mean', color_aggregation: 'max', color_property_prefix: 'max_' }, counts: { source_cells: 307410, features: 212 }, files: { geojson: 'mapa.geojson', boundary: 'limite_acre.geojson' } })
+  // Reuse the risk-protocol checks; the native grid retains its individual values.
+  validateManifest({ ...value, representation: { type: 'aggregated_grid', grid_size_m: 5000, grid_crs: 'EPSG:31979', aggregation: 'arithmetic_mean', color_statistic: 'mean_native_percentile_classified', risk_classes: RISK_CLASSES.map(({ id, label, lower, upper }) => ({ id, label, lower, upper })), class_share_semantics: 'fraction_of_source_cells_in_each_fixed_percentile_class' }, counts: { source_cells: 307410, features: 3000 }, files: { geojson: 'mapa.geojson', boundary: 'limite_acre.geojson' } })
   if (!isRecord(value.representation) || value.representation.type !== 'native_sharded_grid') {
     throw new Error('Representação nativa incompatível.')
   }

@@ -7,7 +7,8 @@ import {
   type GeoJSONSource,
   type MapLayerMouseEvent,
 } from 'maplibre-gl'
-import { displayPercentileForModel, percentileForModel, scoreForModel } from '../../data/susceptibility'
+import { percentileForModel, scoreForModel } from '../../data/susceptibility'
+import { RISK_CLASSES } from '../../data/riskClasses'
 import {
   loadNativeSector,
   nativeFeatureIntersectsViewport,
@@ -91,10 +92,9 @@ function buildCellPopup(
 ) {
   return `<div class="susceptibility-popup">
     <strong>${escapeHtml(properties.id)}</strong>
-    <span>${escapeHtml(modelLabel)} · maior percentil (cor): ${escapeHtml(formatRiskPercentile(displayPercentileForModel(properties, model, scenario)))}</span>
-    <span>Percentil médio: ${escapeHtml(formatRiskPercentile(percentileForModel(properties, model, scenario)))}</span>
+    <span>${escapeHtml(modelLabel)} · percentil médio: ${escapeHtml(formatRiskPercentile(percentileForModel(properties, model, scenario)))}</span>
     <span>Escore médio do modelo: ${escapeHtml(formatModelScorePercent(scoreForModel(properties, model, scenario)))} (não é chance de incêndio)</span>
-    <span>${properties.n_source_cells.toLocaleString('pt-BR')} células científicas · cor pelo máximo</span>
+    <span>${properties.n_source_cells.toLocaleString('pt-BR')} células científicas · média</span>
   </div>`
 }
 
@@ -173,7 +173,7 @@ export function FireMap({
         ...feature,
         properties: {
           ...feature.properties,
-          value: displayPercentileForModel(feature.properties, model, scenario),
+          value: percentileForModel(feature.properties, model, scenario),
         },
       })) as AggregatedCellCollection['features'],
     }),
@@ -197,7 +197,7 @@ export function FireMap({
         ...cellsRef.current,
         features: cellsRef.current.features.map((feature) => ({
           ...feature,
-          properties: { ...feature.properties, value: displayPercentileForModel(feature.properties, modelRef.current, scenarioRef.current) },
+          properties: { ...feature.properties, value: percentileForModel(feature.properties, modelRef.current, scenarioRef.current) },
         })),
       } })
       map.addSource(NATIVE_SOURCE_ID, { type: 'geojson', data: EMPTY_NATIVE })
@@ -209,8 +209,9 @@ export function FireMap({
         source: CELLS_SOURCE_ID,
         paint: {
           'fill-color': [
-            'interpolate', ['linear'], ['coalesce', ['get', 'value'], -1],
-            -1, '#9ca3af', 0, '#1a9850', 50, '#fee08b', 100, '#d73027',
+            'step', ['coalesce', ['get', 'value'], -1],
+            '#9ca3af', 0, RISK_CLASSES[0].color, 50, RISK_CLASSES[1].color,
+            70, RISK_CLASSES[2].color, 90, RISK_CLASSES[3].color, 95, RISK_CLASSES[4].color,
           ],
           'fill-opacity': 0.76,
         },
@@ -238,8 +239,9 @@ export function FireMap({
         layout: { visibility: 'none' },
         paint: {
           'fill-color': [
-            'interpolate', ['linear'], ['coalesce', ['get', 'value'], -1],
-            -1, '#9ca3af', 0, '#1a9850', 50, '#fee08b', 100, '#d73027',
+            'step', ['coalesce', ['get', 'value'], -1],
+            '#9ca3af', 0, RISK_CLASSES[0].color, 50, RISK_CLASSES[1].color,
+            70, RISK_CLASSES[2].color, 90, RISK_CLASSES[3].color, 95, RISK_CLASSES[4].color,
           ],
           'fill-opacity': 0.76,
         },
@@ -332,7 +334,7 @@ export function FireMap({
         if (selected) onCellSelectRef.current(selected)
         const date = scar.properties.date.split('-').reverse().join('/')
         const score = selected
-          ? `<span>${escapeHtml(modelLabelRef.current)} · ${selected.kind === 'aggregated' ? 'maior percentil (cor)' : 'índice percentil'}: ${escapeHtml(formatRiskPercentile(displayPercentileForModel(selected.feature.properties, modelRef.current, scenarioRef.current)))}</span><span>Escore ${selected.kind === 'aggregated' ? 'médio ' : ''}do modelo: ${escapeHtml(formatModelScorePercent(scoreForModel(selected.feature.properties, modelRef.current, scenarioRef.current)))} (não é chance de incêndio)</span>`
+          ? `<span>${escapeHtml(modelLabelRef.current)} · ${selected.kind === 'aggregated' ? 'percentil médio' : 'índice percentil'}: ${escapeHtml(formatRiskPercentile(percentileForModel(selected.feature.properties, modelRef.current, scenarioRef.current)))}</span><span>Escore ${selected.kind === 'aggregated' ? 'médio ' : ''}do modelo: ${escapeHtml(formatModelScorePercent(scoreForModel(selected.feature.properties, modelRef.current, scenarioRef.current)))} (não é chance de incêndio)</span>`
           : ''
         popupRef.current?.remove()
         popupRef.current = new Popup({ closeButton: true, maxWidth: '300px' })
@@ -490,7 +492,7 @@ export function FireMap({
             : nativeError || `${nativeCellCount.toLocaleString('pt-BR')} células científicas visíveis · sem agregação`
           : nativeIndexError
             ? `Grade científica indisponível: ${nativeIndexError}`
-            : 'Cor pelo maior risco entre as células menores · aproxime até o zoom 8,5 para visualizar a grade científica original'}
+            : 'Quadrados de 5 km: média do percentil das células menores · aproxime até o zoom 8,5 para ver a grade científica'}
       </div>
     </div>
   )

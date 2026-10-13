@@ -5,20 +5,21 @@ import {
   RISK_PRIORITY_CUTS,
   modelScoreProperty,
   modelPercentileProperty,
-  modelMaxPercentileProperty,
   PERCENTILE_PROPERTIES,
   RISK_SCENARIO_IDS,
+  RISK_CLASS_IDS,
+  classShareProperty,
   type SusceptibilityPercentileProperty,
   type RiskScenario,
   SUSCEPTIBILITY_MODEL_IDS,
   type AggregatedCellCollection,
   type AggregatedCellProperties,
-  type NativeCellProperties,
   type SusceptibilityManifest,
   type SusceptibilityModelId,
   type SusceptibilityProduct,
   type SusceptibilityScoreProperty,
 } from '../types/susceptibility'
+import { RISK_CLASSES } from './riskClasses'
 
 const PRODUCT_BASE_URL = '/data/risk/v2/2025/aggregated'
 
@@ -87,12 +88,22 @@ export function validateManifest(value: unknown): SusceptibilityManifest {
     || value.percentile.aggregation !== 'mean_of_native_percentiles') {
     throw new Error('Contrato de percentis inválido.')
   }
-  if (!isRecord(value.representation) || value.representation.type !== 'aggregated_grid') throw new Error('Grade agregada incompatível.')
-  if (value.representation.aggregation !== 'mean' || value.representation.color_aggregation !== 'max'
-    || value.representation.color_property_prefix !== 'max_') {
-    throw new Error('A cor agregada deve indicar o máximo dos percentis nativos, preservando as médias.')
+  if (!isRecord(value.representation) || value.representation.type !== 'aggregated_grid'
+    || value.representation.grid_size_m !== 5000 || value.representation.grid_crs !== 'EPSG:31979'
+    || value.representation.aggregation !== 'arithmetic_mean'
+    || value.representation.color_statistic !== 'mean_native_percentile_classified'
+    || value.representation.class_share_semantics !== 'fraction_of_source_cells_in_each_fixed_percentile_class') {
+    throw new Error('A malha visual deve agregar médias em quadrados de 5 km e classes de risco fixas.')
   }
-  if (!isRecord(value.counts) || value.counts.source_cells !== 307410 || value.counts.features !== 212) throw new Error('Cobertura científica inválida.')
+  const riskClasses = value.representation.risk_classes
+  const expectedClassDefinitions = RISK_CLASSES.map(({ id, label, lower, upper }) => [id, label, lower, upper])
+  if (!Array.isArray(riskClasses) || riskClasses.length !== expectedClassDefinitions.length
+    || riskClasses.some((riskClass, index) => !isRecord(riskClass)
+      || JSON.stringify([riskClass.id, riskClass.label, riskClass.lower, riskClass.upper]) !== JSON.stringify(expectedClassDefinitions[index]))) {
+    throw new Error('Classes fixas de risco inválidas.')
+  }
+  if (!isRecord(value.counts) || value.counts.source_cells !== 307410 || !Number.isInteger(value.counts.features)
+    || Number(value.counts.features) <= 212 || Number(value.counts.features) >= 307410) throw new Error('Cobertura científica inválida.')
   const evaluation = value.evaluation
   if (!isRecord(evaluation) || !Number.isInteger(evaluation.test_positive_cells) || Number(evaluation.test_positive_cells) <= 0
     || Number(evaluation.test_positive_cells) > 307410 || !isRecord(evaluation.historical_test_2025)
@@ -176,9 +187,17 @@ function validateProperties(value: unknown): AggregatedCellProperties {
     if (typeof percentile !== 'number' || !Number.isFinite(percentile) || percentile < 0 || percentile > 100) {
       throw new Error(`Célula ${value.id} possui ${property} fora de [0, 100].`)
     }
-    const maximum = value[`max_${property}`]
-    if (typeof maximum !== 'number' || !Number.isFinite(maximum) || maximum < percentile || maximum > 100) {
-      throw new Error(`Célula ${value.id} possui máximo de ${property} inválido.`)
+    const [, scenario, model] = property.match(/^percentile_(.+)_(gradboost|random_forest|logistic_regression|xgboost)$/) ?? []
+    let classShareTotal = 0
+    for (const classId of RISK_CLASS_IDS) {
+      const share = value[classShareProperty(model as SusceptibilityModelId, scenario as RiskScenario, classId)]
+      if (typeof share !== 'number' || !Number.isFinite(share) || share < 0 || share > 1) {
+        throw new Error(`Célula ${value.id} possui proporção de ${classId} inválida.`)
+      }
+      classShareTotal += share
+    }
+    if (Math.abs(classShareTotal - 1) > 1e-7) {
+      throw new Error(`As proporções por classe da célula ${value.id} não somam 1.`)
     }
   }
   return value as unknown as AggregatedCellProperties
@@ -255,12 +274,13 @@ export function percentileForModel(
   return properties[modelPercentileProperty(model, scenario)]
 }
 
-export function displayPercentileForModel(
-  properties: AggregatedCellProperties | NativeCellProperties,
+export const displayPercentileForModel = percentileForModel
+
+export function riskClassShareForModel(
+  properties: AggregatedCellProperties,
   model: SusceptibilityModelId,
-  scenario: RiskScenario = 'todos_historico',
+  scenario: RiskScenario,
+  classId: (typeof RISK_CLASS_IDS)[number],
 ) {
-  return properties.aggregation === 'mean'
-    ? properties[modelMaxPercentileProperty(model, scenario)]
-    : percentileForModel(properties, model, scenario)
+  return properties[classShareProperty(model, scenario, classId)]
 }

@@ -12,7 +12,9 @@ export const RISK_SCENARIO_IDS = ['todos', 'todos_regional', 'razao_1x19', 'todo
 export type RiskScenario = (typeof RISK_SCENARIO_IDS)[number]
 export type SusceptibilityScoreProperty = `score_${RiskScenario}_${SusceptibilityModelId}`
 export type SusceptibilityPercentileProperty = `percentile_${RiskScenario}_${SusceptibilityModelId}`
-export type AggregatedMaxPercentileProperty = `max_${SusceptibilityPercentileProperty}`
+export const RISK_CLASS_IDS = ['very_low', 'low', 'moderate', 'high', 'very_high'] as const
+export type RiskClassId = (typeof RISK_CLASS_IDS)[number]
+export type RiskClassShareProperty = `class_share_${RiskScenario}_${SusceptibilityModelId}_${RiskClassId}`
 export type SusceptibilityScores = Record<SusceptibilityScoreProperty, number> & Record<SusceptibilityPercentileProperty, number>
 
 export const RISK_PRIORITY_CUTS = [1, 5, 10, 20] as const
@@ -39,7 +41,7 @@ export interface RiskEvaluation {
   }[]
 }
 
-export interface AggregatedCellProperties extends SusceptibilityScores, Record<AggregatedMaxPercentileProperty, number> {
+export interface AggregatedCellProperties extends SusceptibilityScores, Record<RiskClassShareProperty, number> {
   id: string
   centroid: [number, number]
   n_source_cells: number
@@ -114,10 +116,13 @@ export interface SusceptibilityManifest {
   }
   representation: {
     type: 'aggregated_grid'
-    step_degrees: number
-    aggregation: 'mean'
-    color_aggregation: 'max'
-    color_property_prefix: 'max_'
+    grid_size_m: 5000
+    grid_crs: 'EPSG:31979'
+    aggregation: 'arithmetic_mean'
+    color_statistic: 'mean_native_percentile_classified'
+    risk_classes: { id: RiskClassId; label: string; lower: number; upper: number }[]
+    class_share_semantics: 'fraction_of_source_cells_in_each_fixed_percentile_class'
+    area_approximation: string
     notice: string
   }
   counts: {
@@ -226,6 +231,6 @@ export const PERCENTILE_PROPERTIES = RISK_SCENARIO_IDS.flatMap(
   (scenario) => SUSCEPTIBILITY_MODEL_IDS.map((model) => modelPercentileProperty(model, scenario)),
 )
 
-export function modelMaxPercentileProperty(model: SusceptibilityModelId, scenario: RiskScenario = 'todos_historico'): AggregatedMaxPercentileProperty {
-  return `max_${modelPercentileProperty(model, scenario)}`
+export function classShareProperty(model: SusceptibilityModelId, scenario: RiskScenario, classId: RiskClassId): RiskClassShareProperty {
+  return `class_share_${scenario}_${model}_${classId}`
 }
