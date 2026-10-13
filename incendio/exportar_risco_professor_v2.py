@@ -124,6 +124,8 @@ def validate_product(root, native_scores=None):
         raise ValueError("Cobertura ou contrato agregado incorreto.")
     if manifest["training"]["train_years"] != [2007, 2024] or manifest["training"]["climate_year"] != 2024:
         raise ValueError("Protocolo temporal incorreto.")
+    if manifest["representation"].get("color_aggregation") != "max" or manifest["representation"].get("color_property_prefix") != "max_":
+        raise ValueError("A cor agregada deve representar o maior percentil nativo.")
     seen = set()
     for entry in index["sectors"]:
         features = json.loads((root / "native_sharded_grid" / entry["url"]).read_text())["features"]
@@ -141,6 +143,10 @@ def validate_product(root, native_scores=None):
                 raise ValueError(f"Domínio inválido: {column}")
             if not np.isclose(values.mean(), aggregates[entry["id"]][column], atol=2e-8, rtol=0):
                 raise ValueError(f"Média agregada divergente: {entry['id']}/{column}")
+            if column in web.PERCENTILE_COLUMNS:
+                maximum = aggregates[entry["id"]][f"max_{column}"]
+                if not np.isfinite(maximum) or not np.isclose(values.max(), maximum, atol=2e-8, rtol=0):
+                    raise ValueError(f"Máximo visual divergente: {entry['id']}/{column}")
     if len(seen) != 307410 or index["feature_count"] != 307410:
         raise ValueError("Grade científica incompleta.")
     if native_scores is not None:
@@ -149,7 +155,7 @@ def validate_product(root, native_scores=None):
                 expected = avaliacao.indice_percentil(native_scores[f"score_{scenario}_{model}"].to_numpy())
                 if not np.allclose(expected, native_scores[f"percentile_{scenario}_{model}"], atol=1e-10, rtol=0):
                     raise ValueError("Percentil não corresponde ao ranking estadual.")
-    print("Auditoria aprovada: 16 combinações, 212 médias, 307410 IDs únicos, escores e percentis.", flush=True)
+    print("Auditoria aprovada: 16 combinações, 212 médias e máximos visuais, 307410 IDs únicos, escores e percentis.", flush=True)
 
 
 def export(cfg_path):
@@ -271,10 +277,15 @@ def export(cfg_path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=MODULE / "config_2025.json")
-    parser.add_argument("--validate-only", action="store_true")
+    actions = parser.add_mutually_exclusive_group()
+    actions.add_argument("--validate-only", action="store_true")
+    actions.add_argument("--refresh-display-maxima", action="store_true", help="Atualiza cores máximas a partir dos setores existentes, sem treinar modelos.")
     args = parser.parse_args()
     with threadpool_limits(limits=2):
-        if args.validate_only:
+        if args.refresh_display_maxima:
+            web.atualizar_maximos_visuais(OUTPUT)
+            validate_product(OUTPUT)
+        elif args.validate_only:
             validate_product(OUTPUT)
         else:
             export(args.config)

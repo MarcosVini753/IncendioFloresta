@@ -4,6 +4,7 @@ import json
 import math
 import shutil
 from collections import defaultdict
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 import numpy as np
@@ -16,6 +17,15 @@ WIDTH_M, HEIGHT_M = geo.XG_A, geo.YG_A
 MODELS = ("gradboost", "random_forest", "logistic_regression", "xgboost")
 SCENARIOS = ("todos", "todos_regional", "razao_1x19", "todos_historico")
 SCORE_COLUMNS = tuple(f"{kind}_{scenario}_{model}" for kind in ("score", "percentile") for scenario in SCENARIOS for model in MODELS)
+PERCENTILE_COLUMNS = tuple(column for column in SCORE_COLUMNS if column.startswith("percentile_"))
+
+
+def color_representation():
+    return {
+        "color_aggregation": "max",
+        "color_property_prefix": "max_",
+        "notice": "A cor da célula visual representa o maior percentil de suas células científicas; escores e percentis médios permanecem disponíveis no painel.",
+    }
 
 def _json_dump(path: Path, value: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -152,6 +162,8 @@ def exportar_agregado(scores: pd.DataFrame, boundary: dict[str, Any], generated_
         }
         for score in SCORE_COLUMNS:
             properties[score] = _round(group[score].astype(np.float64).mean())
+        for column in PERCENTILE_COLUMNS:
+            properties[f"max_{column}"] = _round(group[column].max())
         features.append(
             {"type": "Feature", "id": properties["id"], "properties": properties, "geometry": geometry}
         )
@@ -172,7 +184,7 @@ def exportar_agregado(scores: pd.DataFrame, boundary: dict[str, Any], generated_
                 "type": "aggregated_grid",
                 "step_degrees": GRID_STEP,
                 "aggregation": "mean",
-                "notice": "Visualizacao agregada; a grade cientifica original possui maior resolucao.",
+                **color_representation(),
             },
             "counts": {"source_cells": len(scores), "features": len(features)},
             "bounds": list(map(_round, bounds)),
@@ -182,6 +194,53 @@ def exportar_agregado(scores: pd.DataFrame, boundary: dict[str, Any], generated_
     _json_dump(output / "manifest.json", manifest)
     print(f"Produto agregado: {len(features)} features; {count} celulas-fonte -> {output}")
     return features
+
+
+def atualizar_maximos_visuais(root: Path):
+    """Atualiza somente a representação agregada a partir dos setores publicados.
+
+    Não treina modelos, não recalcula rankings e não modifica as previsões nativas.
+    Todos os setores são conferidos antes de substituir os dois JSONs agregados.
+    """
+    aggregated = root / "aggregated"
+    collection = json.loads((aggregated / "mapa.geojson").read_text())
+    manifest = json.loads((aggregated / "manifest.json").read_text())
+    index = json.loads((root / "native_sharded_grid/index.json").read_text())
+    cells = {feature["properties"]["id"]: feature["properties"] for feature in collection["features"]}
+    if len(cells) != 212 or len(collection["features"]) != 212 or len(index["sectors"]) != 212:
+        raise ValueError("Cobertura visual inválida.")
+    seen, sectors = set(), set()
+    for entry in index["sectors"]:
+        if entry["id"] in sectors or entry["id"] not in cells:
+            raise ValueError("Setor ausente ou duplicado.")
+        sectors.add(entry["id"])
+        features = json.loads((root / "native_sharded_grid" / entry["url"]).read_text())["features"]
+        props = cells[entry["id"]]
+        if not features or len(features) != entry["feature_count"] or len(features) != props["n_source_cells"]:
+            raise ValueError("Contagem de células-fonte divergente.")
+        for feature in features:
+            cell_id = feature["properties"]["id"]
+            if cell_id in seen:
+                raise ValueError("ID nativo duplicado.")
+            seen.add(cell_id)
+        for column in SCORE_COLUMNS:
+            values = np.asarray([feature["properties"][column] for feature in features], dtype=float)
+            limit = 100 if column.startswith("percentile_") else 1
+            if not np.isfinite(values).all() or ((values < 0) | (values > limit)).any():
+                raise ValueError(f"Domínio inválido: {column}")
+            if not np.isclose(values.mean(), props[column], atol=2e-8, rtol=0):
+                raise ValueError(f"Média divergente: {entry['id']}/{column}")
+            if column in PERCENTILE_COLUMNS:
+                props[f"max_{column}"] = _round(values.max())
+    if len(seen) != 307410 or sectors != set(cells):
+        raise ValueError("Grade científica incompleta.")
+    manifest["representation"].update(color_representation())
+    manifest["representation"]["color_updated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    for name, value in (("mapa.geojson", collection), ("manifest.json", manifest)):
+        temporary = aggregated / f"{name}.tmp"
+        _json_dump(temporary, value)
+        temporary.replace(aggregated / name)
+    print("Cor atualizada: máximo nativo para 16 combinações em 212 células; médias e previsões preservadas.", flush=True)
 
 def exportar_nativo(scores: pd.DataFrame, boundary: dict[str, Any], generated_at: str, output: Path, manifest_base: dict):
     bounds = geometry_bounds(boundary["geometry"])
