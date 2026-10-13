@@ -5,7 +5,7 @@ Aplicação React + MapLibre para explorar resultados de modelos e observações
 - Risco anual experimental da entrega do professor v2: quatro modelos e quatro cenários.
 - Clima diário e cicatrizes observadas de 2025: calendário de 365 datas.
 - Padrão inicial: Random Forest com histórico de queimadas.
-- Mapa colorido pelo índice percentil de 0 a 100: cada célula grande usa o maior percentil entre suas células menores; médias continuam disponíveis no clique.
+- Mapa com quadrados visuais de cerca de 5 km; a cor classifica a média dos percentis científicos em faixas fixas e o clique mostra a proporção de células em cada faixa.
 
 Percentil é posição relativa no ranking, não porcentagem de chance de incêndio.
 Os escores também não são probabilidades calibradas. Treino de 2007–2024, clima

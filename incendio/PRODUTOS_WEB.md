@@ -53,32 +53,34 @@ Percentis são calculados sobre as 307.410 células estaduais de cada par,
 após juntar as regiões, com rank médio nos empates, conforme o código recebido.
 Não são probabilidades nem percentuais de área queimada.
 
-A malha visual de 0,28° contém 212 células AC-RxxCxx recortadas pelo Acre.
-Agrega por média aritmética tanto escores quanto percentis científicos,
-preservados para consulta. A cor usa o **máximo percentil nativo** de cada
-setor: 16 propriedades adicionais `max_percentile_<cenario>_<modelo>`.
-O manifesto distingue `aggregation: mean` dos dados e `color_aggregation: max`,
-com `color_property_prefix: max_`, da visualização. Isso destaca a célula-fonte
-de maior risco, não indica que todo o setor tenha aquele risco e não calcula
-um novo ranking visual. A grade original mantém IDs AC-Y<Y>-X<X>,
+A malha visual é formada por quadrados UTM de cerca de 5 km que reúnem
+aproximadamente 40–50 células científicas de 893 × 598 m. As quatro famílias
+de escores e percentis são agregadas por média aritmética; a cor classifica a
+média do percentil em cinco faixas fixas: 0–50, 50–70, 70–90, 90–95 e 95–100.
+No clique, cada combinação de modelo e cenário inclui a proporção das células
+nativas em cada faixa (`class_share_<cenario>_<modelo>_<classe>`). Como as
+células científicas têm dimensões parecidas, a contagem aproxima a proporção
+de área. O painel deixa claro que a cor representa a classe da média e que as
+proporções descrevem as células que formam o quadrado. A grade original mantém IDs AC-Y<Y>-X<X>,
 cantos reais em UTM 19S reprojetados e dimensões aproximadas de 893 × 598 m.
 
-A geração confere domínios, cobertura, IDs únicos, médias e máximos agregados/nativos.
+A geração confere domínios, cobertura, IDs únicos, médias e proporções por classe
+contra os valores nativos.
 Somente as 16 combinações completas podem ser publicadas. Arquivos são
 gerados em staging e auditados antes do rename para o diretório canônico.
 Uma versão anterior do produto fica em backup local durante a substituição.
 Uma interrupção entre renames pode exigir restaurar esse backup; não removê-lo
 nem reaproveitar staging sem verificar o estado.
 
-Para atualizar somente as cores de um produto v2 já publicado, sem treinar
-modelos nem modificar os setores nativos:
+Para reconstruir somente a malha visual de 5 km a partir do produto nativo já
+publicado, sem treinar modelos:
 
 ~~~bash
-incendio/risco_anual_v2/.venv/bin/python incendio/exportar_risco_professor_v2.py --refresh-display-maxima
+incendio/risco_anual_v2/.venv/bin/python incendio/exportar_risco_professor_v2.py --refresh-visual-grid
 ~~~
 
-O comando confere todos os setores antes de gravar o GeoJSON e o manifesto
-agregados, registra `color_updated_at` e preserva as médias, previsões e métricas.
+O comando lê os setores nativos, confere os 307.410 IDs e gera a grade e o
+manifesto agregados sem alterar previsões, métricas ou setores nativos.
 
 ## Retomada e avaliação
 
