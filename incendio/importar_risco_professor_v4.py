@@ -1,4 +1,4 @@
-"""Importa mapas finais de 2026, sem treinar, prever ou recalibrar modelos.
+"""Importa mapas finais de 2025/2026, sem treinar, prever ou recalibrar modelos.
 
 Uso: incendio/.venv/bin/python incendio/importar_risco_professor_v4.py
 Os setores/checkpoints são retomáveis; o produto é publicado após a auditoria.
@@ -24,7 +24,6 @@ from shapely import transform as transform_geometry
 
 BASE = Path(__file__).resolve().parent
 REPO = BASE.parent
-OUTPUT = BASE / "produtos/risco/v4/2026"
 CACHE = BASE / "resultados/risco_professor_v4"
 MODELS = ("random_forest", "xgboost")
 NAMES = ("RandomForest", "XGBoost")
@@ -121,7 +120,7 @@ def verify_cog(path, values, mask, affine):
             raise ValueError(f"COG alterou a máscara: {path}")
 
 
-def write_cog(path, values, mask, affine):
+def write_cog(path, values, mask, affine, year):
     # O staging pode conter um hard link de uma publicação anterior.
     # Remover somente esse link antes de regenerar, sem alterar o original.
     path.unlink(missing_ok=True)
@@ -147,7 +146,7 @@ def write_cog(path, values, mask, affine):
             "xgboost_value_pct",
             "xgboost_percentile",
         )
-        dst.update_tags(year=2026, scenario="AB30C_suave", source_values="unchanged")
+        dst.update_tags(year=year, scenario="AB30C_suave", source_values="unchanged")
     try:
         copy_raster(
             temporary,
@@ -164,9 +163,10 @@ def write_cog(path, values, mask, affine):
         temporary.unlink(missing_ok=True)
 
 
-def build(source_root, reports_root):
-    paths = [source_root / f"risco_30m_{name}_AB30C_suave_2026.tif" for name in NAMES]
-    print("Conferindo hashes dos dois GeoTIFFs de 2026…", flush=True)
+def build(source_root, reports_root, year=2026):
+    OUTPUT = BASE / f"produtos/risco/v4/{year}"
+    paths = [source_root / f"risco_30m_{name}_AB30C_suave_{year}.tif" for name in NAMES]
+    print(f"Conferindo hashes dos dois GeoTIFFs de {year}…", flush=True)
     provenance = [
         {"file": p.name, "sha256": digest(p), "bytes": p.stat().st_size} for p in paths
     ]
@@ -182,7 +182,7 @@ def build(source_root, reports_root):
     report_files = []
     for model, name in zip(MODELS, NAMES):
         report = (
-            reports_root / "tabelas/mapas" / f"avaliacao_{name}_AB30C_suave_2026.json"
+            reports_root / "tabelas/mapas" / f"avaliacao_{name}_AB30C_suave_{year}.json"
         )
         metadata = load(report)
         if (
@@ -191,7 +191,7 @@ def build(source_root, reports_root):
             metadata["cenario"],
             metadata["rotulo"],
             metadata["treino"],
-        ) != (2026, name, "AB30C", "fogo", "2016-2025") or not metadata[
+        ) != (year, name, "AB30C", "fogo", f"2016-{year - 1}") or not metadata[
             "suavizado_no_clima"
         ]:
             raise ValueError(f"Relatório incompatível: {report}")
@@ -199,17 +199,17 @@ def build(source_root, reports_root):
             raise ValueError("Semântica de calibração inesperada.")
         reports.append(metadata)
         evaluation[model] = []
-        for year in (2023, 2024, 2025):
+        for historical_year in (2023, 2024, 2025):
             path = (
                 reports_root
                 / "tabelas/mapas"
-                / f"avaliacao_{name}_AB30C_suave_{year}.json"
+                / f"avaliacao_{name}_AB30C_suave_{historical_year}.json"
             )
             received = load(path)
             if (
                 received["nome"] != f"{name}_AB30C_suave"
                 or received["rotulo"] != "fogo"
-                or received["ano"] != year
+                or received["ano"] != historical_year
             ):
                 raise ValueError(
                     "Avaliação histórica não corresponde ao mapa importado."
@@ -229,7 +229,7 @@ def build(source_root, reports_root):
                 raise ValueError("Métrica recebida não finita.")
             evaluation[model].append(
                 {
-                    "year": year,
+                    "year": historical_year,
                     "level": "30m_fogo",
                     "origin": "received_professor",
                     "training": received["treino"],
@@ -249,7 +249,7 @@ def build(source_root, reports_root):
             sort_keys=True,
         ).encode()
     ).hexdigest()
-    staging = OUTPUT.parent / ".2026-staging"
+    staging = OUTPUT.parent / f".{year}-staging"
     staging.mkdir(parents=True, exist_ok=True)
     (staging / "sectors").mkdir(exist_ok=True)
     cache = CACHE / identity
@@ -276,7 +276,7 @@ def build(source_root, reports_root):
             ):
                 raise ValueError("Grades de entrada não estão alinhadas.")
             if (
-                tags.get("ano") != "2026"
+                tags.get("ano") != str(year)
                 or tags.get("modelo") != f"{name}_AB30C_suave"
                 or tags.get("rotulo_de_treino") != "fogo"
             ):
@@ -340,7 +340,9 @@ def build(source_root, reports_root):
                     )
                     entry = None
                     if count:
-                        write_cog(cog, values, mask, reference.window_transform(window))
+                        write_cog(
+                            cog, values, mask, reference.window_transform(window), year
+                        )
                         entry = {
                             "id": cell_id,
                             "url": f"sectors/{cell_id}.tif",
@@ -459,7 +461,7 @@ def build(source_root, reports_root):
         audit_samples(sources, affine, project, merged)
         index = {
             "schema_version": "4.0",
-            "year": 2026,
+            "year": year,
             "crs": "EPSG:4326",
             "width": reference.width,
             "height": reference.height,
@@ -477,14 +479,14 @@ def build(source_root, reports_root):
         manifest = {
             "schema_version": "4.0",
             "product": "wildfire_annual_risk",
-            "label": "Risco anual experimental — 2026",
-            "year": 2026,
+            "label": f"Risco anual experimental — {year}",
+            "year": year,
             "generated_at": datetime.now(timezone.utc).isoformat(),
             "default_model": "random_forest",
             "scenario": "AB30C_suave",
             "training": {
-                "years": [2016, 2025],
-                "climate_year": 2025,
+                "years": [2016, year - 1],
+                "climate_year": year - 1,
                 "fire_source": "MapBiomas Fogo 5.1",
                 "predictors": reports[0]["colunas"],
                 "climate_smoothing": True,
@@ -538,7 +540,7 @@ def build(source_root, reports_root):
             "evaluation": {
                 "origin": "received_professor",
                 "level": "30m_fogo",
-                "target_year_available": False,
+                "target_year_available": year == 2025,
                 "historical": evaluation,
             },
             "provenance": {
@@ -627,5 +629,6 @@ if __name__ == "__main__":
         type=Path,
         default=REPO / "entrega_professor_v4/2_resultados/treino_MapBiomas_Fogo",
     )
+    parser.add_argument("--year", type=int, choices=(2025, 2026), default=2026)
     args = parser.parse_args()
-    build(args.source_root, args.reports_root)
+    build(args.source_root, args.reports_root, args.year)

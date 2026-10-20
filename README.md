@@ -1,11 +1,12 @@
 # Incêndios Florestais — Acre
 
-Aplicação React + MapLibre para explorar o Risco anual experimental de **2026**
+Aplicação React + MapLibre para explorar o Risco anual experimental de **2025 e 2026**
 da entrega do professor v4 e observações históricas de **2025**.
 
 - Dois modelos: **Random Forest** (inicial) e XGBoost.
 - Cenário recebido: AB30C, treinado com MapBiomas Fogo, com clima suavizado.
-- Treino 2016–2025; clima utilizado em 2025. Nenhum treino ou previsão é executado pelo site.
+- Seletor de ano: 2026 inicialmente, com alternância para 2025.
+- Risco 2025: treino 2016–2024 e clima de 2024. Risco 2026: treino 2016–2025 e clima de 2025. Nenhum treino ou previsão é executado pelo site.
 - Mapa afastado: grupos de 5 km, coloridos pela classe da média dos percentis.
 - Zoom a partir de 8,5: raster progressivo de aproximadamente 30 m; clique sempre consulta o pixel original.
 - Random Forest tem calibração temporal recebida; XGBoost tem correção de amostragem e não é calibrado.
@@ -18,13 +19,14 @@ A versão v2 foi preservada em `archive/risk-v2-before-professor-v4`.
 
 ## Preparar e executar
 
-Os dois GeoTIFFs finais de 2026 ficam em `entrega_professor_v4/mapas_geotiff`.
+Os dois GeoTIFFs finais de cada ano ficam em `entrega_professor_v4/mapas_geotiff`.
 O pacote recebido e os setores raster gerados são locais e ignorados pelo Git.
 
 ~~~bash
 python3 -m venv incendio/.venv  # apenas se o ambiente ainda não existir
 incendio/.venv/bin/pip install -r incendio/risco_anual_v4/requirements.txt
-incendio/.venv/bin/python incendio/importar_risco_professor_v4.py
+incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year 2025
+incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year 2026
 cd frontend
 npm install
 npm run dev

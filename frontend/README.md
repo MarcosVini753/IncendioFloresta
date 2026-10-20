@@ -1,7 +1,11 @@
-# Frontend — Risco professor v4 de 2026 e Clima de 2025
+# Frontend — Risco professor v4 de 2025/2026 e Clima de 2025
 
 O site abre em Random Forest, cenário AB30C com clima suavizado e treino com
-MapBiomas Fogo. Apenas Random Forest e XGBoost de **2026** são disponibilizados.
+MapBiomas Fogo. Random Forest e XGBoost de **2025 e 2026** são disponibilizados.
+O seletor **Ano do risco** abre em 2026. Ao trocar, o mapa, a consulta,
+o período de treino e a avaliação acompanham o ano escolhido. Produtos já
+carregados ficam em memória; leitores raster são recriados para impedir mistura
+de setores entre anos. A seleção antiga é limpa; o modelo escolhido permanece.
 Não há seletor de cenários nem carregamento dos setores da v2.
 
 ## Ler e consultar o mapa
@@ -22,7 +26,8 @@ A banda percentual recebida já está multiplicada por 100. Random Forest tem
 calibração temporal recebida; XGBoost tem correção de amostragem e não é calibrado.
 Os dois valores são rotulados distintamente e não são previsão operacional.
 
-Treino 2016–2025, clima de 2025 e 13 preditores. Avaliações históricas de
+Para 2025: treino 2016–2024 e clima de 2024. Para 2026: treino 2016–2025,
+clima de 2025. Ambos usam 13 preditores. Avaliações históricas de
 2023–2025 são recebidas do professor e correspondem à variante exibida e
 ao nível 30m_fogo. Não há avaliação observada de 2026 na entrega.
 
@@ -66,7 +71,7 @@ npm run build
 npm run preview
 ~~~
 
-Predev/prebuild conferem e sincronizam somente Risco v4/2026 e Clima v1/2025.
+Predev/prebuild conferem e sincronizam somente Risco v4/2025, Risco v4/2026 e Clima v1/2025.
 COGs em setores, public e dist são gerados e ignorados pelo Git. Código,
 manifesto, índice e GeoJSON agregado são versionados. Consulte
 [geração e proveniência](../incendio/PRODUTOS_WEB.md).

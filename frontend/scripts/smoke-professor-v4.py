@@ -17,12 +17,33 @@ def pt_number(value):
     return float(value.replace(".", "").replace(",", ".").replace("%", "").strip())
 
 
+def click_aggregate(page, canvas, position):
+    # O estilo remoto e o worker GeoJSON podem terminar depois do canvas.
+    for _ in range(8):
+        canvas.click(position=position)
+        if page.locator(".risk-class-shares").is_visible():
+            return
+        page.wait_for_timeout(1500)
+    expect(page.locator(".risk-class-shares")).to_be_visible()
+
+
 def run(url):
     base = url + "/data/risk/v4/2026/"
     with urlopen(base + "manifest.json") as response:
         manifest = json.load(response)
     with urlopen(base + "index.json") as response:
         index = json.load(response)
+    base_2025 = url + "/data/risk/v4/2025/"
+    with urlopen(base_2025 + "manifest.json") as response:
+        assert json.load(response)["year"] == 2025
+    with urlopen(base_2025 + "index.json") as response:
+        index_2025 = json.load(response)
+    for entry in index_2025["sectors"]:
+        with urlopen(Request(base_2025 + entry["url"], method="HEAD")) as response:
+            assert (
+                response.status == 200
+                and int(response.headers["Content-Length"]) == entry["bytes"]
+            )
     for entry in index["sectors"]:
         with urlopen(Request(base + entry["url"], method="HEAD")) as response:
             assert (
@@ -69,8 +90,7 @@ def run(url):
         page.wait_for_timeout(1800)
         bounds = canvas.bounding_box()
         centre = {"x": bounds["width"] * 0.5, "y": bounds["height"] * 0.5}
-        canvas.click(position=centre)
-        expect(page.locator(".risk-class-shares")).to_be_visible()
+        click_aggregate(page, canvas, centre)
         expect(page.locator(".model-score-list > div")).to_have_count(2)
         page.get_by_role("button", name="XGBoost", exact=True).click()
         expect(page.locator(".active-score")).to_contain_text("não calibrado")
@@ -148,6 +168,67 @@ def run(url):
             page.get_by_role("button", name="XGBoost", exact=True)
         ).to_have_attribute("aria-pressed", "true")
         expect(page.locator(".map-prototype-note")).to_contain_text("Grupos de 5 km")
+        # Troca anual: manter modelo, limpar seleção e consultar o TIFF correto.
+        page.get_by_label("Ano do risco").select_option("2025")
+        expect(
+            page.get_by_role("button", name="XGBoost", exact=True)
+        ).to_have_attribute("aria-pressed", "true")
+        expect(page.locator(".cell-details")).to_contain_text("Explore o Risco de 2025")
+        expect(page.locator(".scientific-product-note").first).to_contain_text(
+            "treino de 2016–2024"
+        )
+        page.wait_for_timeout(1800)
+        canvas = page.locator(".maplibregl-canvas")
+        click_aggregate(page, canvas, centre)
+        for _ in range(4):
+            page.locator(".maplibregl-ctrl-zoom-in").click()
+            page.wait_for_timeout(180)
+        page.wait_for_timeout(1200)
+        canvas.click(position=centre)
+        expect(page.locator(".cell-details")).to_contain_text(
+            "Pixel científico original"
+        )
+        row_2025 = int(
+            page.locator(".cell-metrics div")
+            .filter(has_text="Linha original")
+            .locator("dd")
+            .inner_text()
+        )
+        column_2025 = int(
+            page.locator(".cell-metrics div")
+            .filter(has_text="Coluna original")
+            .locator("dd")
+            .inner_text()
+        )
+        for model_index, name in enumerate(("RandomForest", "XGBoost")):
+            with rasterio.open(
+                ROOT
+                / "entrega_professor_v4/mapas_geotiff"
+                / f"risco_30m_{name}_AB30C_suave_2025.tif"
+            ) as source:
+                expected = source.read(window=Window(column_2025, row_2025, 1, 1))[
+                    :, 0, 0
+                ]
+            panel = page.locator(".model-score-list > div").nth(model_index)
+            assert (
+                abs(
+                    pt_number(panel.locator("strong").inner_text()) - float(expected[1])
+                )
+                <= 0.051
+            )
+            assert (
+                abs(
+                    pt_number(panel.locator("small").first.inner_text().split("·")[1])
+                    - float(expected[0])
+                )
+                <= 0.00000051
+            )
+        scars.check()
+        expect(page.locator(".temporal-warning")).to_have_count(0)
+        page.get_by_label("Ano do risco").select_option("2026")
+        expect(page.locator(".cell-details")).to_contain_text("Explore o Risco de 2026")
+        expect(page.locator(".temporal-warning")).to_contain_text("Risco anual: 2026")
+        scars.uncheck()
         assert not errors, errors
         browser.close()
     print(
@@ -155,9 +236,12 @@ def run(url):
             {
                 "browser": "passed",
                 "http_sectors": len(index["sectors"]),
+                "http_sectors_2025": len(index_2025["sectors"]),
                 "range_status": range_status,
                 "pixel_checked": [row, column],
                 "models": 2,
+                "risk_years": [2025, 2026],
+                "pixel_checked_2025": [row_2025, column_2025],
                 "climate_extremes": "passed",
                 "page_errors": errors,
             }

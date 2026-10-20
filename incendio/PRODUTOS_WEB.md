@@ -1,4 +1,4 @@
-# Produtos web — Risco professor v4 de 2026
+# Produtos web — Risco professor v4 de 2025 e 2026
 
 ## Entrada e ambiente
 
@@ -17,16 +17,22 @@ Entradas padrão, na raiz do repositório:
 - Limite cartográfico versionado em `incendio/recursos/limite_acre.geojson`.
 
 ~~~bash
-incendio/.venv/bin/python incendio/importar_risco_professor_v4.py
+incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year 2025
+incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year 2026
 ~~~
 
-`--source-root` e `--reports-root` permitem indicar pastas alternativas.
+`--year` seleciona 2025 ou 2026 (padrão). Cada ano lê os dois GeoTIFFs e
+relatórios correspondentes, publica em `incendio/produtos/risco/v4/ANO` e tem
+staging e checkpoints separados. Para 2025, o treino é 2016–2024 e o clima é
+de 2024; para 2026, treino 2016–2025 e clima de 2025. Não se reutilizam os
+valores de 2026 como se fossem de 2025. `--source-root` e `--reports-root` permitem indicar pastas alternativas.
 O pacote original, GeoTIFFs, modelos e arquivos Zone.Identifier ficam fora do Git.
 
 ## Semântica científica
 
 Os mapas são da variante AB30C com clima suavizado, treinada com MapBiomas
-Fogo 5.1. Treino de 2016–2025, clima de 2025, histórico anterior ao ano previsto.
+Fogo 5.1. O treino vai de 2016 ao ano anterior ao previsto; o clima também é
+do ano anterior, sem usar queimadas do ano previsto como histórico.
 A grade original é EPSG:4326, com pixel de 0,000269494585 graus, aproximadamente 30 m.
 
 A banda 1 já contém o valor em porcentagem. **Não multiplicar novamente por 100.**
@@ -46,7 +52,7 @@ integração. Seus histogramas aproximam ranking e métricas. Os relatórios de
 
 ## Produto canônico e contrato
 
-`incendio/produtos/risco/v4/2026/` contém:
+Cada diretório `incendio/produtos/risco/v4/2025/` e `incendio/produtos/risco/v4/2026/` contém:
 
 - `manifest.json`: contrato 4.0, modelos, unidades, calibração, treinamento,
   proveniência/hashes, classes, arquivos e avaliações históricas.
@@ -99,7 +105,7 @@ uma interrupção sem conferir o estado da geração.
 O script npm de sincronização verifica a presença e tamanho de todos os
 setores antes de alterar `frontend/public`. Uma instalação recém-clonada
 precisa gerar ou receber os COGs ignorados antes de executar dev/build.
-O build inclui Risco v4/2026 e Clima v1/2025, inclusive os setores, mas não
+O build inclui Risco v4/2025, Risco v4/2026 e Clima v1/2025, inclusive os setores, mas não
 inclui Risco v2, Perigo, Alerta ou INPE.
 
 Os produtos observados de 2025 permanecem independentes. A sobreposição de

@@ -1,5 +1,5 @@
 import type { RiskV4Index, RiskV4Model, RiskV4Pixel } from '../types/riskV4'
-import { RISK_V4_BASE } from './riskV4'
+import { riskV4Base } from './riskV4'
 
 export class RiskRasterClient {
   private worker = new Worker(
@@ -20,7 +20,7 @@ export class RiskRasterClient {
     this.worker.postMessage({
       type: 'init',
       index,
-      base: new URL(RISK_V4_BASE, location.origin).href,
+      base: new URL(riskV4Base(index.year), location.origin).href,
     })
     this.worker.onmessage = ({
       data,

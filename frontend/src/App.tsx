@@ -12,6 +12,7 @@ function formatPtDate(value: string) {
 }
 
 export default function App() {
+  const [riskYear, setRiskYear] = useState<2025 | 2026>(2026)
   const [section, setSection] = useState<'risk' | 'climate'>('risk')
   const [climate, setClimate] = useState<ClimateProduct | null>(null)
   const [climateError, setClimateError] = useState<string | null>(null)
@@ -52,14 +53,14 @@ export default function App() {
           <span className="eyebrow">Produto científico experimental</span>
           <h1>Monitoramento de Incêndios Florestais — Acre</h1>
           <p>
-            Risco anual da entrega v4 para 2026 e observações históricas de
-            2025.
+            Risco anual da entrega v4 para 2025 e 2026 e observações históricas
+            de 2025.
           </p>
         </div>
         <span className="prototype-badge">
           {section === 'climate'
             ? 'Clima histórico · cicatrizes mapeadas · 2025'
-            : 'Risco anual experimental — 2026'}
+            : `Risco anual experimental — ${riskYear}`}
         </span>
       </header>
       <nav className="product-tabs" aria-label="Seção do mapa">
@@ -69,9 +70,9 @@ export default function App() {
           aria-pressed={section === 'risk'}
           onClick={() => setSection('risk')}
         >
-          <span className="product-tab-title">Risco · 2026</span>
+          <span className="product-tab-title">Risco · {riskYear}</span>
           <span className="product-tab-description">
-            Índice percentil · modelos da v4 · clima de 2025
+            Índice percentil · modelos da v4 · clima de {riskYear - 1}
           </span>
         </button>
         <button
@@ -87,7 +88,7 @@ export default function App() {
         </button>
       </nav>
       <div hidden={section !== 'risk'}>
-        <RiskV4 />
+        <RiskV4 year={riskYear} onYearChange={setRiskYear} />
       </div>
       {section === 'climate' && (
         <>
@@ -182,7 +183,8 @@ export default function App() {
                       precipitação em 24 horas não está comprovada. Marcadores
                       vermelhos localizam cicatrizes; ao aproximar, seu contorno
                       aparece. Um dia sem registro não comprova ausência de
-                      fogo. O risco anual de 2026 utiliza clima de 2025.
+                      fogo. O risco anual de {riskYear} utiliza clima de{' '}
+                      {riskYear - 1}.
                     </p>
                   </details>
                 </div>

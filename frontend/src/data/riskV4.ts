@@ -5,7 +5,7 @@ import {
   type RiskV4Product,
 } from '../types/riskV4'
 
-export const RISK_V4_BASE = '/data/risk/v4/2026/'
+export const riskV4Base = (year: 2025 | 2026) => `/data/risk/v4/${year}/`
 const record = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v)
 const number = (v: unknown): v is number =>
@@ -29,18 +29,19 @@ export function validateRiskV4Manifest(v: unknown): RiskV4Manifest {
     !record(v) ||
     v.schema_version !== '4.0' ||
     v.product !== 'wildfire_annual_risk' ||
-    v.year !== 2026 ||
+    (v.year !== 2025 && v.year !== 2026) ||
     v.default_model !== 'random_forest' ||
     v.scenario !== 'AB30C_suave' ||
     typeof v.label !== 'string' ||
     typeof v.generated_at !== 'string' ||
     !Number.isFinite(Date.parse(v.generated_at))
   )
-    throw new Error('Manifesto do Risco v4 de 2026 inválido.')
+    throw new Error('Manifesto do Risco v4 inválido.')
   if (
     !record(v.training) ||
-    JSON.stringify(v.training.years) !== '[2016,2025]' ||
-    v.training.climate_year !== 2025 ||
+    JSON.stringify(v.training.years) !==
+      JSON.stringify([2016, Number(v.year) - 1]) ||
+    v.training.climate_year !== Number(v.year) - 1 ||
     v.training.climate_smoothing !== true ||
     !Array.isArray(v.training.predictors) ||
     v.training.predictors.length !== 13
@@ -103,7 +104,7 @@ export function validateRiskV4Manifest(v: unknown): RiskV4Manifest {
     throw new Error('Proveniência do produto ausente.')
   if (
     !record(v.evaluation) ||
-    v.evaluation.target_year_available !== false ||
+    v.evaluation.target_year_available !== (v.year === 2025) ||
     v.evaluation.origin !== 'received_professor' ||
     v.evaluation.level !== '30m_fogo' ||
     !record(v.evaluation.historical)
@@ -209,7 +210,7 @@ export function validateRiskV4Product(
   if (
     !record(index) ||
     index.schema_version !== '4.0' ||
-    index.year !== 2026 ||
+    index.year !== manifest.year ||
     index.crs !== 'EPSG:4326' ||
     index.sector_size !== 1024 ||
     !positive(index.width) ||
@@ -287,13 +288,19 @@ async function json(url: string, signal?: AbortSignal): Promise<unknown> {
   return response.json()
 }
 
-export async function loadRiskV4(signal?: AbortSignal): Promise<RiskV4Product> {
+export async function loadRiskV4(
+  year: 2025 | 2026,
+  signal?: AbortSignal,
+): Promise<RiskV4Product> {
+  const base = riskV4Base(year)
   const manifest = validateRiskV4Manifest(
-    await json(`${RISK_V4_BASE}manifest.json`, signal),
+    await json(`${base}manifest.json`, signal),
   )
+  if (manifest.year !== year)
+    throw new Error('Produto recebido pertence a outro ano.')
   const [cells, boundary, index] = await Promise.all(
     [manifest.files.grid, manifest.files.boundary, manifest.files.index].map(
-      (file) => json(RISK_V4_BASE + file, signal),
+      (file) => json(base + file, signal),
     ),
   )
   return validateRiskV4Product(manifest, cells, boundary, index)

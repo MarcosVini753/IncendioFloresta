@@ -1,5 +1,27 @@
 # Conferência da integração v4 — 19/10/2026
 
+## Ampliação para 2025 e seletor anual
+
+- Importados os GeoTIFFs finais próprios de 2025, sem treino ou previsão local:
+  treino 2016–2024, clima de 2024 e calibração recebida correspondente ao ano.
+- Auditoria integral das máscaras e dos domínios, COGs sem perda e recálculo
+  independente de três grupos aprovados pelo importador.
+- 2025: 172.340.796 pixels, 6.393 grupos de 5 km e 208 setores. IDs únicos,
+  contagens e domínios conferidos; valores anuais distintos dos de 2026.
+- TypeScript e build aprovados; os quatro arquivos públicos e os 208 setores
+  de cada ano foram conferidos no dist contra as cópias canônicas.
+- A interface inicia em 2026. A troca limpa a seleção anterior e recria os
+  leitores raster com URLs do ano escolhido, mantendo o modelo selecionado.
+- Chrome local: troca 2026 → 2025 → 2026, seleção agregada e pixel original
+  dos dois modelos aprovadas. O pixel linha 7.492/coluna 13.670 foi comparado
+  com os TIFFs de cada ano; nenhum erro JavaScript não tratado.
+- HTTP 200/tamanhos dos 416 setores conferidos e leitura parcial HTTP 206
+  disponível. Aviso temporal das cicatrizes apenas em 2026 e extremos do
+  calendário climático preservados. A conferência aguarda o carregamento do
+  estilo/worker antes de clicar, evitando o clique prematuro do primeiro ensaio.
+
+## Conferência inicial de 2026
+
 Entrada: os dois GeoTIFFs finais de 2026, Random Forest e XGBoost AB30C com
 clima suavizado, treinados com MapBiomas Fogo. Não houve novo treinamento,
 previsão, calibração ou cálculo de percentis estaduais.

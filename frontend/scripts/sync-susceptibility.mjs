@@ -8,6 +8,11 @@ const frontendRoot = path.resolve(
 )
 const products = [
   {
+    source: '../incendio/produtos/risco/v4/2025',
+    target: 'public/data/risk/v4/2025',
+    label: 'risco anual 2025 · professor v4',
+  },
+  {
     source: '../incendio/produtos/risco/v4/2026',
     target: 'public/data/risk/v4/2026',
     label: 'risco anual 2026 · professor v4',
@@ -34,40 +39,45 @@ for (const product of products) {
 }
 
 // Conferir todos os setores antes de tocar nas cópias geradas.
-const riskRoot = path.resolve(frontendRoot, products[0].source)
-try {
-  const manifest = JSON.parse(
-    await readFile(path.join(riskRoot, 'manifest.json'), 'utf8'),
-  )
-  const index = JSON.parse(
-    await readFile(path.join(riskRoot, 'index.json'), 'utf8'),
-  )
-  if (
-    manifest.schema_version !== '4.0' ||
-    manifest.year !== 2026 ||
-    !Array.isArray(index.sectors) ||
-    !index.sectors.length
-  )
-    throw new Error('manifesto/índice inválido')
-  for (const entry of index.sectors) {
-    if (
-      typeof entry.id !== 'string' ||
-      !/^AC-V4-R\d{3}C\d{3}$/.test(entry.id) ||
-      entry.url !== `sectors/${entry.id}.tif`
+for (const product of products.filter((item) =>
+  item.target.includes('/risk/'),
+)) {
+  const riskRoot = path.resolve(frontendRoot, product.source)
+  try {
+    const manifest = JSON.parse(
+      await readFile(path.join(riskRoot, 'manifest.json'), 'utf8'),
     )
-      throw new Error('URL de setor inválida')
-    const file = await stat(path.join(riskRoot, entry.url))
-    if (!file.isFile() || file.size !== entry.bytes)
-      throw new Error(`setor incompleto: ${entry.id}`)
+    const index = JSON.parse(
+      await readFile(path.join(riskRoot, 'index.json'), 'utf8'),
+    )
+    if (
+      manifest.schema_version !== '4.0' ||
+      manifest.year !== Number(path.basename(riskRoot)) ||
+      index.year !== manifest.year ||
+      !Array.isArray(index.sectors) ||
+      !index.sectors.length
+    )
+      throw new Error('manifesto/índice inválido')
+    for (const entry of index.sectors) {
+      if (
+        typeof entry.id !== 'string' ||
+        !/^AC-V4-R\d{3}C\d{3}$/.test(entry.id) ||
+        entry.url !== `sectors/${entry.id}.tif`
+      )
+        throw new Error('URL de setor inválida')
+      const file = await stat(path.join(riskRoot, entry.url))
+      if (!file.isFile() || file.size !== entry.bytes)
+        throw new Error(`setor incompleto: ${entry.id}`)
+    }
+  } catch (error) {
+    throw new Error(
+      `Produto raster v4 ausente ou incompleto em ${riskRoot}. Na raiz, execute incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year ${path.basename(riskRoot)} com os dois GeoTIFFs finais disponíveis; depois repita npm run dev/build.`,
+      { cause: error },
+    )
   }
-} catch (error) {
-  throw new Error(
-    'Produto raster v4 ausente ou incompleto. Na raiz, execute incendio/.venv/bin/python incendio/importar_risco_professor_v4.py com os dois GeoTIFFs finais de 2026 disponíveis; depois repita npm run dev/build.',
-    { cause: error },
-  )
-}
 
-// Only generated copies: remove legacy years from public, never canonical products.
+  // Only generated copies: remove legacy years from public, never canonical products.
+}
 for (const name of ['susceptibility', 'risk', 'climate']) {
   await rm(path.resolve(frontendRoot, 'public/data', name), {
     recursive: true,

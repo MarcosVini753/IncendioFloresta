@@ -60,7 +60,7 @@ export interface RiskV4Sector {
 
 export interface RiskV4Index {
   schema_version: '4.0'
-  year: 2026
+  year: 2025 | 2026
   crs: 'EPSG:4326'
   width: number
   height: number
@@ -92,7 +92,7 @@ export interface RiskV4Manifest {
   schema_version: '4.0'
   product: 'wildfire_annual_risk'
   label: string
-  year: 2026
+  year: 2025 | 2026
   generated_at: string
   default_model: RiskV4Model
   scenario: 'AB30C_suave'
@@ -108,8 +108,8 @@ export interface RiskV4Manifest {
     sampling: string
   }[]
   training: {
-    years: [2016, 2025]
-    climate_year: 2025
+    years: [2016, number]
+    climate_year: number
     fire_source: string
     predictors: string[]
     climate_smoothing: true
@@ -134,7 +134,7 @@ export interface RiskV4Manifest {
   evaluation: {
     origin: 'received_professor'
     level: '30m_fogo'
-    target_year_available: false
+    target_year_available: boolean
     historical: Record<RiskV4Model, RiskV4Historical[]>
   }
   provenance: { identity: string; source_values_unchanged: true }

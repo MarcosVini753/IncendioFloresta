@@ -289,8 +289,8 @@ function RiskMap({
         onSelect(selection)
         const label =
           selection.kind === 'pixel'
-            ? 'Pixel científico · 2026'
-            : 'Grupo de 5 km · 2026'
+            ? `Pixel científico · ${product.manifest.year}`
+            : `Grupo de 5 km · ${product.manifest.year}`
         const active = product.manifest.models.find(
           (item) => item.id === modelRef.current,
         )!
@@ -437,7 +437,7 @@ function CellPanel({
       <aside className="cell-details cell-details-empty">
         <div>
           <span className="eyebrow">Local selecionado</span>
-          <h2>Explore o Risco de 2026</h2>
+          <h2>Explore o Risco de {product.manifest.year}</h2>
           <p>
             Clique em um grupo de 5 km ou aproxime para consultar um pixel
             científico de 30 m e comparar os dois modelos.
@@ -465,7 +465,8 @@ function CellPanel({
         <span>{active.label}</span>
         <strong>{decimal(percentile(p, model))}</strong>
         <small>
-          {aggregate ? 'Média dos percentis' : 'Índice percentil'} · 2026
+          {aggregate ? 'Média dos percentis' : 'Índice percentil'} ·{' '}
+          {product.manifest.year}
         </small>
         <span>
           {active.value_label}: {pct(modelValue(p, model))}
@@ -537,11 +538,11 @@ function CellPanel({
       <dl className="cell-metrics">
         <div>
           <dt>Treino</dt>
-          <dd>2016–2025</dd>
+          <dd>{product.manifest.training.years.join('–')}</dd>
         </div>
         <div>
           <dt>Clima do modelo</dt>
-          <dd>2025 · suavizado</dd>
+          <dd>{product.manifest.training.climate_year} · suavizado</dd>
         </div>
         <div>
           <dt>Histórico e rótulo</dt>
@@ -604,9 +605,11 @@ function Evaluation({
         </div>
       </div>
       <p>
-        Não há avaliação observada de 2026 nesta entrega. A tabela apresenta
-        mapas de 2023–2025, na variante AB30C com clima suavizado, comparados às
-        cicatrizes de 30 m do MapBiomas Fogo.
+        {product.manifest.evaluation.target_year_available
+          ? `A avaliação de ${product.manifest.year} está incluída na tabela. `
+          : `Não há avaliação observada de ${product.manifest.year} nesta entrega. `}
+        A tabela apresenta mapas de 2023–2025, na variante AB30C com clima
+        suavizado, comparados às cicatrizes de 30 m do MapBiomas Fogo.
       </p>
       <div className="evaluation-table-wrapper">
         <table className="evaluation-priority-table">
@@ -647,7 +650,14 @@ function Evaluation({
   )
 }
 
-export function RiskV4() {
+export function RiskV4({
+  year,
+  onYearChange,
+}: {
+  year: 2025 | 2026
+  onYearChange: (year: 2025 | 2026) => void
+}) {
+  const cache = useRef(new Map<number, RiskV4Product>())
   const [product, setProduct] = useState<RiskV4Product | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
@@ -660,8 +670,15 @@ export function RiskV4() {
   useEffect(() => {
     const controller = new AbortController()
     setError(null)
-    void loadRiskV4(controller.signal)
-      .then(setProduct)
+    setSelection(null)
+    setProduct(cache.current.get(year) ?? null)
+    if (cache.current.has(year)) return () => controller.abort()
+    void loadRiskV4(year, controller.signal)
+      .then((result) => {
+        if (controller.signal.aborted) return
+        cache.current.set(year, result)
+        setProduct(result)
+      })
       .catch((reason: unknown) => {
         if (!controller.signal.aborted)
           setError(
@@ -671,7 +688,7 @@ export function RiskV4() {
           )
       })
     return () => controller.abort()
-  }, [attempt])
+  }, [attempt, year])
   useEffect(() => {
     if (!showScars || scars) return
     const controller = new AbortController()
@@ -688,14 +705,33 @@ export function RiskV4() {
       })
     return () => controller.abort()
   }, [showScars, scars, scarAttempt])
-  if (!product)
+  const yearControl = (
+    <section className="control-group">
+      <label className="control-label" htmlFor="risk-year">
+        Ano do risco
+      </label>
+      <select
+        className="model-selector"
+        id="risk-year"
+        value={year}
+        onChange={(event) =>
+          onYearChange(Number(event.target.value) as 2025 | 2026)
+        }
+      >
+        <option value={2026}>2026</option>
+        <option value={2025}>2025</option>
+      </select>
+    </section>
+  )
+  if (!product || product.manifest.year !== year)
     return (
       <section className="map-section">
+        {yearControl}
         <div className="map-shell map-status" role="status">
           <strong>
             {error
               ? 'Não foi possível carregar o Risco v4.'
-              : 'Carregando Risco v4 de 2026…'}
+              : `Carregando Risco v4 de ${year}…`}
           </strong>
           {error && (
             <>
@@ -711,9 +747,10 @@ export function RiskV4() {
   const active = product.manifest.models.find((item) => item.id === model)!
   return (
     <>
+      {yearControl}
       <div className="map-controls risk-v4-controls">
         <section className="control-group">
-          <span className="control-label">Modelo de risco · 2026</span>
+          <span className="control-label">Modelo de risco · {year}</span>
           <div className="layer-selector">
             {product.manifest.models.map((item) => (
               <button
@@ -741,8 +778,9 @@ export function RiskV4() {
             Cicatrizes observadas · 2025
           </label>
           <small>
-            Inventário anterior à previsão de 2026; não há cicatrizes observadas
-            de 2026 nesta entrega.
+            {year === 2026
+              ? 'Inventário anterior à previsão de 2026; não há cicatrizes observadas de 2026 nesta entrega.'
+              : 'Inventário de 2025: pixels classificados, não uma contagem de incêndios confirmados.'}
           </small>
           {scarError && (
             <div role="alert">
@@ -757,7 +795,7 @@ export function RiskV4() {
           )}
         </section>
       </div>
-      {showScars && (
+      {showScars && year !== 2025 && (
         <p className="temporal-warning" role="status">
           <strong>Risco anual: 2026 · Cicatrizes observadas: 2025.</strong>{' '}
           Períodos diferentes; a sobreposição não é uma validação da previsão de
@@ -767,6 +805,7 @@ export function RiskV4() {
       <section className="map-workspace risk-v4-workspace">
         <div className="map-section">
           <RiskMap
+            key={year}
             product={product}
             model={model}
             selected={selection}
@@ -786,12 +825,14 @@ export function RiskV4() {
       <section className="scientific-product-note">
         <div>
           <span className="eyebrow">Mapas finais do professor · v4</span>
-          <strong>Risco anual experimental — 2026</strong>
+          <strong>Risco anual experimental — {year}</strong>
         </div>
         <div>
           <p>
-            {active.label} · treino de 2016–2025 · clima e histórico anteriores
-            a 2026. O mapa mostra o índice percentil recebido, em classes fixas.{' '}
+            {active.label} · treino de{' '}
+            {product.manifest.training.years.join('–')} · clima de{' '}
+            {product.manifest.training.climate_year} e histórico anteriores a{' '}
+            {year}. O mapa mostra o índice percentil recebido, em classes fixas.{' '}
             {active.value_label} aparece separadamente no clique. Não é uma
             medição de fogo nem previsão operacional.
           </p>
