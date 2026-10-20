@@ -7,4 +7,4 @@ for (const name of ['danger', 'inpe', 'susceptibility']) {
   const generated = fileURLToPath(new URL(`../dist/data/${name}/`, import.meta.url))
   await rm(generated, { recursive: true, force: true })
 }
-console.log('Build limitado a Risco e Clima de 2025; arquivos locais de Perigo preservados.')
+console.log('Build limitado ao Risco v4 de 2026 e Clima de 2025; arquivos locais de Perigo preservados.')
