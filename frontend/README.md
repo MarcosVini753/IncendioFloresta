@@ -1,60 +1,64 @@
-# Frontend — Risco professor v2 e Clima de 2025
+# Frontend — Risco professor v4 de 2026 e Clima de 2025
 
-O site abre em Random Forest no cenário Todas + histórico de queimadas.
-São quatro modelos (Random Forest, GradBoost, Regressão Logística e XGBoost)
-e quatro cenários (Todas as células, Oeste–Leste, Amostra 1:19 e Todas +
-histórico de queimadas). O Fuzzy não integra a v2.
+O site abre em Random Forest, cenário AB30C com clima suavizado e treino com
+MapBiomas Fogo. Apenas Random Forest e XGBoost de **2026** são disponibilizados.
+Não há seletor de cenários nem carregamento dos setores da v2.
 
-## Como ler o mapa
+## Ler e consultar o mapa
 
-A cor e o valor principal mostram o índice percentil estadual, de 0 a 100,
-sem símbolo de porcentagem. Percentil 95 indica posição elevada no ranking,
-não 95% de chance de incêndio. No clique, o escore aparece separadamente,
-em escala percentual e com precisão adaptativa para valores pequenos.
-Nenhuma das duas escalas é uma probabilidade calibrada ou previsão operacional.
+A cor representa o índice percentil recebido, de 0 a 100 sem %. As classes
+são fixas: Muito baixo [0,50), Baixo [50,70), Moderado [70,90), Alto [90,95)
+e Muito alto [95,100]. Percentil não é chance de incêndio.
 
-Na malha visual, quadrados de aproximadamente **5 km** substituem os setores
-de 0,28°. A cor classifica em faixas fixas a média dos percentis das células
-científicas do quadrado. No clique, o painel mostra médias e a proporção das
-células em cada faixa. A quantidade de células aproxima a área porque elas têm
-dimensões semelhantes. No zoom 8,5,
-entram setores da grade original de 307.410 células, com margem de um setor,
-cancelamento de requisições e cache LRU de 32 setores. O painel compara os
-quatro modelos do cenário selecionado. Trocas de modelo/cenário são locais.
+Até zoom 8,5: grupos de 5 km, com cor pela classe da média dos percentis.
+O clique compara médias dos modelos e a proporção dos pixels em cada classe.
 
-Treino de 2007–2024 e clima de 2024, com interpolação bilinear. O cenário
-histórico acrescenta somente informações de queimadas anteriores a 2025.
-O cenário 1:19 usa a correção de amostragem do código recebido.
+A partir de zoom 8,5: o raster é lido por setores COG. Enquanto afastado,
+usa overviews por média; ao aproximar, usa os dados originais de cerca de 30 m.
+O clique **sempre consulta a imagem original**, retornando linha, coluna,
+centro, contorno e valores dos dois modelos. A seleção permanece ao trocar modelo.
 
-## Avaliação e observações
+A banda percentual recebida já está multiplicada por 100. Random Forest tem
+calibração temporal recebida; XGBoost tem correção de amostragem e não é calibrado.
+Os dois valores são rotulados distintamente e não são previsão operacional.
 
-A avaliação de 2025 é recalculada no território completo, antes da agregação,
-para o modelo/cenário selecionado. Exibe detecção no topo de 10%, AUC-ROC,
-precisão média (AP) e outros cortes. O campo pr_auc foi calculado como AP.
-Relatórios recebidos de 2017–2024 ficam em uma seção identificada separadamente;
-não foram recalculados nesta entrega nem são apresentados como equivalentes
-ao teste de 2025. O padrão Random Forest histórico decorre da seleção histórica
-desse cenário, não da escolha do melhor resultado no próprio ano de teste.
+Treino 2016–2025, clima de 2025 e 13 preditores. Avaliações históricas de
+2023–2025 são recebidas do professor e correspondem à variante exibida e
+ao nível 30m_fogo. Não há avaliação observada de 2026 na entrega.
 
-Cicatrizes observadas · 2025 são uma sobreposição anual independente,
-inicialmente ativa no Risco, com marcadores roxos e contornos ao aproximar.
-O clique apresenta a data e a célula correspondente quando disponível.
-Falhas de carregamento permitem tentar novamente sem derrubar o mapa.
+## Raster no navegador
 
-As 39 células científicas positivas e os 59 pixels de cicatriz são unidades
-espaciais diferentes; nenhuma contagem equivale a incêndios confirmados.
-Ausência de registro não comprova ausência de fogo.
+GeoTIFF.js roda em Web Worker, com até quatro tarefas concorrentes, leitores
+de até 32 setores e LRU de até 128 MiB de blocos decodificados. As coordenadas
+Web Mercator de cada linha de tile são convertidas para latitude antes de
+amostrar a grade original EPSG:4326; não há interpolação linear incorreta
+entre as latitudes extremas do tile.
 
-Clima e cicatrizes · 2025 mantém 365 dias, inicialmente 25/08/2025.
-Mínimo, média e máximo climáticos são estatísticas espaciais, não extremos
-horários. A duração de acumulação da chuva não está documentada.
+Requisições obsoletas são canceladas. COGs permitem HTTP Range; se o servidor
+não oferecer Range, a leitura integral é limitada a um setor pequeno, nunca
+ao GeoTIFF do estado inteiro. Os setores atuais têm menos de 15 MiB cada.
 
-## Executar
+O worker é emitido como módulo ES para permitir os decodificadores carregados
+sob demanda do GeoTIFF.js. A exclusão de MapLibre do prebundle Vite permanece.
 
-O produto canônico v2 deve estar completo; não há fallback silencioso para v1.
-Consulte [PRODUTOS_WEB.md](../incendio/PRODUTOS_WEB.md).
+## Clima e cicatrizes
+
+A aba Clima mantém os 365 dias de 2025 e inicia em 25/08/2025. Estatísticas são
+espaciais por dia; não são extremos horários. A duração de acumulação da
+precipitação continua não documentada.
+
+As cicatrizes de 2025 ficam inicialmente ocultas no Risco de 2026. Quando
+ativadas, os dois anos e a diferença temporal são mostrados. Essa sobreposição
+não valida a previsão de 2026 e não conta incêndios confirmados.
+
+## Executar e compilar
 
 ~~~bash
+# Na raiz: preparar os setores locais uma vez.
+python3 -m venv incendio/.venv  # apenas se o ambiente ainda não existir
+incendio/.venv/bin/pip install -r incendio/risco_anual_v4/requirements.txt
+incendio/.venv/bin/python incendio/importar_risco_professor_v4.py
+
 cd frontend
 npm install
 npm run dev
@@ -62,16 +66,10 @@ npm run build
 npm run preview
 ~~~
 
-Predev/prebuild sincronizam somente risco/v2/2025 e clima/v1/2025.
-Produtos gerados em public e dist não são versionados. A exclusão do MapLibre
-do prebundle do Vite permanece. Perigo não é incluído no dist e seus arquivos
-locais não são alterados.
+Predev/prebuild conferem e sincronizam somente Risco v4/2026 e Clima v1/2025.
+COGs em setores, public e dist são gerados e ignorados pelo Git. Código,
+manifesto, índice e GeoJSON agregado são versionados. Consulte
+[geração e proveniência](../incendio/PRODUTOS_WEB.md).
 
-## Conferência breve
-
-Verificar os 16 pares, valores da célula nas duas resoluções, avaliação,
-toggle de cicatrizes e extremos do calendário climático. O script
-scripts/smoke-professor-v2.py realiza esse percurso com dados reais e limite
-de execução; scripts/smoke-2025.py pertence à versão anterior arquivada.
-
-A versão anterior está em archive/risk-2025-before-professor-v2.
+A v2 está preservada em `archive/risk-v2-before-professor-v4`.
+Esta atualização não configura hospedagem, backend ou deploy.

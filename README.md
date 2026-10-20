@@ -1,27 +1,43 @@
 # Incêndios Florestais — Acre
 
-Aplicação React + MapLibre para explorar resultados de modelos e observações de 2025.
+Aplicação React + MapLibre para explorar o Risco anual experimental de **2026**
+da entrega do professor v4 e observações históricas de **2025**.
 
-- Risco anual experimental da entrega do professor v2: quatro modelos e quatro cenários.
-- Clima diário e cicatrizes observadas de 2025: calendário de 365 datas.
-- Padrão inicial: Random Forest com histórico de queimadas.
-- Mapa com quadrados visuais de cerca de 5 km; a cor classifica a média dos percentis científicos em faixas fixas e o clique mostra a proporção de células em cada faixa.
+- Dois modelos: **Random Forest** (inicial) e XGBoost.
+- Cenário recebido: AB30C, treinado com MapBiomas Fogo, com clima suavizado.
+- Treino 2016–2025; clima utilizado em 2025. Nenhum treino ou previsão é executado pelo site.
+- Mapa afastado: grupos de 5 km, coloridos pela classe da média dos percentis.
+- Zoom a partir de 8,5: raster progressivo de aproximadamente 30 m; clique sempre consulta o pixel original.
+- Random Forest tem calibração temporal recebida; XGBoost tem correção de amostragem e não é calibrado.
+- Percentil é posição relativa no ranking, sem símbolo de porcentagem. A saída percentual do modelo aparece separadamente.
+- Avaliações de 2023–2025 são relatórios recebidos, contra MapBiomas Fogo em 30 m. Não há avaliação observada de 2026 na entrega.
+- Clima diário e cicatrizes de 2025 continuam independentes. As cicatrizes ficam ocultas inicialmente no Risco de 2026.
+- Perigo, Alerta e INPE não fazem parte desta entrega.
 
-Percentil é posição relativa no ranking, não porcentagem de chance de incêndio.
-Os escores também não são probabilidades calibradas. Treino de 2007–2024, clima
-de 2024 e, no cenário com histórico, apenas queimadas anteriores a 2025.
-O clima e as cicatrizes exibidos são observações de 2025, com cobertura limitada.
-Perigo, Alerta e INPE não fazem parte desta entrega.
+A versão v2 foi preservada em `archive/risk-v2-before-professor-v4`.
 
-A versão anterior foi preservada em archive/risk-2025-before-professor-v2.
+## Preparar e executar
 
-## Estrutura
+Os dois GeoTIFFs finais de 2026 ficam em `entrega_professor_v4/mapas_geotiff`.
+O pacote recebido e os setores raster gerados são locais e ignorados pelo Git.
 
-- incendio/risco_anual_v2/: código científico isolado, configuração e parâmetros recebidos portáveis.
-- incendio/produtos/risco/v2/2025/: produto canônico agregado e setores científicos.
-- incendio/produtos/clima/v1/2025/: produto observado mantido após conferência de hashes.
-- frontend/: interface e sincronização das únicas cópias canônicas ativas.
-- entrega_professor_v2/ e incednido/: insumos recebidos locais e ignorados.
-- Os pipelines anteriores e os artefatos locais de Perigo permanecem preservados.
+~~~bash
+python3 -m venv incendio/.venv  # apenas se o ambiente ainda não existir
+incendio/.venv/bin/pip install -r incendio/risco_anual_v4/requirements.txt
+incendio/.venv/bin/python incendio/importar_risco_professor_v4.py
+cd frontend
+npm install
+npm run dev
+~~~
 
-Veja [geração e proveniência](incendio/PRODUTOS_WEB.md) e [execução do frontend](frontend/README.md).
+O importador só prepara resultados já calculados. Confere integralmente
+máscaras, domínios e cobertura; grava 208 setores COG sem alterar os valores
+e agrega 172.340.796 pixels em 6.393 grupos de 5 km. Checkpoints permitem
+retomada. O produto ativo só é substituído após a auditoria.
+
+Código, manifesto, índice e grade agregada são versionados. Os COGs devem
+ser gerados ou fornecidos separadamente ao preparar uma nova instalação.
+`predev` e `prebuild` conferem todos os setores antes de copiar o produto.
+
+Veja [produtos e proveniência](incendio/PRODUTOS_WEB.md) e
+[frontend e publicação](frontend/README.md).

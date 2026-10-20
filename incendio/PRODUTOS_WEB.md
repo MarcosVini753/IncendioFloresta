@@ -1,117 +1,107 @@
-# Produtos web — entrega do professor v2
+# Produtos web — Risco professor v4 de 2026
 
-## Ambiente e geração
+## Entrada e ambiente
 
-O código recebido foi isolado em risco_anual_v2, preservando os pipelines
-anteriores e a pasta original entrega_professor_v2. Dados brutos, SQLite,
-Parquet, Joblib, imagens, ambientes e checkpoints ficam locais e ignorados.
-Somente código, configuração, parâmetros portáveis e produtos web são versionados.
+Esta integração importa os GeoTIFFs finais do professor, sem executar
+treinamento, previsão, seleção de parâmetros ou calibração. Os pipelines
+anteriores permanecem disponíveis, mas não alimentam o frontend ativo.
 
-Na raiz, preparar uma vez um ambiente Python 3.11:
+O importador usa Python >=3.11, NumPy, Rasterio com o driver COG, PyProj e
+Shapely. Instale `risco_anual_v4/requirements.txt` em um ambiente local.
 
-~~~bash
-uv venv --python 3.11 incendio/risco_anual_v2/.venv
-uv pip install --python incendio/risco_anual_v2/.venv/bin/python -r incendio/risco_anual_v2/requirements.txt
-incendio/risco_anual_v2/.venv/bin/python incendio/exportar_risco_professor_v2.py
-incendio/risco_anual_v2/.venv/bin/python incendio/exportar_risco_professor_v2.py --validate-only
-~~~
+Entradas padrão, na raiz do repositório:
 
-XGBoost 3.2.0 é executado em CPU. Rasterio 1.4.4 é usado porque 1.5.2 exige
-Python 3.12 ou superior. Versões efetivas e backend são registrados.
-A configuração contém caminhos relativos para os insumos locais; não usar
-nomes de arquivo para deduzir o período das bandas.
-
-## Protocolo
-
-- Previsão anual experimental de 2025, treino de 2007–2024, semente 42.
-- Seis preditores: vegetação categórica, distâncias à estrada e à água,
-  altitude, umidade média anual e precipitação acumulada anual.
-- Clima defasado em um ano, interpolado por método bilinear: mapa de 2025 usa 2024.
-- Quatro modelos: Random Forest, GradBoost, Regressão Logística e XGBoost.
-- Cenários: todos, todos_regional, razao_1x19 e todos_historico.
-- Regional usa o corte UTM científico x < 337100 m para Oeste.
-- Histórico acrescenta anos desde última queima, histórico decaído e
-  queima no ano anterior, sem acessar cicatrizes do ano-alvo.
-- Regional e histórico reutilizam os parâmetros de todos, como no pacote recebido.
-- Parâmetros próprios de todos e razao_1x19 são conferidos por impressão
-  da tabela, preditores, espaço de busca, amostragem e protocolo. Divergências
-  científicas refazem somente o ajuste afetado, com validação por ano no mapa inteiro.
-- O escore de 1:19 recebe a correção de amostragem do professor. Essa correção
-  não demonstra calibração; manter a semântica relative_score.
-
-A paisagem mantém insumos de 2003–2013. A divisão regional não é administrativa.
-O produto não é previsão operacional nem reprodução integral da tese.
-
-## Contrato e auditoria
-
-O produto ativo usa contrato 2.0 em produtos/risco/v2/2025, com manifesto e
-malha agregada, além de manifesto, índice e setores da grade científica.
-Cada célula contém 16 propriedades score_<cenario>_<modelo> em [0,1] e
-16 percentile_<cenario>_<modelo> em [0,100].
-
-Percentis são calculados sobre as 307.410 células estaduais de cada par,
-após juntar as regiões, com rank médio nos empates, conforme o código recebido.
-Não são probabilidades nem percentuais de área queimada.
-
-A malha visual é formada por quadrados UTM de cerca de 5 km que reúnem
-aproximadamente 40–50 células científicas de 893 × 598 m. As quatro famílias
-de escores e percentis são agregadas por média aritmética; a cor classifica a
-média do percentil em cinco faixas fixas: 0–50, 50–70, 70–90, 90–95 e 95–100.
-No clique, cada combinação de modelo e cenário inclui a proporção das células
-nativas em cada faixa (`class_share_<cenario>_<modelo>_<classe>`). Como as
-células científicas têm dimensões parecidas, a contagem aproxima a proporção
-de área. O painel deixa claro que a cor representa a classe da média e que as
-proporções descrevem as células que formam o quadrado. A grade original mantém IDs AC-Y<Y>-X<X>,
-cantos reais em UTM 19S reprojetados e dimensões aproximadas de 893 × 598 m.
-
-A geração confere domínios, cobertura, IDs únicos, médias e proporções por classe
-contra os valores nativos.
-Somente as 16 combinações completas podem ser publicadas. Arquivos são
-gerados em staging e auditados antes do rename para o diretório canônico.
-Uma versão anterior do produto fica em backup local durante a substituição.
-Uma interrupção entre renames pode exigir restaurar esse backup; não removê-lo
-nem reaproveitar staging sem verificar o estado.
-
-Para reconstruir somente a malha visual de 5 km a partir do produto nativo já
-publicado, sem treinar modelos:
+- `entrega_professor_v4/mapas_geotiff/risco_30m_RandomForest_AB30C_suave_2026.tif`
+- `entrega_professor_v4/mapas_geotiff/risco_30m_XGBoost_AB30C_suave_2026.tif`
+- Relatórios em `entrega_professor_v4/2_resultados/treino_MapBiomas_Fogo`.
+- Limite cartográfico versionado em `incendio/recursos/limite_acre.geojson`.
 
 ~~~bash
-incendio/risco_anual_v2/.venv/bin/python incendio/exportar_risco_professor_v2.py --refresh-visual-grid
+incendio/.venv/bin/python incendio/importar_risco_professor_v4.py
 ~~~
 
-O comando lê os setores nativos, confere os 307.410 IDs e gera a grade e o
-manifesto agregados sem alterar previsões, métricas ou setores nativos.
+`--source-root` e `--reports-root` permitem indicar pastas alternativas.
+O pacote original, GeoTIFFs, modelos e arquivos Zone.Identifier ficam fora do Git.
 
-## Retomada e avaliação
+## Semântica científica
 
-O cache em resultados/risco_professor_v2 guarda a base e checkpoints por
-cenário/modelo/escopo, com ordem das células, impressão da tabela, hashes,
-preditores, períodos, parâmetros, correção, versões e backend.
-Reexecutar o mesmo comando retoma previsões e seleções já concluídas.
-Uma seleção interrompida antes de finalizar seus candidatos é refeita.
+Os mapas são da variante AB30C com clima suavizado, treinada com MapBiomas
+Fogo 5.1. Treino de 2016–2025, clima de 2025, histórico anterior ao ano previsto.
+A grade original é EPSG:4326, com pixel de 0,000269494585 graus, aproximadamente 30 m.
 
-A avaliação de 2025 é recalculada nas células científicas; o manifesto compara
-as métricas com as recebidas e registra diferenças. Não copiar métricas antigas
-para previsões novas. Relatórios de 2017–2024 são preservados como evidência
-recebida separada; não foram reprocessados nem usados para selecionar pelo teste
-de 2025. O campo pr_auc corresponde à precisão média (AP).
+A banda 1 já contém o valor em porcentagem. **Não multiplicar novamente por 100.**
+Random Forest tem calibração temporal (Platt) fornecida pelo professor;
+XGBoost tem correção de amostragem e não é calibrado. A calibração não transforma
+o mapa em uma previsão operacional.
 
-O inventário tem 39 células científicas positivas em 2025. Os 59 pixels
-de cicatrizes do raster representam outra unidade, não incêndios confirmados.
+A banda 2 contém o índice percentil estadual produzido pelo histograma do
+pipeline recebido. Preservar esses valores, sem recalcular rankings no frontend,
+na viewport ou sobre os grupos de 5 km.
 
-## Observações e entrega
+Avaliações publicadas: mapas `AB30C_suave`, anos 2023–2025, nível `30m_fogo`.
+São relatórios fornecidos pelo professor, não métricas recalculadas nesta
+integração. Seus histogramas aproximam ranking e métricas. Os relatórios de
+2026 não contêm observações para avaliação; não associar métricas de 2025
+à previsão de 2026. Pixels positivos não equivalem a incêndios confirmados.
 
-Os oito insumos da nova pasta tiveram hashes idênticos aos da versão anterior.
-Clima e cicatrizes permanecem em produtos/clima/v1/2025: 365 dias, médias
-espaciais ponderadas e extremos espaciais. Se os hashes mudarem, o exportador
-regenera o produto observado antes da publicação. Não afirmar chuva de 24 horas.
+## Produto canônico e contrato
 
-A branch archive/risk-2025-before-professor-v2 preserva o site anterior.
-O pipeline legado e o produto risco/v1 continuam disponíveis para reprodução,
-mas só v2 e clima ativo são sincronizados para o novo site. Não alterar Perigo.
+`incendio/produtos/risco/v4/2026/` contém:
 
-O processamento usa a sessão tmux risk-professor-v2 e export.log no cache.
-A finalização usa risk-professor-v2-delivery, delivery.log e delivery.json.
-Ela só integra e envia a main depois da auditoria, builds, HTTP e conferência
-breve do navegador. Se a main ou a cópia preparada mudarem durante o cálculo,
-a integração para sem sobrescrever alterações concorrentes.
+- `manifest.json`: contrato 4.0, modelos, unidades, calibração, treinamento,
+  proveniência/hashes, classes, arquivos e avaliações históricas.
+- `grid.geojson`: grupos de 5 km em UTM 19S, com geometria em EPSG:4326.
+- `boundary.geojson`: limite de referência do Acre.
+- `index.json`: geotransformação original, bandas e setores.
+- `sectors/AC-V4-RxxxCxxx.tif`: COGs gerados, **ignorados pelo Git**.
+
+Cada grupo guarda `value_<modelo>`, `percentile_<modelo>`,
+`n_source_pixels`, `centroid`, `aggregation: mean` e
+`share_<modelo>_<classe>`. Médias e proporções usam apenas pixels válidos.
+A cor classifica a média dos percentis nas faixas [0,50), [50,70), [70,90),
+[90,95), [95,100]. As proporções contam pixels e aproximam a proporção da área.
+
+Os setores preservam janelas da grade original de até 1024 × 1024 pixels.
+Setores vazios são omitidos. Quatro bandas Float32, nesta ordem:
+
+1. valor percentual de Random Forest;
+2. percentil de Random Forest;
+3. valor percentual de XGBoost;
+4. percentil de XGBoost.
+
+NoData é -9999 e nunca é tratado como risco zero. Compressão é sem perda;
+overviews são calculadas por média, ignorando NoData. Cada COG é reaberto e
+comparado integralmente à janela de entrada antes de salvar seu checkpoint.
+
+A cobertura científica é a máscara dos GeoTIFFs. O limite cartográfico pode
+diferir ligeiramente dessa máscara; não são descartados pixels científicos
+por essa diferença. Polígonos visuais são recortados pelo limite quando há
+interseção válida. A seleção individual usa o retângulo original do pixel.
+
+## Retomada e publicação
+
+Checkpoints locais em `incendio/resultados/risco_professor_v4` vinculam cada
+setor aos hashes dos mapas, relatórios, limite e versão do contrato de importação.
+Uma retomada confere o hash do COG e reutiliza os agregados locais por setor.
+Para alterar regras de cálculo, incrementar a versão do contrato no importador.
+
+O importador confere máscaras e valores em toda a área na primeira execução,
+soma a cobertura dos setores e agregados, e recalcula três grupos diretamente
+das entradas. A máscara atual possui **172.340.796 pixels**, distribuídos em
+**208 setores** e **6.393 grupos**. Os COGs gerados totalizam aproximadamente
+1,67 GiB; o maior setor tem menos de 15 MiB.
+
+A geração usa staging; somente o produto auditado substitui o diretório ativo.
+O produto anterior é movido para backup local antes da troca. Uma falha na
+troca tenta restaurar esse backup. Não remover caches/backups para resolver
+uma interrupção sem conferir o estado da geração.
+
+O script npm de sincronização verifica a presença e tamanho de todos os
+setores antes de alterar `frontend/public`. Uma instalação recém-clonada
+precisa gerar ou receber os COGs ignorados antes de executar dev/build.
+O build inclui Risco v4/2026 e Clima v1/2025, inclusive os setores, mas não
+inclui Risco v2, Perigo, Alerta ou INPE.
+
+Os produtos observados de 2025 permanecem independentes. A sobreposição de
+cicatrizes do inventário anterior inicia desativada no Risco de 2026 e exige
+aviso temporal quando ativada. Não é a camada MapBiomas Fogo de 2026.
