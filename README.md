@@ -39,7 +39,11 @@ retomada. O produto ativo só é substituído após a auditoria.
 
 Código, manifesto, índice e grade agregada são versionados. Os COGs devem
 ser gerados ou fornecidos separadamente ao preparar uma nova instalação.
-`predev` e `prebuild` conferem todos os setores antes de copiar o produto.
+No modo local, `predev` e `prebuild` conferem todos os setores antes de copiar
+o produto. Na Vercel, sem URL externa, o build publica apenas os grupos de 5 km,
+com aviso no mapa e sem transição para pixels indisponíveis. Para habilitar 30 m
+na publicação, hospede os setores separadamente e configure
+`RISK_RASTER_BASE_URL`; veja os modos de distribuição no README do frontend.
 
 Veja [produtos e proveniência](incendio/PRODUTOS_WEB.md) e
 [frontend e publicação](frontend/README.md).

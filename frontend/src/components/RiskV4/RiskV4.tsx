@@ -67,24 +67,28 @@ function RiskMap({
   const popupRef = useRef<Popup | null>(null)
 
   useEffect(() => {
-    const client = new RiskRasterClient(product.index)
+    const client =
+      product.rasterBase === null
+        ? null
+        : new RiskRasterClient(product.index, product.rasterBase)
     clientRef.current = client
     const protocol = `risk-v4-${++mapSerial}`
-    addProtocol(protocol, async (request, controller) => {
-      const match = request.url.match(
-        /:\/\/(random_forest|xgboost)\/(\d+)\/(\d+)\/(\d+)/,
-      )
-      if (!match) throw new Error('Endereço raster inválido.')
-      return {
-        data: await client.tile(
-          match[1] as RiskV4Model,
-          Number(match[2]),
-          Number(match[3]),
-          Number(match[4]),
-          controller.signal,
-        ),
-      }
-    })
+    if (client)
+      addProtocol(protocol, async (request, controller) => {
+        const match = request.url.match(
+          /:\/\/(random_forest|xgboost)\/(\d+)\/(\d+)\/(\d+)/,
+        )
+        if (!match) throw new Error('Endereço raster inválido.')
+        return {
+          data: await client.tile(
+            match[1] as RiskV4Model,
+            Number(match[2]),
+            Number(match[3]),
+            Number(match[4]),
+            controller.signal,
+          ),
+        }
+      })
     const map = new MapLibreMap({
       container: container.current!,
       style: 'https://demotiles.maplibre.org/style.json',
@@ -99,15 +103,16 @@ function RiskMap({
     const tiles = (id: RiskV4Model) => [`${protocol}://${id}/{z}/{x}/{y}`]
     const update = () => {
       if (!map.getSource('risk-v4-grid')) return
-      const native = map.getZoom() >= 8.5
+      const native = client !== null && map.getZoom() >= 8.5
       for (const layer of ['risk-v4-fill', 'risk-v4-lines'])
         map.setLayoutProperty(layer, 'visibility', native ? 'none' : 'visible')
-      for (const id of ['random_forest', 'xgboost'] as const)
-        map.setLayoutProperty(
-          `risk-v4-${id}`,
-          'visibility',
-          native && id === modelRef.current ? 'visible' : 'none',
-        )
+      if (client)
+        for (const id of ['random_forest', 'xgboost'] as const)
+          map.setLayoutProperty(
+            `risk-v4-${id}`,
+            'visibility',
+            native && id === modelRef.current ? 'visible' : 'none',
+          )
       map.setPaintProperty('risk-v4-fill', 'fill-color', [
         'step',
         ['get', `percentile_${modelRef.current}`],
@@ -201,28 +206,29 @@ function RiskMap({
         source: 'risk-v4-grid',
         paint: { 'line-color': 'rgba(255,255,255,.82)', 'line-width': 0.55 },
       })
-      for (const id of ['random_forest', 'xgboost'] as const) {
-        map.addSource(`risk-v4-${id}`, {
-          type: 'raster',
-          tiles: tiles(id),
-          tileSize: 256,
-          minzoom: 8,
-          maxzoom: 14,
-          bounds: product.manifest.bounds,
-        })
-        map.addLayer({
-          id: `risk-v4-${id}`,
-          type: 'raster',
-          source: `risk-v4-${id}`,
-          minzoom: 8.5,
-          layout: { visibility: 'none' },
-          paint: {
-            'raster-opacity': 0.82,
-            'raster-resampling': 'nearest',
-            'raster-fade-duration': 0,
-          },
-        })
-      }
+      if (client)
+        for (const id of ['random_forest', 'xgboost'] as const) {
+          map.addSource(`risk-v4-${id}`, {
+            type: 'raster',
+            tiles: tiles(id),
+            tileSize: 256,
+            minzoom: 8,
+            maxzoom: 14,
+            bounds: product.manifest.bounds,
+          })
+          map.addLayer({
+            id: `risk-v4-${id}`,
+            type: 'raster',
+            source: `risk-v4-${id}`,
+            minzoom: 8.5,
+            layout: { visibility: 'none' },
+            paint: {
+              'raster-opacity': 0.82,
+              'raster-resampling': 'nearest',
+              'raster-fade-duration': 0,
+            },
+          })
+        }
       map.addLayer({
         id: 'risk-v4-outline',
         type: 'line',
@@ -301,7 +307,7 @@ function RiskMap({
           )
           .addTo(map)
       }
-      if (map.getZoom() < 8.5) {
+      if (!client || map.getZoom() < 8.5) {
         const id = map.queryRenderedFeatures(event.point, {
           layers: ['risk-v4-fill'],
         })[0]?.properties?.id
@@ -357,8 +363,8 @@ function RiskMap({
       query?.abort()
       popup.remove()
       map.remove()
-      removeProtocol(protocol)
-      client.destroy()
+      if (client) removeProtocol(protocol)
+      client?.destroy()
       updateRef.current = null
       mapRef.current = null
       clientRef.current = null
@@ -392,8 +398,8 @@ function RiskMap({
         modelLabel={
           product.manifest.models.find((item) => item.id === model)!.label
         }
-        aggregated={zoom < 8.5}
-        rasterReduced={zoom >= 8.5 && zoom < 12}
+        aggregated={product.rasterBase === null || zoom < 8.5}
+        rasterReduced={product.rasterBase !== null && zoom >= 8.5 && zoom < 12}
         showScars={showScars && scars !== null}
       />
       <div className="map-prototype-note" role="status">
@@ -408,6 +414,8 @@ function RiskMap({
               Tentar novamente
             </button>
           </>
+        ) : product.rasterBase === null ? (
+          'Grupos de 5 km · resolução original de 30 m não disponível nesta publicação'
         ) : (
           status ||
           (zoom < 8.5
@@ -439,8 +447,9 @@ function CellPanel({
           <span className="eyebrow">Local selecionado</span>
           <h2>Explore o Risco de {product.manifest.year}</h2>
           <p>
-            Clique em um grupo de 5 km ou aproxime para consultar um pixel
-            científico de 30 m e comparar os dois modelos.
+            {product.rasterBase === null
+              ? 'Clique em um grupo de 5 km para comparar as médias dos dois modelos. Os pixels originais de 30 m não estão disponíveis nesta publicação.'
+              : 'Clique em um grupo de 5 km ou aproxime para consultar um pixel científico de 30 m e comparar os dois modelos.'}
           </p>
         </div>
       </aside>
@@ -846,9 +855,11 @@ export function RiskV4({
               {decimal(product.manifest.counts.source_pixels, 0)} pixels válidos
               de aproximadamente 30 m. No mapa afastado,{' '}
               {decimal(product.manifest.counts.features, 0)} grupos de 5 km
-              mostram médias e proporções. Ao aproximar, setores raster são
-              carregados progressivamente; o clique sempre consulta o pixel
-              original. A aba Clima permanece em 2025.
+              mostram médias e proporções.{' '}
+              {product.rasterBase === null
+                ? 'Esta publicação contém somente os grupos de 5 km; os pixels de 30 m ainda não estão disponíveis.'
+                : 'Ao aproximar, setores raster são carregados progressivamente; o clique sempre consulta o pixel original.'}{' '}
+              A aba Clima permanece em 2025.
             </p>
           </details>
         </div>

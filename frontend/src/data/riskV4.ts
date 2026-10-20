@@ -276,14 +276,46 @@ export function validateRiskV4Product(
   }
   if (sourceCount !== count)
     throw new Error('Setores não cobrem todos os pixels-fonte.')
-  return { manifest, cells, boundary, index } as unknown as RiskV4Product
+  return {
+    manifest,
+    cells,
+    boundary,
+    index,
+    rasterBase: riskV4Base(manifest.year),
+  } as unknown as RiskV4Product
+}
+
+export function validateRiskV4Deployment(
+  v: unknown,
+  year: 2025 | 2026,
+): string | null {
+  if (!record(v) || v.schema_version !== '1.0' || v.year !== year)
+    throw new Error('Configuração de publicação do Risco v4 inválida.')
+  if (v.raster_mode === 'aggregated' && v.raster_base_url === null) return null
+  if (v.raster_mode === 'local' && v.raster_base_url === riskV4Base(year))
+    return v.raster_base_url
+  if (v.raster_mode === 'remote' && typeof v.raster_base_url === 'string') {
+    const url = new URL(v.raster_base_url)
+    if (
+      ['http:', 'https:'].includes(url.protocol) &&
+      !url.username &&
+      !url.password &&
+      !url.search &&
+      !url.hash &&
+      url.pathname.endsWith(`/${year}/`)
+    )
+      return url.href
+  }
+  throw new Error(
+    'Configuração raster inválida; sincronize os produtos novamente.',
+  )
 }
 
 async function json(url: string, signal?: AbortSignal): Promise<unknown> {
   const response = await fetch(url, { signal })
   if (!response.ok || !response.headers.get('content-type')?.includes('json'))
     throw new Error(
-      `Produto v4 ausente ou resposta inválida: ${url}. Execute o importador e sincronize os produtos.`,
+      `Produto v4 ausente ou resposta inválida: ${url}. Confira a URL e a sincronização dos produtos no build.`,
     )
   return response.json()
 }
@@ -298,10 +330,16 @@ export async function loadRiskV4(
   )
   if (manifest.year !== year)
     throw new Error('Produto recebido pertence a outro ano.')
-  const [cells, boundary, index] = await Promise.all(
-    [manifest.files.grid, manifest.files.boundary, manifest.files.index].map(
-      (file) => json(base + file, signal),
-    ),
+  const [cells, boundary, index, deployment] = await Promise.all(
+    [
+      manifest.files.grid,
+      manifest.files.boundary,
+      manifest.files.index,
+      'deployment.json',
+    ].map((file) => json(base + file, signal)),
   )
-  return validateRiskV4Product(manifest, cells, boundary, index)
+  return {
+    ...validateRiskV4Product(manifest, cells, boundary, index),
+    rasterBase: validateRiskV4Deployment(deployment, year),
+  }
 }

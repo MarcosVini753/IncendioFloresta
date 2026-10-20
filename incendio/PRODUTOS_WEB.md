@@ -102,11 +102,19 @@ O produto anterior é movido para backup local antes da troca. Uma falha na
 troca tenta restaurar esse backup. Não remover caches/backups para resolver
 uma interrupção sem conferir o estado da geração.
 
-O script npm de sincronização verifica a presença e tamanho de todos os
-setores antes de alterar `frontend/public`. Uma instalação recém-clonada
-precisa gerar ou receber os COGs ignorados antes de executar dev/build.
-O build inclui Risco v4/2025, Risco v4/2026 e Clima v1/2025, inclusive os setores, mas não
-inclui Risco v2, Perigo, Alerta ou INPE.
+No modo local, o script npm verifica presença e tamanho de todos os setores
+antes de alterar `frontend/public`; uma instalação recém-clonada precisa gerar
+ou receber os COGs ignorados para esse modo. Alternativamente, use
+`RISK_RASTER_MODE=aggregated` para publicar somente grupos de 5 km, ou
+`RISK_RASTER_BASE_URL` para servir os setores de uma origem externa. Na Vercel,
+sem essa URL, o padrão é agregado, com aviso explícito da ausência de 30 m.
+O modo externo não envia setores nem verifica a hospedagem remota.
+
+O build inclui Risco v4/2025, Risco v4/2026 e Clima v1/2025; inclui os setores
+somente no modo local. Não inclui Risco v2, Perigo, Alerta ou INPE.
+Os manifestos científicos permanecem intactos: `deployment.json` gerado por
+ano contém a configuração de distribuição, separada da proveniência.
+Consulte [configuração do frontend](../frontend/README.md).
 
 Os produtos observados de 2025 permanecem independentes. A sobreposição de
 cicatrizes do inventário anterior inicia desativada no Risco de 2026 e exige

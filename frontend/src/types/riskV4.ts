@@ -145,4 +145,6 @@ export interface RiskV4Product {
   cells: RiskV4Grid
   boundary: Feature<Polygon | MultiPolygon>
   index: RiskV4Index
+  /** null: this deployment includes only the scientific 5 km aggregates. */
+  rasterBase: string | null
 }

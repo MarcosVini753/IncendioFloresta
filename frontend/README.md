@@ -21,6 +21,9 @@ A partir de zoom 8,5: o raster é lido por setores COG. Enquanto afastado,
 usa overviews por média; ao aproximar, usa os dados originais de cerca de 30 m.
 O clique **sempre consulta a imagem original**, retornando linha, coluna,
 centro, contorno e valores dos dois modelos. A seleção permanece ao trocar modelo.
+Essa transição só é habilitada quando os setores estão disponíveis na publicação.
+Sem eles, a malha de 5 km permanece em todos os níveis de zoom, com aviso visível;
+o clique retorna médias, nunca um pixel apresentado como original.
 
 A banda percentual recebida já está multiplicada por 100. Random Forest tem
 calibração temporal recebida; XGBoost tem correção de amostragem e não é calibrado.
@@ -76,5 +79,55 @@ COGs em setores, public e dist são gerados e ignorados pelo Git. Código,
 manifesto, índice e GeoJSON agregado são versionados. Consulte
 [geração e proveniência](../incendio/PRODUTOS_WEB.md).
 
+## Build na Vercel e distribuição dos pixels de 30 m
+
+Os setores dos dois anos somam aproximadamente **3,4 GiB** e são ignorados pelo
+Git. Portanto um checkout limpo não os contém: não é um erro do Node ou do ano
+2025. Não execute o importador científico no build da Vercel nem adicione esses
+arquivos grandes ao Git para contornar o problema.
+
+A sincronização aceita estas variáveis de ambiente (definidas antes de `npm run
+build`, por exemplo nas configurações do projeto na Vercel):
+
+| Modo | Configuração | Resultado |
+| --- | --- | --- |
+| Local | `RISK_RASTER_MODE=local` | Confere todos os setores e inclui-os em `public` e `dist`; falha se algum estiver ausente ou truncado. Padrão fora da Vercel. |
+| Agregado | `RISK_RASTER_MODE=aggregated` | Publica metadados, grupos de 5 km e Clima; não inclui TIFFs e informa no site a indisponibilidade de 30 m. Padrão com `VERCEL=1`, sem URL externa. |
+| Externo | `RISK_RASTER_BASE_URL=https://seu-host.example/risk/v4/` | Habilita os pixels originais via URL externa; não copia TIFFs para o build. Seleciona `remote` automaticamente. |
+
+Para testar localmente o mesmo build agregado da Vercel:
+
+~~~bash
+cd frontend
+RISK_RASTER_MODE=aggregated npm run build
+~~~
+
+Para habilitar o raster completo, **primeiro publique os setores existentes** em
+um armazenamento estático escolhido. Preserve a estrutura:
+
+~~~text
+https://seu-host.example/risk/v4/2025/sectors/AC-V4-R000C000.tif
+https://seu-host.example/risk/v4/2026/sectors/AC-V4-R000C000.tif
+...todos os setores de cada index.json
+~~~
+
+Configure `RISK_RASTER_BASE_URL` com o prefixo **anterior ao ano**, público, sem
+credenciais, query ou fragmento. O servidor deve permitir CORS para o domínio do
+site e requisições GET com `Range` (idealmente responder 206). Se responder 200,
+o worker admite apenas a leitura integral limitada a um setor do tamanho declarado
+no índice. Não são usadas URLs privadas nem chaves no navegador. O build remoto
+não verifica a disponibilidade da origem externa; confira as URLs e CORS após o
+upload. Nenhum upload, novo serviço de hospedagem ou deploy é feito pelo script.
+
+Cada sincronização gera `deployment.json` por ano, separado do manifesto
+científico, registrando o modo e a URL raster. O loader valida essa configuração;
+o modo agregado não cria worker raster, solicita TIFFs ou oculta a malha ao
+aproximar. Modelos, anos, valores e produtos científicos não são modificados.
+Para voltar ao modo completo local, execute `npm run dev` sem essas variáveis.
+
+Validação focada: `npm run test:sync` verifica checkout sem setores, URL externa,
+inclusão local e configuração inválida; `npm test -- src/data/riskV4.test.ts`
+verifica o contrato de publicação e o carregamento agregado.
+
 A v2 está preservada em `archive/risk-v2-before-professor-v4`.
-Esta atualização não configura hospedagem, backend ou deploy.
+Esta atualização não cria hospedagem, backend nem upload automático dos COGs.
