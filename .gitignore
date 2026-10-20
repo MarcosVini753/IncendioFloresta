@@ -48,3 +48,9 @@ frontend/public/data/danger/v1/2015/
 incednido/
 entrega_professor_v2/
 incendio/resultados/risco_professor_v2/
+
+# Entrega v4: mapas recebidos e setores raster reproduzíveis permanecem locais.
+entrega_professor_v4/
+incendio/resultados/risco_professor_v4/
+incendio/produtos/risco/v4/2026/sectors/
+incendio/produtos/risco/v4/.2026-staging/
