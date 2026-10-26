@@ -10,10 +10,10 @@ import {
 } from 'maplibre-gl'
 import type { FeatureCollection } from 'geojson'
 import { loadRiskV4 } from '../../data/riskV4'
+import { RISK_DISPLAY_CLASSES } from '../../data/riskDisplayPalette'
 import { RiskRasterClient } from '../../data/riskRaster'
 import { loadScarProduct } from '../../data/climate'
 import {
-  RISK_V4_CLASSES,
   type RiskV4Model,
   type RiskV4Product,
   type RiskV4Selection,
@@ -116,15 +116,15 @@ function RiskMap({
       map.setPaintProperty('risk-v4-fill', 'fill-color', [
         'step',
         ['get', `percentile_${modelRef.current}`],
-        RISK_V4_CLASSES[0].color,
+        RISK_DISPLAY_CLASSES[0].color,
         50,
-        RISK_V4_CLASSES[1].color,
+        RISK_DISPLAY_CLASSES[1].color,
         70,
-        RISK_V4_CLASSES[2].color,
+        RISK_DISPLAY_CLASSES[2].color,
         90,
-        RISK_V4_CLASSES[3].color,
+        RISK_DISPLAY_CLASSES[3].color,
         95,
-        RISK_V4_CLASSES[4].color,
+        RISK_DISPLAY_CLASSES[4].color,
       ])
       const choice = selectedRef.current
       const selection =
@@ -482,11 +482,11 @@ function CellPanel({
   const active = product.manifest.models.find((item) => item.id === model)!
   const currentPercentile = percentile(p, model)
   // Mesmos limites científicos do mapa: classificação apenas visual.
-  const currentClass = RISK_V4_CLASSES.find(
+  const currentClass = RISK_DISPLAY_CLASSES.find(
     (item) => currentPercentile >= item.lower && (
       currentPercentile < item.upper || item.upper === 100
     ),
-  ) ?? RISK_V4_CLASSES[RISK_V4_CLASSES.length - 1]
+  ) ?? RISK_DISPLAY_CLASSES[RISK_DISPLAY_CLASSES.length - 1]
   return (
     <aside id="risk-cell-details" className="cell-details">
       <div className="cell-details-header">
@@ -543,7 +543,7 @@ function CellPanel({
       {selection.kind === 'aggregated' && (
         <section className="risk-class-shares">
           <h3>Proporção dos pixels por classe</h3>
-          {RISK_V4_CLASSES.map((category) => {
+          {RISK_DISPLAY_CLASSES.map((category) => {
             const share = Number(
               selection.properties[`share_${model}_${category.id}`],
             )
