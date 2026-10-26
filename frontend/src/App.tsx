@@ -49,17 +49,18 @@ export default function App() {
   return (
     <main className="app-shell">
       <header className="app-header">
-        <div>
-          <span className="eyebrow">Análise geoespacial · Acre</span>
-          <h1>Mapas de Incêndios Florestais</h1>
-          <p>
-            Risco anual experimental para 2025 e 2026 e dados históricos de
-            clima e cicatrizes de 2025.
-          </p>
+        <div className="app-brand">
+          <span className="brand-symbol" aria-hidden="true"><span /></span>
+          <div className="app-header-copy">
+            <span className="eyebrow">Atlas geoespacial <span aria-hidden="true">/</span> Acre</span>
+            <h1>Incêndios Florestais</h1>
+            <p>Mapas anuais de risco e observações históricas do território acreano.</p>
+          </div>
         </div>
-        <span className="prototype-badge">
-          Produto científico experimental
-        </span>
+        <div className="app-header-meta">
+          <span className="prototype-badge"><span className="badge-dot" aria-hidden="true" /> Estudo científico experimental</span>
+          <span className="header-meta-detail">Dados e modelos · 2025–2026</span>
+        </div>
       </header>
       <nav className="product-tabs" aria-label="Seção do mapa">
         <button
