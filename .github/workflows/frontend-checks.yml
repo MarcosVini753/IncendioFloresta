@@ -27,5 +27,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run build
+        env:
+          RISK_RASTER_MODE: aggregated
       - run: npm test
       - run: npm run test:sync
