@@ -91,7 +91,7 @@ function RiskMap({
       })
     const map = new MapLibreMap({
       container: container.current!,
-      style: 'https://demotiles.maplibre.org/style.json',
+      style: 'https://tiles.openfreemap.org/styles/positron',
       center: [-70.3, -9.3],
       zoom: 5.2,
     })
@@ -200,13 +200,14 @@ function RiskMap({
         id: 'risk-v4-fill',
         type: 'fill',
         source: 'risk-v4-grid',
-        paint: { 'fill-color': '#fee08b', 'fill-opacity': 0.72 },
+        paint: { 'fill-color': '#f1de84', 'fill-opacity': 0.85 },
       }, labelLayerId)
       map.addLayer({
         id: 'risk-v4-lines',
         type: 'line',
         source: 'risk-v4-grid',
-        paint: { 'line-color': 'rgba(255,255,255,.24)', 'line-width': 0.35 },
+        minzoom: 7.5,
+        paint: { 'line-color': 'rgba(255,255,255,.28)', 'line-width': 0.4 },
       }, labelLayerId)
       if (client)
         for (const id of ['random_forest', 'xgboost'] as const) {
@@ -225,12 +226,23 @@ function RiskMap({
             minzoom: 8.5,
             layout: { visibility: 'none' },
             paint: {
-              'raster-opacity': 0.78,
+              'raster-opacity': 0.9,
               'raster-resampling': 'nearest',
               'raster-fade-duration': 0,
             },
           }, labelLayerId)
         }
+      map.addLayer({
+        id: 'risk-v4-hover-line',
+        type: 'line',
+        source: 'risk-v4-grid',
+        filter: ['==', ['get', 'id'], '__none__'],
+        paint: {
+          'line-color': '#153d33',
+          'line-width': 2.6,
+          'line-opacity': 0.92,
+        },
+      })
       map.addLayer({
         id: 'risk-v4-outline',
         type: 'line',
@@ -353,8 +365,15 @@ function RiskMap({
     map.on('mouseenter', 'risk-v4-fill', () => {
       map.getCanvas().style.cursor = 'pointer'
     })
+    map.on('mousemove', 'risk-v4-fill', (event) => {
+      const id = event.features?.[0]?.properties?.id
+      if (map.getLayer('risk-v4-hover-line'))
+        map.setFilter('risk-v4-hover-line', ['==', ['get', 'id'], id ?? '__none__'])
+    })
     map.on('mouseleave', 'risk-v4-fill', () => {
       map.getCanvas().style.cursor = ''
+      if (map.getLayer('risk-v4-hover-line'))
+        map.setFilter('risk-v4-hover-line', ['==', ['get', 'id'], '__none__'])
     })
     const observer = new ResizeObserver(() => {
       if (container.current?.clientWidth) map.resize()
@@ -461,38 +480,41 @@ function CellPanel({
   const p = selection.properties,
     aggregate = selection.kind === 'aggregated'
   const active = product.manifest.models.find((item) => item.id === model)!
+  const currentPercentile = percentile(p, model)
+  // Mesmos limites científicos do mapa: classificação apenas visual.
+  const currentClass = RISK_V4_CLASSES.find(
+    (item) => currentPercentile >= item.lower && (
+      currentPercentile < item.upper || item.upper === 100
+    ),
+  ) ?? RISK_V4_CLASSES[RISK_V4_CLASSES.length - 1]
   return (
     <aside id="risk-cell-details" className="cell-details">
       <div className="cell-details-header">
         <div>
-          <span className="eyebrow">
-            {aggregate ? 'Grupo visual de 5 km' : 'Pixel científico original'}
-          </span>
-          <h2>{p.id}</h2>
+          <span className="eyebrow">Análise da localização</span>
+          <h2>{aggregate ? 'Grupo de 5 km' : 'Pixel de 30 m'}</h2>
+          <span className="risk-cell-id">{p.id}</span>
         </div>
         <div className="cell-details-actions">
-          <button type="button" className="clear-selection" onClick={onClear}>
-            Limpar
-          </button>
-          <button type="button" className="clear-selection" onClick={onClose}>
-            Ocultar
-          </button>
+          <button type="button" className="clear-selection" onClick={onClear} aria-label="Limpar seleção" title="Limpar seleção">Limpar</button>
+          <button type="button" className="clear-selection risk-panel-close" onClick={onClose} aria-label="Fechar painel de detalhes" title="Fechar painel">×</button>
         </div>
       </div>
       <div className="active-score">
-        <span>{active.label}</span>
-        <strong>{decimal(percentile(p, model))}</strong>
-        <small>
-          {aggregate ? 'Média dos percentis' : 'Índice percentil'} ·{' '}
-          {product.manifest.year}
-        </small>
-        <span>
-          {active.value_label}: {pct(modelValue(p, model))}
+        <span className="risk-score-caption">{active.label} · {product.manifest.year}</span>
+        <span className="risk-score-topline">
+          <strong>{decimal(currentPercentile)}</strong>
+          <span className="risk-score-unit">índice<br/>percentil</span>
         </span>
-        <small>
-          O percentil é posição no ranking; não é porcentagem de chance de
-          incêndio.
-        </small>
+        <span className="risk-score-class">
+          <i style={{ backgroundColor: currentClass.color }} aria-hidden="true" />
+          {currentClass.label} · posição relativa
+        </span>
+        <div className="risk-score-track" role="img" aria-label={`Índice percentil: ${decimal(currentPercentile)} de 100`}>
+          <span style={{ width: `${Math.max(0, Math.min(100, currentPercentile))}%` }} />
+        </div>
+        <span className="risk-score-model-value">{active.value_label}: <b>{pct(modelValue(p, model))}</b></span>
+        <small>{aggregate ? 'Média dos percentis válidos no grupo.' : 'Consulta do pixel original.'} Percentil não é chance de incêndio.</small>
       </div>
       <dl className="model-score-list">
         {product.manifest.models.map((item) => (
@@ -516,6 +538,8 @@ function CellPanel({
           </div>
         ))}
       </dl>
+      <details className="risk-panel-extra">
+        <summary>Distribuição e metadados do local</summary>
       {selection.kind === 'aggregated' && (
         <section className="risk-class-shares">
           <h3>Proporção dos pixels por classe</h3>
@@ -602,6 +626,7 @@ function CellPanel({
           : 'Consulta feita na resolução original, mesmo quando o raster desenhado usa uma versão reduzida.'}{' '}
         Os percentis estaduais do professor são preservados.
       </p>
+      </details>
     </aside>
   )
 }
@@ -694,6 +719,14 @@ export function RiskV4({
   const [scars, setScars] = useState<ScarCollection | null>(null)
   const [scarError, setScarError] = useState<string | null>(null)
   const [scarAttempt, setScarAttempt] = useState(0)
+  useEffect(() => {
+    if (!detailsOpen) return
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setDetailsOpen(false)
+    }
+    window.addEventListener('keydown', onEscape)
+    return () => window.removeEventListener('keydown', onEscape)
+  }, [detailsOpen])
   useEffect(() => {
     const controller = new AbortController()
     setError(null)
@@ -813,9 +846,7 @@ export function RiskV4({
             </div>
           )}
         </section>
-        <span className="risk-toolbar-context">
-          AB30C · MapBiomas Fogo · clima suavizado
-        </span>
+        <span className="risk-toolbar-context">AB30C <span aria-hidden="true">·</span> MapBiomas Fogo <span aria-hidden="true">·</span> Clima suavizado</span>
       </div>
       {showScars && year !== 2025 && (
         <p className="temporal-warning" role="status">
@@ -826,6 +857,7 @@ export function RiskV4({
       )}
       <section
         className={`map-workspace risk-v4-workspace${selection && detailsOpen ? ' has-details' : ''}`}
+        aria-label="Mapa de risco e consulta do local"
       >
         <div className="map-section risk-map-section">
           <RiskMap
