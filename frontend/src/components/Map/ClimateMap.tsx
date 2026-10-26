@@ -65,7 +65,7 @@ export function ClimateMap({ product, variable, date, showScars, selectedCellId,
     if (!containerRef.current) return
     const map = new MapLibreMap({
       container: containerRef.current,
-      style: 'https://demotiles.maplibre.org/style.json',
+      style: 'https://tiles.openfreemap.org/styles/positron',
       center: [-70.3, -9.3], zoom: 5.2, attributionControl: {},
     })
     map.addControl(new NavigationControl(), 'top-right')
