@@ -1,4 +1,4 @@
-import { RISK_CLASSES } from '../../data/riskClasses'
+import { RISK_DISPLAY_CLASSES } from '../../data/riskDisplayPalette'
 
 interface MapLegendProps {
   modelLabel: string
@@ -27,7 +27,7 @@ export function MapLegend({
           <span>{modelLabel}</span>
         </div>
         <div className="risk-legend-swatches" role="img" aria-label="Cinco classes de índice percentil: muito baixo, baixo, moderado, alto e muito alto">
-          {RISK_CLASSES.map((riskClass) => (
+          {RISK_DISPLAY_CLASSES.map((riskClass) => (
             <span
               key={riskClass.id}
               style={{ backgroundColor: riskClass.color }}
@@ -43,7 +43,7 @@ export function MapLegend({
           <summary>Entenda as classes</summary>
           <p>{interpretation}</p>
           <ul>
-            {RISK_CLASSES.map((riskClass) => (
+            {RISK_DISPLAY_CLASSES.map((riskClass) => (
               <li key={riskClass.id}>
                 <i style={{ backgroundColor: riskClass.color }} aria-hidden="true" />
                 <span>{riskClass.label}: {riskClass.lower}–{riskClass.upper === 100 ? '100' : `<${riskClass.upper}`}</span>
