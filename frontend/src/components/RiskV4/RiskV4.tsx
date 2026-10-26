@@ -194,18 +194,20 @@ function RiskMap({
       map.addSource('risk-v4-selected', { type: 'geojson', data: EMPTY })
       map.addSource('risk-v4-scars', { type: 'geojson', data: EMPTY })
       map.addSource('risk-v4-scar-points', { type: 'geojson', data: EMPTY })
+      // Os rótulos do mapa-base devem permanecer legíveis sobre o risco.
+      const labelLayerId = map.getStyle().layers.find((layer) => layer.type === 'symbol')?.id
       map.addLayer({
         id: 'risk-v4-fill',
         type: 'fill',
         source: 'risk-v4-grid',
-        paint: { 'fill-color': '#fee08b', 'fill-opacity': 0.76 },
-      })
+        paint: { 'fill-color': '#fee08b', 'fill-opacity': 0.72 },
+      }, labelLayerId)
       map.addLayer({
         id: 'risk-v4-lines',
         type: 'line',
         source: 'risk-v4-grid',
-        paint: { 'line-color': 'rgba(255,255,255,.82)', 'line-width': 0.55 },
-      })
+        paint: { 'line-color': 'rgba(255,255,255,.24)', 'line-width': 0.35 },
+      }, labelLayerId)
       if (client)
         for (const id of ['random_forest', 'xgboost'] as const) {
           map.addSource(`risk-v4-${id}`, {
@@ -223,11 +225,11 @@ function RiskMap({
             minzoom: 8.5,
             layout: { visibility: 'none' },
             paint: {
-              'raster-opacity': 0.82,
+              'raster-opacity': 0.78,
               'raster-resampling': 'nearest',
               'raster-fade-duration': 0,
             },
-          })
+          }, labelLayerId)
         }
       map.addLayer({
         id: 'risk-v4-outline',
@@ -402,7 +404,7 @@ function RiskMap({
         rasterReduced={product.rasterBase !== null && zoom >= 8.5 && zoom < 12}
         showScars={showScars && scars !== null}
       />
-      <div className="map-prototype-note" role="status">
+      <div className="map-prototype-note" role="status" aria-live="polite">
         {error ? (
           <>
             <span>Falha no raster: {error}</span>{' '}
@@ -415,14 +417,14 @@ function RiskMap({
             </button>
           </>
         ) : product.rasterBase === null ? (
-          'Grupos de 5 km · resolução original de 30 m não disponível nesta publicação'
+          'Visualização agregada · grupos de 5 km'
         ) : (
           status ||
           (zoom < 8.5
-            ? 'Grupos de 5 km: média dos percentis · aproxime para explorar os pixels de 30 m'
+            ? 'Visualização agregada · grupos de 5 km'
             : zoom < 12
-              ? 'Raster reduzido por médias · clique consulta o pixel original de 30 m'
-              : 'Pixels originais de aproximadamente 30 m · clique para consultar')
+              ? 'Raster reduzido · consulta a 30 m'
+              : 'Resolução original · aproximadamente 30 m')
         )}
       </div>
     </div>
@@ -434,11 +436,13 @@ function CellPanel({
   product,
   model,
   onClear,
+  onClose,
 }: {
   selection: RiskV4Selection | null
   product: RiskV4Product
   model: RiskV4Model
   onClear: () => void
+  onClose: () => void
 }) {
   if (!selection)
     return (
@@ -458,7 +462,7 @@ function CellPanel({
     aggregate = selection.kind === 'aggregated'
   const active = product.manifest.models.find((item) => item.id === model)!
   return (
-    <aside className="cell-details">
+    <aside id="risk-cell-details" className="cell-details">
       <div className="cell-details-header">
         <div>
           <span className="eyebrow">
@@ -466,9 +470,14 @@ function CellPanel({
           </span>
           <h2>{p.id}</h2>
         </div>
-        <button type="button" className="clear-selection" onClick={onClear}>
-          Limpar
-        </button>
+        <div className="cell-details-actions">
+          <button type="button" className="clear-selection" onClick={onClear}>
+            Limpar
+          </button>
+          <button type="button" className="clear-selection" onClick={onClose}>
+            Ocultar
+          </button>
+        </div>
       </div>
       <div className="active-score">
         <span>{active.label}</span>
@@ -606,13 +615,15 @@ function Evaluation({
 }) {
   const active = product.manifest.models.find((item) => item.id === model)!
   return (
-    <section className="risk-evaluation">
-      <div className="section-heading">
-        <div>
+    <details className="risk-evaluation" id="risk-evaluation">
+      <summary className="risk-evaluation-summary">
+        <span>
           <span className="eyebrow">Avaliações fornecidas pelo professor</span>
-          <h2>Desempenho histórico · {active.label}</h2>
-        </div>
-      </div>
+          <strong>Desempenho histórico · {active.label}</strong>
+        </span>
+        <span className="risk-disclosure-hint">Ver métricas e tabela</span>
+      </summary>
+      <div className="risk-evaluation-content">
       <p>
         {product.manifest.evaluation.target_year_available
           ? `A avaliação de ${product.manifest.year} está incluída na tabela. `
@@ -655,7 +666,8 @@ function Evaluation({
         equivalem a incêndios confirmados. Os relatórios usam histogramas para
         resumir as previsões e o ranking.
       </p>
-    </section>
+      </div>
+    </details>
   )
 }
 
@@ -672,6 +684,7 @@ export function RiskV4({
   const [attempt, setAttempt] = useState(0)
   const [model, setModel] = useState<RiskV4Model>('random_forest')
   const [selection, setSelection] = useState<RiskV4Selection | null>(null)
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const [showScars, setShowScars] = useState(false)
   const [scars, setScars] = useState<ScarCollection | null>(null)
   const [scarError, setScarError] = useState<string | null>(null)
@@ -680,6 +693,7 @@ export function RiskV4({
     const controller = new AbortController()
     setError(null)
     setSelection(null)
+    setDetailsOpen(false)
     setProduct(cache.current.get(year) ?? null)
     if (cache.current.has(year)) return () => controller.abort()
     void loadRiskV4(year, controller.signal)
@@ -715,7 +729,7 @@ export function RiskV4({
     return () => controller.abort()
   }, [showScars, scars, scarAttempt])
   const yearControl = (
-    <section className="control-group">
+    <section className="control-group risk-year-control">
       <label className="control-label" htmlFor="risk-year">
         Ano do risco
       </label>
@@ -756,11 +770,11 @@ export function RiskV4({
   const active = product.manifest.models.find((item) => item.id === model)!
   return (
     <>
-      {yearControl}
-      <div className="map-controls risk-v4-controls">
-        <section className="control-group">
-          <span className="control-label">Modelo de risco · {year}</span>
-          <div className="layer-selector">
+      <div className="risk-v4-toolbar" aria-label="Configuração do mapa de risco">
+        {yearControl}
+        <section className="control-group risk-model-control">
+          <span className="control-label">Modelo de risco</span>
+          <div className="layer-selector" role="group" aria-label="Modelo de risco">
             {product.manifest.models.map((item) => (
               <button
                 type="button"
@@ -773,36 +787,30 @@ export function RiskV4({
               </button>
             ))}
           </div>
-          <small>MapBiomas Fogo · cenário AB30C · clima suavizado</small>
         </section>
         <section className="control-group risk-scar-control">
-          <span className="control-label">Observações históricas</span>
+          <span className="control-label">Camadas observadas</span>
           <label>
             <input
               type="checkbox"
               checked={showScars}
               onChange={(event) => setShowScars(event.target.checked)}
             />
-            <i className="scar-swatch risk-scar-swatch" />
-            Cicatrizes observadas · 2025
+            <i className="scar-swatch risk-scar-swatch" aria-hidden="true" />
+            Cicatrizes · 2025
           </label>
-          <small>
-            {year === 2026
-              ? 'Inventário anterior à previsão de 2026; não há cicatrizes observadas de 2026 nesta entrega.'
-              : 'Inventário de 2025: pixels classificados, não uma contagem de incêndios confirmados.'}
-          </small>
           {scarError && (
-            <div role="alert">
+            <div className="overlay-error" role="alert">
               {scarError}{' '}
-              <button
-                type="button"
-                onClick={() => setScarAttempt((v) => v + 1)}
-              >
+              <button type="button" onClick={() => setScarAttempt((v) => v + 1)}>
                 Tentar novamente
               </button>
             </div>
           )}
         </section>
+        <span className="risk-toolbar-context">
+          AB30C · MapBiomas Fogo · clima suavizado
+        </span>
       </div>
       {showScars && year !== 2025 && (
         <p className="temporal-warning" role="status">
@@ -811,58 +819,77 @@ export function RiskV4({
           2026.{!scars && !scarError ? ' Carregando inventário…' : ''}
         </p>
       )}
-      <section className="map-workspace risk-v4-workspace">
-        <div className="map-section">
+      <section
+        className={`map-workspace risk-v4-workspace${selection && detailsOpen ? ' has-details' : ''}`}
+      >
+        <div className="map-section risk-map-section">
           <RiskMap
             key={year}
             product={product}
             model={model}
             selected={selection}
-            onSelect={setSelection}
+            onSelect={(next) => {
+              setSelection(next)
+              if (next) setDetailsOpen(true)
+            }}
             scars={scars}
             showScars={showScars}
           />
+          {selection && !detailsOpen && (
+            <button
+              type="button"
+              className="risk-details-reopen"
+              aria-controls="risk-cell-details"
+              aria-expanded={false}
+              onClick={() => setDetailsOpen(true)}
+            >
+              Ver detalhes do local selecionado
+            </button>
+          )}
         </div>
-        <CellPanel
-          product={product}
-          model={model}
-          selection={selection}
-          onClear={() => setSelection(null)}
-        />
+        {selection && detailsOpen && (
+          <CellPanel
+            product={product}
+            model={model}
+            selection={selection}
+            onClear={() => {
+              setSelection(null)
+              setDetailsOpen(false)
+            }}
+            onClose={() => setDetailsOpen(false)}
+          />
+        )}
       </section>
       <Evaluation product={product} model={model} />
-      <section className="scientific-product-note">
-        <div>
+      <section className="risk-science-summary" aria-label="Contexto científico">
+        <div className="risk-science-intro">
           <span className="eyebrow">Mapas finais do professor · v4</span>
-          <strong>Risco anual experimental — {year}</strong>
-        </div>
-        <div>
+          <strong>Risco anual experimental · {year}</strong>
           <p>
-            {active.label} · treino de{' '}
-            {product.manifest.training.years.join('–')} · clima de{' '}
-            {product.manifest.training.climate_year} e histórico anteriores a{' '}
-            {year}. O mapa mostra o índice percentil recebido, em classes fixas.{' '}
-            {active.value_label} aparece separadamente no clique. Não é uma
-            medição de fogo nem previsão operacional.
+            {active.label} · treino {product.manifest.training.years.join('–')} ·
+            clima de {product.manifest.training.climate_year}. O mapa apresenta
+            classes do índice percentil recebido; não mede incêndios e não
+            constitui previsão operacional.
           </p>
-          <details className="scientific-note-details">
-            <summary>Dados e preparação do mapa</summary>
-            <p>
-              As previsões foram importadas dos GeoTIFFs finais sem novo treino,
-              previsão, ranking ou calibração. Random Forest tem calibração
-              temporal fornecida pelo professor; XGBoost tem correção de
-              amostragem e não é calibrado. São{' '}
-              {decimal(product.manifest.counts.source_pixels, 0)} pixels válidos
-              de aproximadamente 30 m. No mapa afastado,{' '}
-              {decimal(product.manifest.counts.features, 0)} grupos de 5 km
-              mostram médias e proporções.{' '}
-              {product.rasterBase === null
-                ? 'Esta publicação contém somente os grupos de 5 km; os pixels de 30 m ainda não estão disponíveis.'
-                : 'Ao aproximar, setores raster são carregados progressivamente; o clique sempre consulta o pixel original.'}{' '}
-              A aba Clima permanece em 2025.
-            </p>
-          </details>
         </div>
+        <details className="risk-methodology">
+          <summary>Dados e preparação do mapa</summary>
+          <p>
+            As previsões foram importadas dos GeoTIFFs finais sem novo treino,
+            previsão, ranking ou calibração. Random Forest tem calibração
+            temporal fornecida pelo professor; XGBoost tem correção de
+            amostragem e não é calibrado. São{' '}
+            {decimal(product.manifest.counts.source_pixels, 0)} pixels válidos
+            de aproximadamente 30 m. No mapa afastado,{' '}
+            {decimal(product.manifest.counts.features, 0)} grupos de 5 km
+            mostram médias e proporções.{' '}
+            {product.rasterBase === null
+              ? 'Esta publicação contém somente os grupos de 5 km; os pixels de 30 m ainda não estão disponíveis.'
+              : 'Ao aproximar, setores raster são carregados progressivamente; o clique sempre consulta o pixel original.'}{' '}
+            A aba Clima permanece em 2025. Os percentis representam posição no
+            ranking estadual, não probabilidade de incêndio.
+          </p>
+        </details>
       </section>
     </>
   )
