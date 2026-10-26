@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Map as MapLibreMap,
   NavigationControl,
@@ -685,6 +685,11 @@ export function RiskV4({
   const [model, setModel] = useState<RiskV4Model>('random_forest')
   const [selection, setSelection] = useState<RiskV4Selection | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
+  // Callback estável: não reinicializa o mapa a cada seleção.
+  const handleMapSelection = useCallback((next: RiskV4Selection | null) => {
+    setSelection(next)
+    if (next) setDetailsOpen(true)
+  }, [])
   const [showScars, setShowScars] = useState(false)
   const [scars, setScars] = useState<ScarCollection | null>(null)
   const [scarError, setScarError] = useState<string | null>(null)
@@ -828,10 +833,7 @@ export function RiskV4({
             product={product}
             model={model}
             selected={selection}
-            onSelect={(next) => {
-              setSelection(next)
-              if (next) setDetailsOpen(true)
-            }}
+            onSelect={handleMapSelection}
             scars={scars}
             showScars={showScars}
           />
@@ -839,8 +841,7 @@ export function RiskV4({
             <button
               type="button"
               className="risk-details-reopen"
-              aria-controls="risk-cell-details"
-              aria-expanded={false}
+              aria-label="Abrir painel de detalhes do local selecionado"
               onClick={() => setDetailsOpen(true)}
             >
               Ver detalhes do local selecionado
