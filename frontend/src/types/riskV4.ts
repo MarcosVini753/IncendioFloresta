@@ -8,17 +8,17 @@ export const RISK_V4_CLASSES = [
     label: 'Muito baixo',
     lower: 0,
     upper: 50,
-    color: '#1a9850',
+    color: '#238677',
   },
-  { id: 'low', label: 'Baixo', lower: 50, upper: 70, color: '#91cf60' },
-  { id: 'moderate', label: 'Moderado', lower: 70, upper: 90, color: '#fee08b' },
-  { id: 'high', label: 'Alto', lower: 90, upper: 95, color: '#fc8d59' },
+  { id: 'low', label: 'Baixo', lower: 50, upper: 70, color: '#8cc89a' },
+  { id: 'moderate', label: 'Moderado', lower: 70, upper: 90, color: '#efd47b' },
+  { id: 'high', label: 'Alto', lower: 90, upper: 95, color: '#e9a066' },
   {
     id: 'very_high',
     label: 'Muito alto',
     lower: 95,
     upper: 100,
-    color: '#d73027',
+    color: '#cb5c52',
   },
 ] as const
 
