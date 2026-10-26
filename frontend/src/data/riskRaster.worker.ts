@@ -5,12 +5,12 @@ import {
   type GeoTIFFImage,
 } from 'geotiff'
 import {
-  RISK_V4_CLASSES,
   type RiskV4Index,
   type RiskV4Model,
   type RiskV4Pixel,
   type RiskV4Sector,
 } from '../types/riskV4'
+import { RISK_DISPLAY_CLASSES } from './riskDisplayPalette'
 
 // O limite também vale para os subpedidos HTTP que o leitor TIFF faz ao
 // consultar diretórios e bandas. Liberar a vaga só depois de consumir o corpo.
@@ -89,7 +89,7 @@ let cacheBytes = 0
 const CACHE_LIMIT = 128 * 1024 * 1024
 const active = new Map<number, AbortController>()
 const queue: Job[] = []
-const colors = RISK_V4_CLASSES.map((category) =>
+const colors = RISK_DISPLAY_CLASSES.map((category) =>
   category.color.match(/\w{2}/g)!.map((value) => parseInt(value, 16)),
 )
 
