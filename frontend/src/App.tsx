@@ -137,7 +137,7 @@ export default function App() {
                 selectedDate={climateDate}
                 onChange={setClimateDate}
               />
-              <section className="map-workspace climate-workspace">
+              <section className={`map-workspace climate-workspace${selectedClimateCell ? ' has-details' : ''}`}>
                 <ClimateMap
                   product={climate}
                   variable={climateVariable}
@@ -146,13 +146,15 @@ export default function App() {
                   selectedCellId={selectedClimateCell}
                   onCellSelect={setSelectedClimateCell}
                 />
-                <ClimateDetails
-                  product={climate}
-                  variable={climateVariable}
-                  date={climateDate}
-                  cellId={selectedClimateCell}
-                  onClear={() => setSelectedClimateCell(null)}
-                />
+                {selectedClimateCell && (
+                  <ClimateDetails
+                    product={climate}
+                    variable={climateVariable}
+                    date={climateDate}
+                    cellId={selectedClimateCell}
+                    onClear={() => setSelectedClimateCell(null)}
+                  />
+                )}
               </section>
               <ClimateSeries
                 product={climate}
