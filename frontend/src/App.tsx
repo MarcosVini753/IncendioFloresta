@@ -50,17 +50,15 @@ export default function App() {
     <main className="app-shell">
       <header className="app-header">
         <div>
-          <span className="eyebrow">Produto científico experimental</span>
-          <h1>Monitoramento de Incêndios Florestais — Acre</h1>
+          <span className="eyebrow">Análise geoespacial · Acre</span>
+          <h1>Mapas de Incêndios Florestais</h1>
           <p>
-            Risco anual da entrega v4 para 2025 e 2026 e observações históricas
-            de 2025.
+            Risco anual experimental para 2025 e 2026 e dados históricos de
+            clima e cicatrizes de 2025.
           </p>
         </div>
         <span className="prototype-badge">
-          {section === 'climate'
-            ? 'Clima histórico · cicatrizes mapeadas · 2025'
-            : `Risco anual experimental — ${riskYear}`}
+          Produto científico experimental
         </span>
       </header>
       <nav className="product-tabs" aria-label="Seção do mapa">
@@ -70,9 +68,9 @@ export default function App() {
           aria-pressed={section === 'risk'}
           onClick={() => setSection('risk')}
         >
-          <span className="product-tab-title">Risco · {riskYear}</span>
+          <span className="product-tab-title">Risco anual <span className="tab-year">{riskYear}</span></span>
           <span className="product-tab-description">
-            Índice percentil · modelos da v4 · clima de {riskYear - 1}
+            Random Forest e XGBoost · índice percentil
           </span>
         </button>
         <button
@@ -81,9 +79,9 @@ export default function App() {
           aria-pressed={section === 'climate'}
           onClick={() => setSection('climate')}
         >
-          <span className="product-tab-title">Clima e cicatrizes · 2025</span>
+          <span className="product-tab-title">Clima e cicatrizes <span className="tab-year">2025</span></span>
           <span className="product-tab-description">
-            Dados observados · calendário diário
+            Observações históricas · calendário diário
           </span>
         </button>
       </nav>
