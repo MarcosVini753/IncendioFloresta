@@ -10,6 +10,7 @@ import {
 import type { FeatureCollection } from 'geojson'
 import { loadRiskV4 } from '../../data/riskV4'
 import { RISK_DISPLAY_CLASSES } from '../../data/riskDisplayPalette'
+import { comparisonColorExpression, formatRankingDifference, rankingDifference } from '../../data/riskComparison'
 import { RiskRasterClient } from '../../data/riskRaster'
 import { loadScarProduct } from '../../data/climate'
 import {
@@ -42,6 +43,7 @@ function RiskMap({
   highlightClass,
   onHighlightClassChange,
   focusPoint,
+  comparisonMode,
 }: {
   product: RiskV4Product
   model: RiskV4Model
@@ -52,6 +54,7 @@ function RiskMap({
   highlightClass: string | null
   onHighlightClassChange: (id: string | null) => void
   focusPoint: [number, number] | null
+  comparisonMode: boolean
 }) {
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
@@ -60,12 +63,14 @@ function RiskMap({
     modelRef = useRef(model),
     scarsRef = useRef(scars),
     showScarsRef = useRef(showScars),
-    highlightRef = useRef(highlightClass)
+    highlightRef = useRef(highlightClass),
+    comparisonRef = useRef(comparisonMode)
   selectedRef.current = selected
   modelRef.current = model
   scarsRef.current = scars
   showScarsRef.current = showScars
   highlightRef.current = highlightClass
+  comparisonRef.current = comparisonMode
   const [mapReady, setMapReady] = useState(false)
   const [copyState, setCopyState] = useState('')
   const [zoom, setZoom] = useState(5)
@@ -109,7 +114,7 @@ function RiskMap({
     const tiles = (id: RiskV4Model) => [`${protocol}://${id}/{z}/{x}/{y}`]
     const update = () => {
       if (!map.getSource('risk-v4-grid')) return
-      const native = client !== null && map.getZoom() >= 8.5
+      const native = client !== null && map.getZoom() >= 8.5 && !comparisonRef.current
       for (const layer of ['risk-v4-fill', 'risk-v4-lines'])
         map.setLayoutProperty(layer, 'visibility', native ? 'none' : 'visible')
       if (client)
@@ -119,20 +124,22 @@ function RiskMap({
             'visibility',
             native && id === modelRef.current ? 'visible' : 'none',
           )
-      map.setPaintProperty('risk-v4-fill', 'fill-color', [
-        'step',
-        ['get', `percentile_${modelRef.current}`],
-        RISK_DISPLAY_CLASSES[0].color,
-        50,
-        RISK_DISPLAY_CLASSES[1].color,
-        70,
-        RISK_DISPLAY_CLASSES[2].color,
-        90,
-        RISK_DISPLAY_CLASSES[3].color,
-        95,
-        RISK_DISPLAY_CLASSES[4].color,
-      ])
-      const spotlight = RISK_DISPLAY_CLASSES.find((item) => item.id === highlightRef.current)
+      map.setPaintProperty(
+        'risk-v4-fill',
+        'fill-color',
+        comparisonRef.current ? comparisonColorExpression as never : [
+          'step',
+          ['get', `percentile_${modelRef.current}`],
+          RISK_DISPLAY_CLASSES[0].color,
+          50, RISK_DISPLAY_CLASSES[1].color,
+          70, RISK_DISPLAY_CLASSES[2].color,
+          90, RISK_DISPLAY_CLASSES[3].color,
+          95, RISK_DISPLAY_CLASSES[4].color,
+        ],
+      )
+      const spotlight = comparisonRef.current
+        ? undefined
+        : RISK_DISPLAY_CLASSES.find((item) => item.id === highlightRef.current)
       map.setPaintProperty('risk-v4-fill', 'fill-opacity', spotlight ? [
         'case',
         ['all',
@@ -141,7 +148,7 @@ function RiskMap({
             ['get', `percentile_${modelRef.current}`], spotlight.upper],
         ],
         0.91, 0.16,
-      ] as never : 0.85)
+      ] as never : comparisonRef.current ? 0.94 : 0.85)
       const choice = selectedRef.current
       const selection =
         choice?.kind === 'pixel'
@@ -320,7 +327,7 @@ function RiskMap({
       query?.abort()
       setError(null)
       const show = (selection: RiskV4Selection) => onSelect(selection)
-      if (!client || map.getZoom() < 8.5) {
+      if (!client || map.getZoom() < 8.5 || comparisonRef.current) {
         const id = map.queryRenderedFeatures(event.point, {
           layers: ['risk-v4-fill'],
         })[0]?.properties?.id
@@ -385,7 +392,7 @@ function RiskMap({
 
   useEffect(() => {
     updateRef.current?.()
-  }, [model, selected, scars, showScars, highlightClass])
+  }, [model, selected, scars, showScars, highlightClass, comparisonMode])
   useEffect(() => {
     const map = mapRef.current
     if (!map || !focusPoint || !mapReady) return
@@ -412,6 +419,7 @@ function RiskMap({
     link.searchParams.set('lat', lat.toFixed(5))
     link.searchParams.set('zoom', map.getZoom().toFixed(2))
     link.searchParams.set('view', 'risk')
+    link.searchParams.set('mode', comparisonMode ? 'compare' : 'risk')
     try {
       await navigator.clipboard.writeText(link.toString())
       setCopyState('Link copiado')
@@ -426,11 +434,12 @@ function RiskMap({
         modelLabel={
           product.manifest.models.find((item) => item.id === model)!.label
         }
-        aggregated={product.rasterBase === null || zoom < 8.5}
+        aggregated={product.rasterBase === null || zoom < 8.5 || comparisonMode}
         rasterReduced={product.rasterBase !== null && zoom >= 8.5 && zoom < 12}
         showScars={showScars && scars !== null}
         highlightClass={highlightClass}
         onHighlightClassChange={onHighlightClassChange}
+        comparisonMode={comparisonMode}
       />
       <div className="risk-map-share">
         <button type="button" onClick={() => void shareMap()} disabled={!mapReady}>Compartilhar mapa</button>
@@ -449,6 +458,8 @@ function RiskMap({
               Tentar novamente
             </button>
           </>
+        ) : comparisonMode ? (
+          'Comparação de modelos · grupos de 5 km'
         ) : product.rasterBase === null ? (
           'Visualização agregada · grupos de 5 km'
         ) : (
@@ -470,12 +481,14 @@ function CellPanel({
   model,
   onClear,
   onClose,
+  comparisonMode,
 }: {
   selection: RiskV4Selection | null
   product: RiskV4Product
   model: RiskV4Model
   onClear: () => void
   onClose: () => void
+  comparisonMode: boolean
 }) {
   if (!selection)
     return (
@@ -495,6 +508,7 @@ function CellPanel({
     aggregate = selection.kind === 'aggregated'
   const active = product.manifest.models.find((item) => item.id === model)!
   const currentPercentile = percentile(p, model)
+  const rankDelta = rankingDifference(p)
   // Mesmos limites científicos do mapa: classificação apenas visual.
   const currentClass = RISK_DISPLAY_CLASSES.find(
     (item) => currentPercentile >= item.lower && (
@@ -514,7 +528,21 @@ function CellPanel({
           <button type="button" className="clear-selection risk-panel-close" onClick={onClose} aria-label="Fechar painel de detalhes" title="Fechar painel">×</button>
         </div>
       </div>
-      <div className="active-score">
+      {comparisonMode && (
+        <div className="risk-model-delta">
+          <span className="eyebrow">Diferença entre os modelos</span>
+          <strong>{formatRankingDifference(rankDelta)}</strong>
+          <p>
+            O valor mostra a distância entre as posições atribuídas pelos dois
+            modelos para esta área. Não mede a mudança do risco nem a chance de incêndio.
+          </p>
+          <div className="risk-delta-pair" role="group" aria-label="Posição dos dois modelos">
+            <div><span>Random Forest</span><strong>{decimal(p.percentile_random_forest)}</strong></div>
+            <div><span>XGBoost</span><strong>{decimal(p.percentile_xgboost)}</strong></div>
+          </div>
+        </div>
+      )}
+      {!comparisonMode && <div className="active-score">
         <span className="risk-score-caption">{active.label} · mapa de {product.manifest.year}</span>
         <span className="risk-score-topline">
           <strong>{decimal(currentPercentile)}</strong>
@@ -526,8 +554,8 @@ function CellPanel({
           <summary>Valor calculado pelo modelo</summary>
           <p>{active.value_label}: {pct(modelValue(p, model))}. {aggregate ? 'Média dos pixels do grupo.' : 'Valor do pixel consultado.'} Valores de modelos diferentes não devem ser comparados como probabilidades equivalentes.</p>
         </details>
-      </div>
-      <dl className="model-score-list">
+      </div>}
+      {!comparisonMode && <dl className="model-score-list">
         {product.manifest.models.map((item) => (
           <div
             key={item.id}
@@ -547,7 +575,7 @@ function CellPanel({
             </dd>
           </div>
         ))}
-      </dl>
+      </dl>}
       <details className="risk-panel-extra">
         <summary>Informações técnicas desta área</summary>
       {selection.kind === 'aggregated' && (
@@ -725,6 +753,9 @@ export function RiskV4({
     const saved = new URLSearchParams(window.location.search).get('model')
     return saved === 'xgboost' ? 'xgboost' : 'random_forest'
   })
+  const [comparisonMode, setComparisonMode] = useState(
+    () => new URLSearchParams(window.location.search).get('mode') === 'compare',
+  )
   const [selection, setSelection] = useState<RiskV4Selection | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   // Callback estável: não reinicializa o mapa a cada seleção.
@@ -863,11 +894,32 @@ export function RiskV4({
                 key={item.id}
                 className={model === item.id ? 'active' : undefined}
                 aria-pressed={model === item.id}
+                disabled={comparisonMode}
                 onClick={() => setModel(item.id)}
               >
                 {item.label}
               </button>
             ))}
+          </div>
+        </section>
+        <section className="control-group risk-compare-control">
+          <span className="control-label">Visualização</span>
+          <div className="risk-view-toggle" role="group" aria-label="Como mostrar os modelos">
+            <button
+              type="button"
+              aria-pressed={!comparisonMode}
+              className={!comparisonMode ? 'active' : undefined}
+              onClick={() => setComparisonMode(false)}
+            >Mapa de risco</button>
+            <button
+              type="button"
+              aria-pressed={comparisonMode}
+              className={comparisonMode ? 'active' : undefined}
+              onClick={() => {
+                setHighlightClass(null)
+                setComparisonMode(true)
+              }}
+            >Comparar modelos</button>
           </div>
         </section>
         <section className="control-group risk-scar-control">
@@ -935,6 +987,7 @@ export function RiskV4({
             highlightClass={highlightClass}
             onHighlightClassChange={setHighlightClass}
             focusPoint={focusPoint}
+            comparisonMode={comparisonMode}
           />
           {selection && !detailsOpen && (
             <button
@@ -952,6 +1005,7 @@ export function RiskV4({
             product={product}
             model={model}
             selection={selection}
+            comparisonMode={comparisonMode}
             onClear={() => {
               setSelection(null)
               setDetailsOpen(false)
@@ -960,15 +1014,23 @@ export function RiskV4({
           />
         )}
       </section>
+      {comparisonMode && (
+        <div className="risk-comparison-explainer">
+          <strong>Como interpretar a comparação</strong>
+          <p>Azul: XGBoost colocou a área mais acima em seu ranking. Terracota:
+          Random Forest colocou a área mais acima. Tons claros: classificações próximas.
+          A comparação usa apenas os grupos de 5 km do mesmo ano e não indica qual modelo acertou.</p>
+        </div>
+      )}
       <Evaluation product={product} model={model} />
       <section className="risk-science-summary" aria-label="Sobre este mapa">
         <div className="risk-science-intro">
           <span className="eyebrow">Sobre este mapa</span>
           <strong>O que as cores mostram?</strong>
           <p>
-            As cores comparam as áreas do Acre entre si. Os tons quentes mostram
-            áreas mais altas na classificação do modelo; os verdes, mais baixas.
-            Isso não quer dizer que um incêndio vai acontecer nesses lugares.
+            {comparisonMode
+              ? 'Nesta visualização, as cores mostram diferenças entre o ranking do Random Forest e o do XGBoost para o mesmo ano. Elas não representam probabilidades nem evolução do risco.'
+              : 'As cores comparam as áreas do Acre entre si. Os tons quentes mostram áreas mais altas na classificação do modelo; os verdes, mais baixas. Isso não quer dizer que um incêndio vai acontecer nesses lugares.'}
           </p>
         </div>
         <details className="risk-methodology">
