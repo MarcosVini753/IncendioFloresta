@@ -1,17 +1,31 @@
-// Sedes municipais para navegação (não representam limites de municípios).
-// Fonte de coordenadas: Kelvin S. do Prado et al., "Municípios Brasileiros"
-// https://github.com/kelvins/municipios-brasileiros/blob/main/csv/municipios.csv
-// Código IBGE do município, nome e coordenadas de sua sede.
-// MIT License, Copyright (c) 2016 Kelvin S. do Prado.
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the conditions of the MIT license above.
-// The software is provided "AS IS", without warranty of any kind.
-// Listagem de municípios/códigos confrontada com:
+// Dados de localização para navegação: coordenadas das sedes, não limites territoriais.
+// Origem: https://github.com/kelvins/municipios-brasileiros/blob/main/csv/municipios.csv
+// Lista de nomes e códigos confrontada com a tabela do IBGE:
 // https://www.ibge.gov.br/explica/codigos-dos-municipios.php
+/*
+MIT License
+
+Copyright (c) 2016 Kelvin S. do Prado
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 export const ACRE_MUNICIPALITY_SEATS = [
   { id: '1200013', name: "Acrelândia", latitude: -9.82581, longitude: -66.8972 },
   { id: '1200054', name: "Assis Brasil", latitude: -10.9298, longitude: -69.5738 },
