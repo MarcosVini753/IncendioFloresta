@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react'
+import { addMunicipalBoundaryLayer, setMunicipalBoundaryVisibility } from '../../data/municipalBoundaries'
 import { Map as MapLibreMap, NavigationControl, Popup, type GeoJSONSource, type MapLayerMouseEvent } from 'maplibre-gl'
 import type { ClimateProduct, ClimateVariable } from '../../types/climate'
 
@@ -9,6 +10,7 @@ interface ClimateMapProps {
   showScars: boolean
   selectedCellId: string | null
   onCellSelect: (id: string) => void
+  showMunicipalBoundaries: boolean
 }
 
 const GRID_SOURCE = 'climate-grid'
@@ -28,10 +30,12 @@ const COLORS = {
     -1, '#9ca3af', 0, '#f7f4e7', 1, '#c4e4ef', 10, '#69aed7', 30, '#3164a6', 60, '#422b7a', 170, '#261b59'],
 } as const
 
-export function ClimateMap({ product, variable, date, showScars, selectedCellId, onCellSelect }: ClimateMapProps) {
+export function ClimateMap({ product, variable, date, showScars, selectedCellId, onCellSelect, showMunicipalBoundaries }: ClimateMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const popupRef = useRef<Popup | null>(null)
+  const boundariesRef = useRef(showMunicipalBoundaries)
+  boundariesRef.current = showMunicipalBoundaries
   const currentRef = useRef({ date, variable, onCellSelect, product, showScars, selectedCellId })
   currentRef.current = { date, variable, onCellSelect, product, showScars, selectedCellId }
 
@@ -93,6 +97,11 @@ export function ClimateMap({ product, variable, date, showScars, selectedCellId,
           'circle-stroke-color': '#fff', 'circle-stroke-width': 0.7 } })
       map.addLayer({ id: 'climate-boundary-line', type: 'line', source: 'climate-boundary',
         paint: { 'line-color': '#173f32', 'line-width': 2.4 } })
+      // Mantém os limites municipais visíveis acima do clima, sem alterar seus valores.
+      // A seleção e o limite estadual continuam destacáveis.
+      addMunicipalBoundaryLayer(map, boundariesRef.current)
+      map.moveLayer(SELECTED_LINE)
+      map.moveLayer('climate-boundary-line')
 
       const [west, south, east, north] = product.manifest.bounds
       map.fitBounds([[west, south], [east, north]], { padding: 44, duration: 0 })
@@ -154,6 +163,10 @@ export function ClimateMap({ product, variable, date, showScars, selectedCellId,
     }
     popupRef.current?.remove()
   }, [date, showScars])
+
+  useEffect(() => {
+    setMunicipalBoundaryVisibility(mapRef.current, showMunicipalBoundaries)
+  }, [showMunicipalBoundaries])
 
   useEffect(() => {
     const map = mapRef.current
