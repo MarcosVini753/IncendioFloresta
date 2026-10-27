@@ -256,3 +256,439 @@ body { background: #f3f5f0; }
 @media(max-width:580px) {
   .risk-municipality-control { min-width: 0; max-width: none; width: 100%; }
 }
+
+
+/*
+ * Visual direction: institutional atlas, October 2026.
+ * The large map and permanently visible analysis column are the product's
+ * primary surfaces. Advanced research controls remain optional.
+ */
+:root {
+  --atlas-bg: #eff3ef;
+  --atlas-forest: #183e32;
+  --atlas-forest-dark: #102e28;
+  --atlas-forest-light: #28654e;
+  --atlas-line: #d7e2da;
+  --atlas-muted: #536b5c;
+}
+body { background: var(--atlas-bg); }
+.app-shell { width: min(1640px,100%); max-width:1640px; padding: clamp(14px,2.1vw,30px); }
+.app-header {
+  position: relative;
+  min-height: 156px;
+  padding: clamp(23px,3vw,37px) clamp(23px,3vw,42px) 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  margin: 0;
+  border: 1px solid #1c503f;
+  border-radius: 16px;
+  box-shadow: 0 9px 25px rgb(22 56 40 / 13%);
+  background: radial-gradient(ellipse at 90% -20%, #326e54 0%, transparent 48%),
+              linear-gradient(115deg,#102f29 0%,#194938 68%,#27624c 100%);
+  overflow: hidden;
+}
+.app-header::before { display: none; }
+.app-header::after {
+  content: "";
+  display: block;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+  right: -74px;
+  top: -222px;
+  width: 520px;
+  height: 520px;
+  border: 1px solid rgb(218 243 221 / 9%);
+  border-radius: 50%;
+  box-shadow: 0 0 0 74px rgb(220 248 225 / 2%);
+}
+.app-brand { display: flex; align-items: center; gap: clamp(15px,2.1vw,25px); position:relative; z-index:1; min-width:0; }
+.brand-symbol {
+  width: clamp(54px,5.2vw,72px);
+  height: clamp(54px,5.2vw,72px);
+  flex: 0 0 clamp(54px,5.2vw,72px);
+  border-radius: 17px;
+  background: linear-gradient(155deg,#3d8865,#276b50);
+  border: 1px solid rgb(203 243 214 / 29%);
+  box-shadow: 0 9px 20px rgb(5 34 22 / 18%);
+}
+.app-header-copy { position: relative; z-index: 1; min-width: 0; }
+.app-header .eyebrow {
+  color:#aad9bd;
+  letter-spacing:.095em;
+  text-transform:uppercase;
+  font-size:.7rem;
+  font-weight: 740;
+}
+.app-header h1 {
+  margin: 6px 0 8px;
+  color:#fff;
+  font-size:clamp(1.75rem,2.6vw,2.75rem);
+  line-height:1.12;
+  letter-spacing:-.037em;
+  font-weight:790;
+}
+.app-header p { color:#cfdfd5; max-width:670px; font-size:.92rem; margin:0; line-height:1.5; }
+.app-header-meta { position:relative; z-index:1; display:grid; justify-items:end; align-content:center; gap:8px; margin-left:auto; flex:0 0 auto; }
+.atlas-research-status {
+  display:inline-flex;
+  align-items:center;
+  border-radius:999px;
+  border:1px solid rgb(226 249 229 / 20%);
+  background:rgb(222 248 226 / 10%);
+  color:#edf9ef;
+  font-size:.73rem;
+  font-weight:680;
+  padding:8px 12px;
+}
+.header-meta-detail { color:#b4d2be; font-size:.72rem; text-align:right; }
+.product-tabs {
+  position: relative;
+  z-index: 2;
+  display:flex;
+  gap:6px;
+  align-items:stretch;
+  width:fit-content;
+  max-width:calc(100% - 28px);
+  margin:-22px 0 15px 22px;
+  padding:6px;
+  background:#fff;
+  border:1px solid #dde7df;
+  border-radius:14px;
+  box-shadow:0 7px 22px rgb(22 52 31 / 9%);
+}
+.product-tabs button {
+  min-width:210px;
+  flex:0 1 auto;
+  display:grid;
+  gap:3px;
+  padding:11px 17px;
+  text-align:left;
+  border:1px solid transparent;
+  border-radius:9px;
+  background:transparent;
+  color:#456051;
+}
+.product-tabs button.active {
+  color:#fff;
+  background:#1b4a37;
+  border-color:#1b4a37;
+  box-shadow:0 3px 8px rgb(14 51 31 / 12%);
+}
+.product-tabs button.active .product-tab-description,
+.product-tabs button.active .tab-year { color:#cce4d3; }
+.product-tabs button:not(.active):hover { background:#eff5f0; }
+.product-tab-title { font-size:.91rem; font-weight:770; }
+.product-tab-description { font-size:.73rem; line-height:1.35; }
+
+/* Only year, model and historical layer are in the primary toolbar */
+.risk-v4-toolbar {
+  display:block;
+  padding:0;
+  margin-bottom:13px;
+  border:1px solid var(--atlas-line);
+  background:#fff;
+  border-radius:12px;
+  box-shadow:0 3px 13px rgb(35 70 45 / 5%);
+}
+.risk-toolbar-primary {
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:12px clamp(16px,2vw,27px);
+  padding:13px 18px;
+}
+.risk-toolbar-primary .control-group { display:flex; align-items:center; gap:10px; min-width:0; }
+.risk-toolbar-primary .control-label { font-size:.7rem; letter-spacing:.045em; color:#5f7565; font-weight:780; white-space:nowrap; }
+.risk-toolbar-primary .risk-year-control select { min-height:37px; }
+.risk-toolbar-primary .risk-model-control { flex-wrap:wrap; }
+.risk-toolbar-primary .layer-selector { flex:0 0 auto; }
+.risk-toolbar-primary .layer-selector button { min-height:34px; }
+.risk-toolbar-primary .risk-scar-control { margin-left:auto; flex-wrap:wrap; }
+.risk-toolbar-primary .risk-scar-control label { white-space:normal; font-size:.83rem; font-weight:650; }
+.risk-toolbar-primary .overlay-error { flex-basis:100%; margin-top:4px; }
+.risk-toolbar-tools {
+  display:block;
+  margin:0;
+  border-top:1px solid #ecf1ed;
+  color:#40634c;
+}
+.risk-toolbar-tools > summary {
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  width:fit-content;
+  min-height:38px;
+  padding:8px 18px;
+  font-size:.79rem;
+  font-weight:720;
+  list-style:revert;
+  list-style-position:inside;
+  color:#2c6246;
+}
+.risk-toolbar-tools > summary small { font-size:.72rem; color:#728575; font-weight:490; }
+.risk-toolbar-tools[open] > summary { border-bottom:1px solid #ecf1ed; width:100%; }
+.risk-toolbar-secondary {
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:16px 24px;
+  padding:15px 18px 17px;
+  background:#fcfdfb;
+}
+.risk-toolbar-secondary .risk-compare-control { display:grid; gap:6px; flex:0 1 auto; }
+.risk-toolbar-secondary .risk-municipality-control { max-width:240px; min-width:200px; }
+.risk-toolbar-secondary .risk-coordinate-panel { flex:0 1 auto; align-self:center; }
+.risk-toolbar-secondary .risk-coordinate-panel[open] { flex-basis:100%; }
+.risk-toolbar-secondary .risk-toolbar-context { flex:1 1 100%; font-size:.79rem; }
+.risk-year-note {
+  margin:-3px 2px 12px;
+  border:0;
+  border-left:3px solid #bd994e;
+  background:#f7f6ec;
+  color:#675b37;
+  border-radius:3px 7px 7px 3px;
+  padding:9px 12px;
+  font-size:.8rem;
+  line-height:1.55;
+}
+
+/* The permanent sidebar is a real grid column, not an overlay on the map. */
+.risk-v4-workspace.map-workspace,
+.risk-v4-workspace.map-workspace.has-details {
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) clamp(292px,24vw,355px);
+  align-items:stretch;
+  gap:13px;
+  position:relative;
+}
+.risk-v4-workspace .risk-map-section { min-width:0; }
+.risk-v4-workspace .map-shell {
+  height:clamp(540px,74dvh,800px);
+  min-height:540px;
+  border:1px solid #cedbd0;
+  border-radius:13px;
+  background:#e6ede7;
+  box-shadow:0 8px 25px rgb(21 51 29 / 12%);
+}
+.risk-v4-workspace .cell-details {
+  position:relative;
+  inset:auto;
+  top:auto;
+  right:auto;
+  bottom:auto;
+  width:100%;
+  min-width:0;
+  max-width:none;
+  height:clamp(540px,74dvh,800px);
+  min-height:540px;
+  max-height:none;
+  padding:19px;
+  overflow-y:auto;
+  border:1px solid #dbe5db;
+  border-radius:13px;
+  background:#fff;
+  box-shadow:0 3px 15px rgb(21 48 29 / 7%);
+  animation:none;
+}
+.risk-v4-workspace .cell-details-header {
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  margin-bottom:16px;
+}
+.risk-v4-workspace .cell-details-header h2 { color:#1c4833; font-size:1.2rem; font-weight:780; }
+.risk-v4-workspace .cell-details-actions { margin-left:auto; }
+.risk-v4-workspace .cell-details-actions .clear-selection { border-radius:7px; }
+.risk-v4-workspace .cell-details-empty { display:flex; align-items:stretch; justify-content:flex-start; }
+.risk-v4-workspace .risk-panel-placeholder { display:grid; align-content:start; gap:13px; min-height:100%; }
+.risk-v4-workspace .risk-panel-placeholder h2 { margin:0; font-size:1.26rem; letter-spacing:-.02em; color:#244b36; line-height:1.3; }
+.risk-v4-workspace .risk-panel-placeholder p { font-size:.92rem; line-height:1.65; color:#55705e; }
+.risk-panel-placeholder-guide {
+  margin-top:18px;
+  display:grid;
+  gap:10px;
+  padding:16px;
+  border:1px solid #e2ebe2;
+  border-radius:9px;
+  background:#f6f9f5;
+  font-size:.82rem;
+  line-height:1.5;
+  color:#51695a;
+}
+.risk-panel-placeholder-guide strong { font-size:.85rem; color:#2a5841; }
+.risk-panel-placeholder > small { font-size:.76rem; line-height:1.6; color:#7a887d; }
+
+/* Restores the high-contrast information panel from the reference, sans fake progress bar. */
+.risk-v4-workspace .active-score {
+  display:grid;
+  gap:9px;
+  padding:19px 17px;
+  margin-bottom:14px;
+  border:1px solid #215640;
+  border-left:0;
+  border-radius:11px;
+  background:linear-gradient(143deg,#164737,#22664a);
+  box-shadow:none;
+}
+.risk-v4-workspace .active-score span,
+.risk-v4-workspace .active-score small { color:#daecdf !important; }
+.risk-v4-workspace .active-score .risk-score-caption { font-size:.76rem !important; font-weight:680; }
+.risk-v4-workspace .active-score .risk-score-topline { gap:12px; display:flex; align-items:center; color:#fff !important; }
+.risk-v4-workspace .active-score .risk-score-topline strong { color:#fff; font-size:2.65rem; line-height:1; }
+.risk-v4-workspace .active-score .risk-score-unit { color:#d5e9dc !important; font-size:.73rem !important; }
+.risk-v4-workspace .active-score .risk-score-class {
+  display:inline-block;
+  width:fit-content;
+  border:1px solid rgb(237 255 239 / 24%);
+  background:rgb(255 255 255 / 10%);
+  padding:6px 9px;
+  border-radius:6px;
+  color:#f3fff5 !important;
+  font-size:.75rem !important;
+}
+.risk-v4-workspace .active-score .risk-score-class b { color:#fff; }
+.risk-v4-workspace .active-score small { font-size:.75rem; line-height:1.55; }
+.risk-v4-workspace .active-score .risk-score-technical { border-top:1px solid rgb(255 255 255 / 17%); padding-top:9px; }
+.risk-v4-workspace .active-score .risk-score-technical summary { color:#effaf0; font-size:.75rem; font-weight:650; }
+.risk-v4-workspace .active-score .risk-score-technical p { color:#dbecdf; font-size:.76rem; }
+.risk-v4-workspace .model-score-list { display:grid; gap:8px; margin-bottom:12px; }
+.risk-v4-workspace .model-score-list > div { border-radius:9px; background:#f5f8f5; border-color:#e1eae2; }
+.risk-v4-workspace .model-score-list > div.active { border-color:#badac3; background:#ebf5ed; }
+
+/* Quiet legend, always inside the map. Interaction stays behind the details control. */
+.risk-v4-workspace .map-legend-stack {
+  position:absolute;
+  bottom:13px;
+  left:13px;
+  width:min(232px,calc(100% - 28px));
+  gap:6px;
+}
+.risk-v4-workspace .map-legend,
+.risk-v4-workspace .scar-legend {
+  padding:12px 13px;
+  border:1px solid #e2ebe3;
+  border-radius:9px;
+  background:rgb(255 255 255 / 97%);
+  box-shadow:0 3px 13px rgb(21 45 23 / 13%);
+  backdrop-filter:none;
+}
+.risk-v4-workspace .risk-legend-swatches { margin-top:8px; border-radius:4px; }
+.risk-v4-workspace .risk-legend-swatches span { height:12px; }
+.risk-v4-workspace .risk-legend-extremes { font-size:.67rem; }
+.risk-v4-workspace .map-legend-help summary { color:#2f6449; font-size:.73rem; font-weight:700; }
+.risk-v4-workspace .scar-legend { font-size:.7rem; }
+.risk-v4-workspace .map-prototype-note {
+  top:12px; left:12px;
+  padding:8px 11px;
+  border-radius:7px;
+  font-size:.74rem;
+  color:#385b45;
+  background:rgb(255 255 255 / 96%);
+  box-shadow:0 3px 13px rgb(21 45 23 / 9%);
+}
+.risk-map-share { top:47px; left:12px; }
+.risk-map-share button { padding:7px 10px; font-size:.72rem; }
+
+/* Supporting information is kept below the map, with a tidy editorial grid. */
+.risk-evaluation { margin-top:14px; border-radius:11px; border-color:#dde6de; }
+.risk-evaluation-summary { padding:15px 19px; }
+.risk-evaluation-summary strong { font-size:.97rem; font-weight:750; }
+.risk-science-summary {
+  display:grid;
+  grid-template-columns:minmax(0,1.6fr) minmax(250px,1fr);
+  gap:24px;
+  align-items:start;
+  padding:19px 21px;
+  margin-top:11px;
+  background:#fff;
+  border:1px solid #e0e9e1;
+  border-radius:11px;
+}
+.risk-science-intro { min-width:0; }
+.risk-science-intro p { max-width:73ch; font-size:.88rem; line-height:1.65; }
+.risk-methodology {
+  width:auto;
+  max-width:none;
+  flex:auto;
+  min-width:0;
+  margin:0;
+  padding:0 0 0 20px;
+  border-top:0;
+  border-left:1px solid #e2ebe3;
+}
+.risk-methodology summary { font-size:.8rem; font-weight:740; }
+.risk-methodology p { max-width:60ch; font-size:.82rem; line-height:1.7; }
+
+/* Responsive: long-term details should not steal width from small maps. */
+@media (max-width:1060px) {
+  .app-header { padding:24px 25px 40px; }
+  .app-header-meta { justify-items:start; margin-left:0; }
+  .risk-v4-workspace.map-workspace,
+  .risk-v4-workspace.map-workspace.has-details {
+    grid-template-columns:minmax(0,1fr) 290px;
+    gap:10px;
+  }
+  .risk-toolbar-primary .risk-scar-control { margin-left:0; }
+}
+@media (max-width:860px) {
+  .app-header { flex-direction:column; align-items:flex-start; gap:13px; }
+  .app-header-meta { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+  .header-meta-detail { text-align:left; }
+  .risk-v4-workspace.map-workspace,
+  .risk-v4-workspace.map-workspace.has-details { grid-template-columns:minmax(0,1fr); }
+  .risk-v4-workspace .cell-details {
+    position:relative;
+    top:auto;right:auto;bottom:auto;
+    height:auto;min-height:0;max-height:none;
+    margin:0;overflow:visible;
+  }
+  .risk-v4-workspace .cell-details-empty { min-height:180px; }
+  .risk-v4-workspace .risk-panel-placeholder-guide { margin-top:4px; }
+  .risk-science-summary { grid-template-columns:1fr; gap:14px; }
+  .risk-methodology { border-left:0; border-top:1px solid #e2ebe3; padding:12px 0 0; }
+}
+@media (max-width:580px) {
+  .app-shell { padding:10px; }
+  .app-header { padding:19px 17px 34px; border-radius:12px; }
+  .app-brand { gap:12px; align-items:flex-start; }
+  .brand-symbol { width:46px; height:46px; flex-basis:46px; border-radius:12px; }
+  .app-header h1 { font-size:clamp(1.5rem,6.2vw,2rem); }
+  .app-header .eyebrow { font-size:.63rem; }
+  .app-header p { font-size:.78rem; }
+  .app-header-meta { gap:9px; }
+  .atlas-research-status { font-size:.68rem; padding:6px 9px; }
+  .header-meta-detail { font-size:.67rem; }
+  .product-tabs {
+    margin:-16px auto 12px;
+    width:calc(100% - 12px);
+    max-width:none;
+    padding:4px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+  .product-tabs button { min-width:0; padding:9px 8px; }
+  .product-tab-title { font-size:.78rem; }
+  .product-tab-description { font-size:.64rem; line-height:1.25; }
+  .risk-toolbar-primary { display:grid; grid-template-columns:1fr; align-items:stretch; padding:12px; gap:10px; }
+  .risk-toolbar-primary .control-group { display:flex; justify-content:space-between; gap:8px; }
+  .risk-toolbar-primary .risk-model-control { flex-wrap:wrap; }
+  .risk-toolbar-primary .control-label { font-size:.7rem; }
+  .risk-toolbar-primary .risk-scar-control { margin:0; flex-wrap:wrap; }
+  .risk-toolbar-tools > summary { flex-wrap:wrap; padding:8px 11px; gap:4px 9px; }
+  .risk-toolbar-tools > summary small { font-size:.67rem; }
+  .risk-toolbar-secondary { display:grid; grid-template-columns:1fr; gap:12px; padding:11px; }
+  .risk-toolbar-secondary .risk-municipality-control { max-width:none; min-width:0; }
+  .risk-v4-workspace .map-shell { height:64dvh; min-height:420px; border-radius:11px; }
+  .risk-v4-workspace .map-legend-stack { bottom:9px; left:9px; width:min(220px,calc(100% - 19px)); }
+  .risk-map-share { top:45px;left:9px; }
+  .risk-v4-workspace .map-prototype-note { top:9px;left:9px; max-width:calc(100% - 70px); font-size:.68rem; }
+  .risk-v4-workspace .cell-details { padding:16px; }
+  .risk-v4-workspace .cell-details-empty { min-height:160px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .risk-v4-workspace .cell-details { animation:none; }
+}
