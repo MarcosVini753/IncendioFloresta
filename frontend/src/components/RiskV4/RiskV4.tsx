@@ -22,6 +22,7 @@ import {
 import type { ScarCollection } from '../../types/climate'
 import { MapLegend } from '../Legend/MapLegend'
 import { RiskYearComparison } from './RiskYearComparison'
+import { ACRE_MUNICIPALITY_SEATS } from '../../data/acreMunicipalities'
 
 const EMPTY: FeatureCollection = { type: 'FeatureCollection', features: [] }
 const decimal = (value: number, digits = 1) =>
@@ -778,6 +779,7 @@ export function RiskV4({
   }, [])
   const [highlightClass, setHighlightClass] = useState<string | null>(null)
   const [coordinateText, setCoordinateText] = useState('')
+  const [selectedMunicipality, setSelectedMunicipality] = useState('')
   const [coordinateError, setCoordinateError] = useState('')
   const [focusPoint, setFocusPoint] = useState<[number, number] | null>(null)
   const [showScars, setShowScars] = useState(false)
@@ -852,6 +854,7 @@ export function RiskV4({
       return
     }
     setCoordinateError('')
+    setSelectedMunicipality('')
     setFocusPoint([longitude, latitude])
   }
   const yearControl = (
@@ -955,6 +958,25 @@ export function RiskV4({
             </div>
           )}
         </section>
+        <div className="risk-municipality-control">
+          <label htmlFor="risk-municipality-select">Localizar município</label>
+          <select
+            id="risk-municipality-select"
+            value={selectedMunicipality}
+            onChange={(event) => {
+              const id = event.target.value
+              setSelectedMunicipality(id)
+              const place = ACRE_MUNICIPALITY_SEATS.find((item) => item.id === id)
+              if (place) setFocusPoint([place.longitude, place.latitude])
+            }}
+          >
+            <option value="">Escolha uma cidade</option>
+            {ACRE_MUNICIPALITY_SEATS.map((item) => (
+              <option key={item.id} value={item.id}>{item.name}</option>
+            ))}
+          </select>
+          <small>Centraliza na sede do município</small>
+        </div>
         <details className="risk-coordinate-panel">
           <summary>Buscar por coordenadas</summary>
           <form className="risk-coordinate-form" onSubmit={goToCoordinates}>
