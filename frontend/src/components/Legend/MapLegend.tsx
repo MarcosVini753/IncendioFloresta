@@ -1,4 +1,5 @@
 import { RISK_DISPLAY_CLASSES } from '../../data/riskDisplayPalette'
+import { COMPARISON_STOPS } from '../../data/riskComparison'
 
 interface MapLegendProps {
   modelLabel: string
@@ -7,6 +8,7 @@ interface MapLegendProps {
   rasterReduced?: boolean
   highlightClass?: string | null
   onHighlightClassChange?: (id: string | null) => void
+  comparisonMode?: boolean
 }
 
 export function MapLegend({
@@ -16,6 +18,7 @@ export function MapLegend({
   rasterReduced = false,
   highlightClass = null,
   onHighlightClassChange,
+  comparisonMode = false,
 }: MapLegendProps) {
   const description = aggregated
     ? 'A cor representa a classificação da média dos pixels de cada área de 5 km.'
@@ -23,6 +26,38 @@ export function MapLegend({
       ? 'Ao aproximar, as cores resumem pixels menores.'
       : 'As cores representam a classificação dos pixels individuais.'
 
+  if (comparisonMode) {
+    return (
+      <div className="map-legend-stack">
+        <section className="map-legend map-legend-comparison" aria-label="Legenda da diferença entre modelos">
+          <div className="map-legend-heading">
+            <strong>Onde os modelos discordam</strong>
+            <span>Mesmo ano · áreas de 5 km</span>
+          </div>
+          <div className="risk-difference-scale" role="img" aria-label="Azul indica ranking mais alto no XGBoost; terracota indica ranking mais alto no Random Forest; centro claro indica valores próximos">
+            {COMPARISON_STOPS.map((stop) => (
+              <span key={stop.value} style={{ backgroundColor: stop.color }} />
+            ))}
+          </div>
+          <div className="risk-difference-labels">
+            <span>Mais alto no<br/>XGBoost</span>
+            <span>Valores<br/>próximos</span>
+            <span>Mais alto no<br/>Random Forest</span>
+          </div>
+          <details className="map-legend-help">
+            <summary>O que significa?</summary>
+            <p>Uma cor mais forte significa maior distância entre as posições no ranking dos modelos. Não indica o risco verdadeiro nem qual modelo é melhor.</p>
+          </details>
+        </section>
+        {showScars && (
+          <div className="scar-legend risk-scar-legend">
+            <strong><i className="scar-swatch risk-scar-swatch" aria-hidden="true" /> Áreas queimadas · 2025</strong>
+            <span>Registros históricos de áreas queimadas.</span>
+          </div>
+        )}
+      </div>
+    )
+  }
   return (
     <div className="map-legend-stack">
       <section className="map-legend" aria-label={`Legenda do risco: ${modelLabel}`}>
