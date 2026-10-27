@@ -5,8 +5,8 @@ interface MapLegendProps {
   aggregated?: boolean
   showScars?: boolean
   rasterReduced?: boolean
-  highlightClass: string | null
-  onHighlightClassChange: (id: string | null) => void
+  highlightClass?: string | null
+  onHighlightClassChange?: (id: string | null) => void
 }
 
 export function MapLegend({
@@ -14,7 +14,7 @@ export function MapLegend({
   aggregated = false,
   showScars = false,
   rasterReduced = false,
-  highlightClass,
+  highlightClass = null,
   onHighlightClassChange,
 }: MapLegendProps) {
   const description = aggregated
@@ -47,25 +47,25 @@ export function MapLegend({
               <button
                 type="button"
                 key={riskClass.id}
-                disabled={!aggregated}
+                disabled={!aggregated || !onHighlightClassChange}
                 aria-pressed={aggregated && highlightClass === riskClass.id}
-                onClick={() => onHighlightClassChange(
+                onClick={() => onHighlightClassChange?.(
                   highlightClass === riskClass.id ? null : riskClass.id,
                 )}
-                title={aggregated ? `Destacar áreas da classe ${riskClass.label}` : 'Disponível apenas na visão geral de 5 km'}
+                title={aggregated && onHighlightClassChange ? `Destacar áreas da classe ${riskClass.label}` : 'Destaque disponível no mapa anual com grupos de 5 km'}
               >
                 <i style={{ backgroundColor: riskClass.color }} aria-hidden="true" />
                 <span>{riskClass.label}</span>
                 <small>{riskClass.lower}–{riskClass.upper === 100 ? '100' : `<${riskClass.upper}`}</small>
               </button>
             ))}
-            {highlightClass && aggregated && (
+            {highlightClass && aggregated && onHighlightClassChange && (
               <button type="button" className="risk-legend-reset" onClick={() => onHighlightClassChange(null)}>
                 Mostrar todas as classes
               </button>
             )}
           </div>
-          {!aggregated && <small>O destaque por classe funciona na visão geral de 5 km.</small>}
+          {(!aggregated || !onHighlightClassChange) && <small>O destaque por classe está disponível na visão geral do mapa anual.</small>}
         </details>
       </section>
       {showScars && (
