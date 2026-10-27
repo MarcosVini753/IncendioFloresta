@@ -2477,3 +2477,20 @@ body { background: #f5f7f5; }
   .risk-evaluation-content { padding: 4px 13px 15px; }
   .risk-science-summary { padding: 15px; }
 }
+
+
+.risk-coordinate-panel { position: relative; flex: 0 0 auto; align-self: center; }
+.risk-coordinate-panel > summary {
+  cursor: pointer;
+  padding: 7px 8px;
+  color: #27583e;
+  font-size: .8rem;
+  font-weight: 650;
+}
+.risk-coordinate-panel > summary:focus-visible { outline: 3px solid #468b65; outline-offset: 2px; }
+.risk-coordinate-panel[open] {
+  flex: 1 1 100%;
+  padding-top: 9px;
+  border-top: 1px solid #e4ece6;
+}
+.risk-coordinate-panel .risk-coordinate-form { width: fit-content; max-width: 100%; }
