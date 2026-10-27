@@ -21,6 +21,7 @@ import {
 } from '../../types/riskV4'
 import type { ScarCollection } from '../../types/climate'
 import { MapLegend } from '../Legend/MapLegend'
+import { RiskYearComparison } from './RiskYearComparison'
 
 const EMPTY: FeatureCollection = { type: 'FeatureCollection', features: [] }
 const decimal = (value: number, digits = 1) =>
@@ -576,6 +577,13 @@ function CellPanel({
           </div>
         ))}
       </dl>}
+      {!comparisonMode && (
+        <RiskYearComparison
+          year={product.manifest.year}
+          selection={selection}
+          model={model}
+        />
+      )}
       <details className="risk-panel-extra">
         <summary>Informações técnicas desta área</summary>
       {selection.kind === 'aggregated' && (
