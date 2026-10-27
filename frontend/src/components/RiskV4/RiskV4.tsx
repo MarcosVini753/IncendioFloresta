@@ -23,6 +23,7 @@ import type { ScarCollection } from '../../types/climate'
 import { MapLegend } from '../Legend/MapLegend'
 import { RiskYearComparison } from './RiskYearComparison'
 import { ACRE_MUNICIPALITY_SEATS } from '../../data/acreMunicipalities'
+import { addMunicipalBoundaryLayer, setMunicipalBoundaryVisibility } from '../../data/municipalBoundaries'
 
 const EMPTY: FeatureCollection = { type: 'FeatureCollection', features: [] }
 const decimal = (value: number, digits = 1) =>
@@ -46,6 +47,7 @@ function RiskMap({
   onHighlightClassChange,
   focusPoint,
   comparisonMode,
+  showMunicipalBoundaries,
 }: {
   product: RiskV4Product
   model: RiskV4Model
@@ -57,6 +59,7 @@ function RiskMap({
   onHighlightClassChange: (id: string | null) => void
   focusPoint: [number, number] | null
   comparisonMode: boolean
+  showMunicipalBoundaries: boolean
 }) {
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
@@ -66,13 +69,15 @@ function RiskMap({
     scarsRef = useRef(scars),
     showScarsRef = useRef(showScars),
     highlightRef = useRef(highlightClass),
-    comparisonRef = useRef(comparisonMode)
+    comparisonRef = useRef(comparisonMode),
+    boundariesRef = useRef(showMunicipalBoundaries)
   selectedRef.current = selected
   modelRef.current = model
   scarsRef.current = scars
   showScarsRef.current = showScars
   highlightRef.current = highlightClass
   comparisonRef.current = comparisonMode
+  boundariesRef.current = showMunicipalBoundaries
   const [mapReady, setMapReady] = useState(false)
   const [copyState, setCopyState] = useState('')
   const [zoom, setZoom] = useState(5)
@@ -262,6 +267,8 @@ function RiskMap({
             },
           }, labelLayerId)
         }
+      // Traçados municipais sobre as cores do risco, abaixo dos rótulos do mapa-base.
+      addMunicipalBoundaryLayer(map, boundariesRef.current, labelLayerId)
       map.addLayer({
         id: 'risk-v4-outline',
         type: 'line',
@@ -400,6 +407,9 @@ function RiskMap({
   useEffect(() => {
     updateRef.current?.()
   }, [model, selected, scars, showScars, highlightClass, comparisonMode])
+  useEffect(() => {
+    setMunicipalBoundaryVisibility(mapRef.current, showMunicipalBoundaries)
+  }, [showMunicipalBoundaries])
   useEffect(() => {
     const map = mapRef.current
     if (!map || !focusPoint || !mapReady) return
@@ -762,9 +772,13 @@ function Evaluation({
 export function RiskV4({
   year,
   onYearChange,
+  showMunicipalBoundaries,
+  onMunicipalBoundariesChange,
 }: {
   year: 2025 | 2026
   onYearChange: (year: 2025 | 2026) => void
+  showMunicipalBoundaries: boolean
+  onMunicipalBoundariesChange: (next: boolean) => void
 }) {
   const cache = useRef(new Map<number, RiskV4Product>())
   const [product, setProduct] = useState<RiskV4Product | null>(null)
@@ -926,6 +940,14 @@ export function RiskV4({
               <i className="scar-swatch risk-scar-swatch" aria-hidden="true" />
               Áreas queimadas · 2025
             </label>
+            <label className="risk-boundaries-toggle">
+              <input
+                type="checkbox"
+                checked={showMunicipalBoundaries}
+                onChange={(event) => onMunicipalBoundariesChange(event.target.checked)}
+              />
+              Divisas municipais
+            </label>
             {scarError && (
               <div className="overlay-error" role="alert">
                 Não foi possível carregar as áreas queimadas.{' '}
@@ -1030,6 +1052,7 @@ export function RiskV4({
             onHighlightClassChange={setHighlightClass}
             focusPoint={focusPoint}
             comparisonMode={comparisonMode}
+            showMunicipalBoundaries={showMunicipalBoundaries}
           />
         </div>
         <CellPanel
