@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+import type { Map as MapLibreMap } from 'maplibre-gl'
 import geojsonText from '../../public/data/reference/acre-municipalities.geojson?raw'
 import { ACRE_MUNICIPALITY_SEATS } from './acreMunicipalities'
-import { MUNICIPAL_GEOJSON_URL, MUNICIPAL_LINE_ID, MUNICIPAL_SOURCE_ID } from './municipalBoundaries'
+import { addMunicipalBoundaryLayer, setMunicipalBoundaryVisibility, MUNICIPAL_GEOJSON_URL, MUNICIPAL_LINE_ID, MUNICIPAL_SOURCE_ID } from './municipalBoundaries'
 
 type Geometry = { type: 'Polygon' | 'MultiPolygon'; coordinates: unknown[] }
 type MunicipalFeature = {
@@ -45,6 +46,33 @@ describe('limites municipais de referência do Acre', () => {
       visit(feature.geometry.coordinates)
     }
     expect(count).toBeGreaterThan(300)
+  })
+
+  it('respeita a ordem visual e pode ser ocultada sem remover o mapa', () => {
+    const addSource = vi.fn()
+    const addLayer = vi.fn()
+    const setLayoutProperty = vi.fn()
+    const getLayer = vi.fn().mockReturnValue({ id: MUNICIPAL_LINE_ID })
+    const map = { addSource, addLayer, setLayoutProperty, getLayer } as unknown as MapLibreMap
+
+    addMunicipalBoundaryLayer(map, true, 'first-label')
+    expect(addSource).toHaveBeenCalledWith(MUNICIPAL_SOURCE_ID, {
+      type: 'geojson',
+      data: MUNICIPAL_GEOJSON_URL,
+    })
+    expect(addLayer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: MUNICIPAL_LINE_ID,
+        type: 'line',
+        layout: expect.objectContaining({ visibility: 'visible' }),
+      }),
+      'first-label',
+    )
+
+    setMunicipalBoundaryVisibility(map, false)
+    expect(setLayoutProperty).toHaveBeenCalledWith(MUNICIPAL_LINE_ID, 'visibility', 'none')
+    setMunicipalBoundaryVisibility(map, true)
+    expect(setLayoutProperty).toHaveBeenCalledWith(MUNICIPAL_LINE_ID, 'visibility', 'visible')
   })
 
   it('registra a URL e as IDs da camada separada do risco', () => {
