@@ -599,54 +599,58 @@ function Evaluation({
     <details className="risk-evaluation" id="risk-evaluation">
       <summary className="risk-evaluation-summary">
         <span>
-          <span className="eyebrow">Avaliações fornecidas pelo professor</span>
-          <strong>Desempenho histórico · {active.label}</strong>
+          <span className="eyebrow">Resultados da pesquisa</span>
+          <strong>Como o modelo se saiu nos anos anteriores?</strong>
         </span>
-        <span className="risk-disclosure-hint">Ver métricas e tabela</span>
+        <span className="risk-disclosure-hint">Ver análise</span>
       </summary>
       <div className="risk-evaluation-content">
-      <p>
-        {product.manifest.evaluation.target_year_available
-          ? `A avaliação de ${product.manifest.year} está incluída na tabela. `
-          : `Não há avaliação observada de ${product.manifest.year} nesta entrega. `}
-        A tabela apresenta mapas de 2023–2025, na variante AB30C com clima
-        suavizado, comparados às cicatrizes de 30 m do MapBiomas Fogo.
-      </p>
-      <div className="evaluation-table-wrapper">
-        <table className="evaluation-priority-table">
-          <caption>
-            Relatórios recebidos · território completo · nível 30m_fogo
-          </caption>
-          <thead>
-            <tr>
-              <th>Ano</th>
-              <th>Treino</th>
-              <th>Pixels positivos</th>
-              <th>AUC-ROC</th>
-              <th>AP</th>
-              <th>Captura no topo de 5%</th>
-            </tr>
-          </thead>
-          <tbody>
-            {product.manifest.evaluation.historical[model].map((row) => (
-              <tr key={row.year}>
-                <th>{row.year}</th>
-                <td>{row.training}</td>
-                <td>{decimal(row.metrics.positivos, 0)}</td>
-                <td>{decimal(row.metrics.roc_auc, 3)}</td>
-                <td>{decimal(row.metrics.pr_auc, 4)}</td>
-                <td>{pct(row.metrics['captura_5%'] * 100)}</td>
+        <p>
+          Estes números mostram o desempenho do {active.label} em mapas de
+          2023 a 2025, comparando suas estimativas com áreas identificadas
+          depois como queimadas no MapBiomas Fogo. Isso ajuda a avaliar o
+          método, mas não garante acertos no futuro.
+          {!product.manifest.evaluation.target_year_available &&
+            ` Ainda não há avaliação observada do mapa de ${product.manifest.year} nesta entrega.`}
+        </p>
+        <div className="evaluation-table-wrapper">
+          <table className="evaluation-priority-table">
+            <caption>Resultados históricos para todo o Acre</caption>
+            <thead>
+              <tr>
+                <th>Ano</th>
+                <th title="Período usado para treinar o modelo">Anos usados no treino</th>
+                <th title="Pixels identificados como queimados">Pixels queimados</th>
+                <th title="Capacidade de ordenar áreas queimadas acima de não queimadas">AUC-ROC</th>
+                <th title="Resumo da precisão ao priorizar áreas queimadas">Precisão média (AP)</th>
+                <th title="Percentual dos pixels queimados situado nos 5% do território com maior prioridade">Encontrados no topo de 5%</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="risk-evaluation-limit">
-        Métricas recebidas, não recalculadas nesta integração. A captura mede a
-        fração dos pixels positivos nas áreas priorizadas; pixels queimados não
-        equivalem a incêndios confirmados. Os relatórios usam histogramas para
-        resumir as previsões e o ranking.
-      </p>
+            </thead>
+            <tbody>
+              {product.manifest.evaluation.historical[model].map((row) => (
+                <tr key={row.year}>
+                  <th scope="row">{row.year}</th>
+                  <td>{row.training}</td>
+                  <td>{decimal(row.metrics.positivos, 0)}</td>
+                  <td>{decimal(row.metrics.roc_auc, 3)}</td>
+                  <td>{decimal(row.metrics.pr_auc, 4)}</td>
+                  <td>{pct(row.metrics['captura_5%'] * 100)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <details className="risk-metrics-explanation">
+          <summary>O que significa cada medida?</summary>
+          <p><strong>Pixels queimados:</strong> pequenas partes do território identificadas como queimadas no histórico. Não correspondem à quantidade de incêndios.</p>
+          <p><strong>AUC-ROC:</strong> mede a capacidade de posicionar áreas queimadas acima de áreas não queimadas em uma classificação. Valores mais próximos de 1 são melhores.</p>
+          <p><strong>Precisão média (AP):</strong> resume o desempenho na identificação das áreas queimadas quando elas são priorizadas. Também depende da frequência das áreas queimadas.</p>
+          <p><strong>Encontrados no topo de 5%:</strong> indica quantos dos pixels queimados estavam entre os 5% do território que o modelo colocou mais alto na classificação.</p>
+        </details>
+        <p className="risk-evaluation-limit">
+          Resultados recebidos da equipe de pesquisa, sem recálculo neste site.
+          Áreas queimadas mapeadas não são incêndios individuais confirmados.
+        </p>
       </div>
     </details>
   )
@@ -854,34 +858,44 @@ export function RiskV4({
         )}
       </section>
       <Evaluation product={product} model={model} />
-      <section className="risk-science-summary" aria-label="Contexto científico">
+      <section className="risk-science-summary" aria-label="Sobre este mapa">
         <div className="risk-science-intro">
-          <span className="eyebrow">Mapas finais do professor · v4</span>
-          <strong>Risco anual experimental · {year}</strong>
+          <span className="eyebrow">Sobre este mapa</span>
+          <strong>O que as cores mostram?</strong>
           <p>
-            {active.label} · treino {product.manifest.training.years.join('–')} ·
-            clima de {product.manifest.training.climate_year}. O mapa apresenta
-            classes do índice percentil recebido; não mede incêndios e não
-            constitui previsão operacional.
+            As cores comparam as áreas do Acre entre si. Os tons quentes mostram
+            áreas mais altas na classificação do modelo; os verdes, mais baixas.
+            Isso não quer dizer que um incêndio vai acontecer nesses lugares.
           </p>
         </div>
         <details className="risk-methodology">
-          <summary>Dados e preparação do mapa</summary>
+          <summary>Como esse mapa foi produzido?</summary>
           <p>
-            As previsões foram importadas dos GeoTIFFs finais sem novo treino,
-            previsão, ranking ou calibração. Random Forest tem calibração
-            temporal fornecida pelo professor; XGBoost tem correção de
-            amostragem e não é calibrado. São{' '}
-            {decimal(product.manifest.counts.source_pixels, 0)} pixels válidos
-            de aproximadamente 30 m. No mapa afastado,{' '}
-            {decimal(product.manifest.counts.features, 0)} grupos de 5 km
-            mostram médias e proporções.{' '}
-            {product.rasterBase === null
-              ? 'Esta publicação contém somente os grupos de 5 km; os pixels de 30 m ainda não estão disponíveis.'
-              : 'Ao aproximar, setores raster são carregados progressivamente; o clique sempre consulta o pixel original.'}{' '}
-            A aba Clima permanece em 2025. Os percentis representam posição no
-            ranking estadual, não probabilidade de incêndio.
+            Pesquisadores analisaram dados ambientais e o histórico de áreas
+            queimadas para estimar o risco anual. O modelo {active.label} usou
+            informações de {product.manifest.training.years.join(' a ')} e dados
+            climáticos de {product.manifest.training.climate_year}.
           </p>
+          <p>
+            O estudo reúne {decimal(product.manifest.counts.source_pixels, 0)}
+            pequenos pixels, de aproximadamente 30 metros. Nesta visão afastada,
+            {decimal(product.manifest.counts.features, 0)} grupos de 5 km resumem
+            os dados para facilitar a leitura.
+            {product.rasterBase === null
+              ? ' A consulta dos pixels individuais ainda não está disponível nesta publicação.'
+              : ' Ao aproximar, é possível consultar um pixel específico.'}
+          </p>
+          <details className="risk-technical-method">
+            <summary>Informações técnicas para aprofundar</summary>
+            <p>
+              Os arquivos GeoTIFF finais foram publicados sem recalcular as
+              estimativas nem os percentis. O Random Forest recebeu calibração
+              temporal da equipe científica; o XGBoost recebeu correção de
+              amostragem e não tem calibração equivalente. O cenário é AB30C,
+              com suavização climática. Este produto é experimental e não
+              oferece alertas operacionais de incêndio.
+            </p>
+          </details>
         </details>
       </section>
     </>
