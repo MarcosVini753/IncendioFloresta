@@ -692,3 +692,108 @@ body { background: var(--atlas-bg); }
 @media (prefers-reduced-motion:reduce) {
   .risk-v4-workspace .cell-details { animation:none; }
 }
+
+
+/* The historical climate view uses the same side-by-side workspace. */
+.climate-workspace.map-workspace,
+.climate-workspace.map-workspace.has-details {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) clamp(292px,24vw,355px);
+  align-items:stretch;
+  gap:13px;
+  position:relative;
+}
+.climate-workspace .map-shell {
+  height:clamp(540px,74dvh,800px);
+  min-height:540px;
+  border:1px solid #d1ddd5;
+  border-radius:13px;
+  box-shadow:0 8px 25px rgb(21 51 29 / 11%);
+}
+.climate-workspace > .cell-details {
+  position:relative;
+  inset:auto;
+  top:auto;
+  right:auto;
+  bottom:auto;
+  width:100%;
+  min-width:0;
+  max-width:none;
+  height:clamp(540px,74dvh,800px);
+  min-height:540px;
+  max-height:none;
+  overflow-y:auto;
+  margin:0;
+  padding:19px;
+  border:1px solid #dbe5db;
+  border-radius:13px;
+  background:#fff;
+  box-shadow:0 3px 15px rgb(21 48 29 / 7%);
+  animation:none;
+}
+.climate-workspace > .cell-details.cell-details-empty { display:flex; align-items:flex-start; justify-content:flex-start; }
+.climate-workspace .risk-panel-placeholder { display:grid; align-content:start; gap:13px; min-height:100%; }
+.climate-workspace .risk-panel-placeholder h2 { margin:0; font-size:1.26rem; line-height:1.3; color:#244b36; }
+.climate-workspace .risk-panel-placeholder p { color:#55705e; font-size:.92rem; line-height:1.65; }
+.climate-workspace .risk-panel-placeholder-guide {
+  margin-top:18px;
+  padding:16px;
+  border:1px solid #e2ebe2;
+  border-radius:9px;
+  display:grid;
+  gap:10px;
+  background:#f6f9f5;
+  color:#51695a;
+  font-size:.82rem;
+  line-height:1.5;
+}
+.climate-workspace .risk-panel-placeholder-guide strong { color:#2a5841; font-size:.85rem; }
+.climate-workspace .risk-panel-placeholder small { color:#7a887d; font-size:.76rem; line-height:1.6; }
+.climate-workspace .active-score {
+  border-radius:11px;
+  border:1px solid #215640;
+  background:linear-gradient(143deg,#164737,#22664a);
+  padding:18px;
+}
+.climate-workspace .active-score :is(span,strong,small) { color:#f3fff6; }
+.climate-workspace .map-legend-stack { left:13px; bottom:13px; width:min(232px,calc(100% - 28px)); }
+.climate-workspace .map-legend,
+.climate-workspace .scar-legend {
+  border:1px solid #e2ebe3;
+  border-radius:9px;
+  background:rgb(255 255 255 / 97%);
+  box-shadow:0 3px 13px rgb(21 45 23 / 13%);
+  backdrop-filter:none;
+}
+.climate-workspace .map-prototype-note {
+  top:12px;left:12px;
+  padding:8px 11px;
+  font-size:.72rem;
+  border-radius:7px;
+  background:rgb(255 255 255 / 96%);
+}
+@media (max-width:1060px) {
+  .climate-workspace.map-workspace,
+  .climate-workspace.map-workspace.has-details {
+    grid-template-columns:minmax(0,1fr) 290px;
+    gap:10px;
+  }
+}
+@media (max-width:860px) {
+  .climate-workspace.map-workspace,
+  .climate-workspace.map-workspace.has-details { grid-template-columns:minmax(0,1fr); }
+  .climate-workspace > .cell-details {
+    position:relative;
+    top:auto;right:auto;bottom:auto;
+    height:auto;min-height:0;max-height:none;
+    margin:0;overflow:visible;
+  }
+  .climate-workspace > .cell-details.cell-details-empty { min-height:160px; }
+  .climate-workspace .risk-panel-placeholder-guide { margin-top:4px; }
+}
+@media (max-width:580px) {
+  .climate-workspace .map-shell { min-height:420px; height:64dvh; border-radius:11px; }
+  .climate-workspace > .cell-details { padding:16px; }
+  .climate-workspace .map-legend-stack { left:9px;bottom:9px;width:min(220px,calc(100% - 19px)); }
+  .climate-workspace .map-prototype-note { left:9px;top:9px; }
+}
