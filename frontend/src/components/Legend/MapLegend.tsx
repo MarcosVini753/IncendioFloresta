@@ -5,6 +5,8 @@ interface MapLegendProps {
   aggregated?: boolean
   showScars?: boolean
   rasterReduced?: boolean
+  highlightClass: string | null
+  onHighlightClassChange: (id: string | null) => void
 }
 
 export function MapLegend({
@@ -12,51 +14,64 @@ export function MapLegend({
   aggregated = false,
   showScars = false,
   rasterReduced = false,
+  highlightClass,
+  onHighlightClassChange,
 }: MapLegendProps) {
-  const interpretation = aggregated
-    ? 'Cada grupo de 5 km recebe a classe da média dos percentis dos seus pixels válidos.'
+  const description = aggregated
+    ? 'A cor representa a classificação da média dos pixels de cada área de 5 km.'
     : rasterReduced
-      ? 'A cor representa a média dos percentis na versão reduzida do raster.'
-      : 'A cor representa o percentil do pixel científico original.'
+      ? 'Ao aproximar, as cores resumem pixels menores.'
+      : 'As cores representam a classificação dos pixels individuais.'
 
   return (
     <div className="map-legend-stack">
-      <section className="map-legend" aria-label={`Legenda de índice percentil: ${modelLabel}`}>
+      <section className="map-legend" aria-label={`Legenda do risco: ${modelLabel}`}>
         <div className="map-legend-heading">
-          <strong>Índice percentil</strong>
+          <strong>Risco relativo</strong>
           <span>{modelLabel}</span>
         </div>
-        <div className="risk-legend-swatches" role="img" aria-label="Cinco classes de índice percentil: muito baixo, baixo, moderado, alto e muito alto">
+        <div className="risk-legend-swatches" aria-hidden="true">
           {RISK_DISPLAY_CLASSES.map((riskClass) => (
-            <span
-              key={riskClass.id}
-              style={{ backgroundColor: riskClass.color }}
-              title={`${riskClass.label}: ${riskClass.lower} a ${riskClass.upper}`}
-            />
+            <span key={riskClass.id} style={{ backgroundColor: riskClass.color }} />
           ))}
         </div>
         <div className="risk-legend-extremes">
-          <span>Menor índice</span>
-          <span>Maior índice</span>
+          <span>Menor posição</span>
+          <span>Maior posição</span>
         </div>
         <details className="map-legend-help">
-          <summary>Entenda as classes</summary>
-          <p>{interpretation}</p>
-          <ul>
+          <summary>Entenda as cores</summary>
+          <p>{description} Os valores indicam posição no ranking, não a chance de um incêndio.</p>
+          <div className="risk-legend-filter" role="group" aria-label="Destacar uma classe de risco">
             {RISK_DISPLAY_CLASSES.map((riskClass) => (
-              <li key={riskClass.id}>
+              <button
+                type="button"
+                key={riskClass.id}
+                disabled={!aggregated}
+                aria-pressed={aggregated && highlightClass === riskClass.id}
+                onClick={() => onHighlightClassChange(
+                  highlightClass === riskClass.id ? null : riskClass.id,
+                )}
+                title={aggregated ? `Destacar áreas da classe ${riskClass.label}` : 'Disponível apenas na visão geral de 5 km'}
+              >
                 <i style={{ backgroundColor: riskClass.color }} aria-hidden="true" />
-                <span>{riskClass.label}: {riskClass.lower}–{riskClass.upper === 100 ? '100' : `<${riskClass.upper}`}</span>
-              </li>
+                <span>{riskClass.label}</span>
+                <small>{riskClass.lower}–{riskClass.upper === 100 ? '100' : `<${riskClass.upper}`}</small>
+              </button>
             ))}
-          </ul>
-          <p>Percentil é posição no ranking estadual, não probabilidade de incêndio.</p>
+            {highlightClass && aggregated && (
+              <button type="button" className="risk-legend-reset" onClick={() => onHighlightClassChange(null)}>
+                Mostrar todas as classes
+              </button>
+            )}
+          </div>
+          {!aggregated && <small>O destaque por classe funciona na visão geral de 5 km.</small>}
         </details>
       </section>
       {showScars && (
         <div className="scar-legend risk-scar-legend">
-          <strong><i className="scar-swatch risk-scar-swatch" aria-hidden="true" /> Cicatrizes · 2025</strong>
-          <span>Observações históricas, não incêndios confirmados.</span>
+          <strong><i className="scar-swatch risk-scar-swatch" aria-hidden="true" /> Áreas queimadas · 2025</strong>
+          <span>Marcas no mapa obtidas de um inventário histórico, não contagem de incêndios.</span>
         </div>
       )}
     </div>
