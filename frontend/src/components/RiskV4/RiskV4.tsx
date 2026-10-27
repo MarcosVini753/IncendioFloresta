@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import {
   Map as MapLibreMap,
   NavigationControl,
@@ -787,10 +787,12 @@ export function RiskV4({
       })
     return () => controller.abort()
   }, [showScars, scars, scarAttempt])
-  function goToCoordinates(event: React.FormEvent<HTMLFormElement>) {
+  function goToCoordinates(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const pieces = coordinateText.trim().split(/[,;]/).map((value) => value.trim())
-    if (pieces.length !== 2 || pieces.some((value) => !/^-?\\d+(\\.\\d+)?$/.test(value))) {
+    if (pieces.length !== 2 || pieces.some(
+      (value) => value === '' || !Number.isFinite(Number(value)),
+    )) {
       setCoordinateError('Digite latitude e longitude. Exemplo: -9.97, -67.81')
       return
     }
