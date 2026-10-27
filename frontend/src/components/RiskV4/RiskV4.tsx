@@ -890,19 +890,22 @@ export function RiskV4({
             </div>
           )}
         </section>
-        <form className="risk-coordinate-form" onSubmit={goToCoordinates}>
-          <label htmlFor="risk-coordinate-search">Encontrar um ponto</label>
-          <input
-            id="risk-coordinate-search"
-            type="text"
-            value={coordinateText}
-            onChange={(event) => setCoordinateText(event.target.value)}
-            placeholder="-9.97, -67.81"
-            aria-describedby={coordinateError ? 'risk-coordinate-error' : undefined}
-          />
-          <button type="submit">Localizar</button>
-          {coordinateError && <small id="risk-coordinate-error" role="alert">{coordinateError}</small>}
-        </form>
+        <details className="risk-coordinate-panel">
+          <summary>Buscar por coordenadas</summary>
+          <form className="risk-coordinate-form" onSubmit={goToCoordinates}>
+            <label htmlFor="risk-coordinate-search">Latitude, longitude</label>
+            <input
+              id="risk-coordinate-search"
+              type="text"
+              value={coordinateText}
+              onChange={(event) => setCoordinateText(event.target.value)}
+              placeholder="-9.97, -67.81"
+              aria-describedby={coordinateError ? 'risk-coordinate-error' : undefined}
+            />
+            <button type="submit">Localizar</button>
+            {coordinateError && <small id="risk-coordinate-error" role="alert">{coordinateError}</small>}
+          </form>
+        </details>
         <details className="risk-toolbar-context">
           <summary>Sobre os dados</summary>
           <p>O mapa usa o histórico de áreas queimadas do MapBiomas Fogo e dados ambientais para estimar o risco anual. São resultados de pesquisa, não registros de incêndios em andamento.</p>
