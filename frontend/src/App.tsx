@@ -12,7 +12,9 @@ function formatPtDate(value: string) {
 }
 
 export default function App() {
-  const [riskYear, setRiskYear] = useState<2025 | 2026>(2026)
+  const [riskYear, setRiskYear] = useState<2025 | 2026>(() =>
+    new URLSearchParams(window.location.search).get('year') === '2025' ? 2025 : 2026
+  )
   const [section, setSection] = useState<'risk' | 'climate'>('risk')
   const [climate, setClimate] = useState<ClimateProduct | null>(null)
   const [climateError, setClimateError] = useState<string | null>(null)
