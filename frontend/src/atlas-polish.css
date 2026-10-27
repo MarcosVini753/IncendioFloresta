@@ -1,0 +1,224 @@
+/* Atlas visual refresh – compact, legible, editorial, without decorative UI. */
+:root {
+  --atlas-forest: #173d32;
+  --atlas-ink: #192d26;
+  --atlas-accent: #aa6a3f;
+  --atlas-border: #d9e4db;
+  --atlas-muted: #52685a;
+  --atlas-surface: #ffffff;
+}
+body { background: #f3f5f0; }
+.app-shell { max-width: 1580px; padding-top: 24px; }
+.app-header {
+  position: relative;
+  padding: clamp(23px,2.2vw,32px) clamp(24px,3vw,43px);
+  overflow: hidden;
+  background: var(--atlas-forest);
+  border: 1px solid #274d3a;
+  border-bottom: 0;
+  box-shadow: 0 6px 18px rgb(20 45 30 / 8%);
+  border-radius: 12px 12px 0 0;
+  margin-bottom: 0;
+}
+.app-header::before {
+  content: "";
+  display: block;
+  height: 4px;
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  background: linear-gradient(90deg,#b87a47 0 21%,#7cae85 21% 37%,transparent 37%);
+}
+.app-header::after { display: none; }
+.app-header .eyebrow {
+  color: #b7d0bd;
+  font-size: .73rem;
+  letter-spacing: .095em;
+  font-weight: 700;
+}
+.app-header h1 {
+  margin: 8px 0;
+  font-size: clamp(1.8rem,2.55vw,2.65rem);
+  font-weight: 770;
+  line-height: 1.15;
+}
+.app-header p { font-size: .95rem; line-height: 1.5; max-width: 790px; }
+.product-tabs {
+  margin: 0 0 19px;
+  width: 100%;
+  max-width: 100%;
+  justify-content: flex-start;
+  background: #fff;
+  border-radius: 0 0 12px 12px;
+  border-top: 0;
+  border-color: #dae5dd;
+  gap: 5px;
+  padding: 8px 12px;
+}
+.product-tabs button {
+  flex: 0 1 auto;
+  min-width: min(240px,48%);
+  padding: 10px 17px;
+  border: 1px solid transparent;
+  text-align: left;
+}
+.product-tabs button:not(.active):hover { background: #f1f5f0; }
+.product-tabs button.active { background: #e8f1e9; border-color: #cfe1d3; color: #204635; }
+.product-tabs button.active .product-tab-description,
+.product-tabs button.active .tab-year { color: #496b56; }
+.risk-v4-toolbar {
+  align-items: center;
+  row-gap: 12px;
+  box-shadow: 0 2px 8px rgb(20 45 28 / 4%);
+  border-radius: 11px;
+  margin-bottom: 12px;
+  padding: 12px 16px;
+}
+.risk-v4-toolbar .risk-model-control:has(button:disabled) { opacity: .5; }
+.risk-compare-control { display: flex; flex-wrap: wrap; gap: 9px; align-items: center; }
+.risk-view-toggle {
+  display: inline-flex;
+  gap: 3px;
+  border: 1px solid #d7e3da;
+  border-radius: 8px;
+  padding: 3px;
+  background: #f2f5f0;
+}
+.risk-view-toggle button {
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 8px 12px;
+  color: #455b4f;
+  font-size: .8rem;
+  font-weight: 700;
+  min-height: 35px;
+}
+.risk-view-toggle button:hover:not(.active) { background: #e5ece5; }
+.risk-view-toggle button.active {
+  background: #fff;
+  box-shadow: 0 1px 4px rgb(24 45 31 / 12%);
+  color: #204735;
+}
+.risk-view-toggle button.active:last-child {
+  background: #7b5139;
+  color: #fff;
+}
+.risk-toolbar-context, .risk-coordinate-panel { color: var(--atlas-muted); }
+.risk-v4-workspace .map-shell {
+  background: #e9efeb;
+  border: 1px solid #d1ddd4;
+  box-shadow: 0 7px 26px rgb(37 63 47 / 11%);
+}
+.risk-v4-workspace .map-legend { padding: 14px; }
+.risk-v4-workspace .map-legend-stack { width: min(292px,calc(100% - 20px)); }
+.risk-v4-workspace .map-legend-heading strong { font-size: .86rem; }
+.risk-v4-workspace .map-legend-heading span { font-size: .7rem; }
+.risk-v4-workspace .map-prototype-note {
+  color: #2b4c39;
+  box-shadow: 0 1px 7px rgb(20 40 20 / 7%);
+  font-weight: 650;
+}
+.risk-v4-workspace .cell-details {
+  box-shadow: 0 9px 28px rgb(25 49 31 / 16%);
+  border-radius: 11px;
+}
+.risk-v4-workspace .active-score {
+  padding: 16px 18px;
+  background: #f7faf7;
+  border-left: 4px solid #5b936c;
+}
+.risk-v4-workspace .risk-score-topline strong { font-variant-numeric: tabular-nums; }
+.risk-difference-scale {
+  display: flex;
+  gap: 1px;
+  overflow: hidden;
+  margin: 12px 0 6px;
+  height: 15px;
+  border-radius: 4px;
+}
+.risk-difference-scale > span { display: block; flex: 1; }
+.risk-difference-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  color: #4a6255;
+  line-height: 1.3;
+  font-size: .68rem;
+}
+.risk-difference-labels span:first-child { text-align: left; }
+.risk-difference-labels span:nth-child(2) { text-align: center; }
+.risk-difference-labels span:last-child { text-align: right; }
+.risk-model-delta {
+  border: 1px solid #d3ddd6;
+  border-left: 4px solid var(--atlas-accent);
+  border-radius: 9px;
+  background: #fbfaf7;
+  padding: 17px;
+  display: grid;
+  gap: 9px;
+  margin-bottom: 13px;
+}
+.risk-model-delta .eyebrow { color: #685945; }
+.risk-model-delta > strong { color: #283b30; font-size: 1.1rem; line-height: 1.3; }
+.risk-model-delta p { font-size: .79rem; line-height: 1.55; color: #526557; margin: 0; }
+.risk-delta-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.risk-delta-pair div {
+  padding: 11px;
+  border: 1px solid #e1e5dd;
+  border-radius: 7px;
+  background: #fff;
+  display: grid;
+  gap: 4px;
+}
+.risk-delta-pair span { font-size: .72rem; color: #52675a; }
+.risk-delta-pair strong { font-size: 1.5rem; color: #213d2d; font-variant-numeric: tabular-nums; }
+.risk-comparison-explainer {
+  background: #fff;
+  border: 1px solid #e1e5dc;
+  border-left: 3px solid #996b48;
+  border-radius: 7px;
+  padding: 13px 17px;
+  margin-top: 12px;
+}
+.risk-comparison-explainer strong { color: #3c4332; font-size: .91rem; }
+.risk-comparison-explainer p { color: #4e5e50; line-height: 1.6; font-size: .84rem; margin: 4px 0 0; }
+.risk-year-compare {
+  margin: 0 0 10px;
+  border: 1px solid #dce6dc;
+  border-radius: 8px;
+  background: #fff;
+}
+.risk-year-compare > summary { cursor: pointer; padding: 12px; font-size: .82rem; font-weight: 700; color: #28583e; }
+.risk-year-compare[open] > summary { border-bottom: 1px solid #e5ece5; }
+.risk-year-compare-body { padding: 12px; display: grid; gap: 10px; }
+.risk-year-compare-body p { font-size: .81rem; color: #475d4d; line-height: 1.55; margin: 0; }
+.risk-year-compare-note { padding: 8px 10px; background: #f8f7ef; border-left: 2px solid #c69c5c; }
+.risk-year-comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.risk-year-comparison-grid > div { display: grid; gap: 5px; border-radius: 6px; padding: 10px; background: #f1f5ef; }
+.risk-year-comparison-grid small { color: #576b59; font-size: .71rem; }
+.risk-year-comparison-grid strong { color: #284736; font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.risk-legend-filter button:not(:disabled):hover { border-color: #bbd0bc; }
+:is(.risk-compare-control, .risk-year-compare, .risk-legend-filter) :focus-visible {
+  outline: 3px solid #6b9f77;
+  outline-offset: 2px;
+}
+@media(max-width:980px) {
+  .app-shell { padding: 14px; }
+  .risk-v4-toolbar .risk-scar-control { margin-left: 0; }
+  .risk-compare-control { flex: 1 1 auto; }
+}
+@media(max-width:580px) {
+  .app-shell { padding: 9px; }
+  .app-header { padding: 21px 17px; border-radius: 9px 9px 0 0; }
+  .product-tabs { padding: 5px; border-radius: 0 0 9px 9px; }
+  .product-tabs button { flex: 1 1 0; min-width: 0; }
+  .risk-compare-control { display: grid; gap: 6px; }
+  .risk-view-toggle { width: 100%; }
+  .risk-view-toggle button { flex: 1; padding-inline: 8px; }
+  .risk-v4-workspace .map-legend-stack { width: min(275px,calc(100% - 18px)); }
+}
+@media(prefers-reduced-motion: reduce) {
+  .risk-view-toggle button { transition: none; }
+}
