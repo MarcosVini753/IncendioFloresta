@@ -896,102 +896,116 @@ export function RiskV4({
   return (
     <>
       <div className="risk-v4-toolbar" aria-label="Configuração do mapa de risco">
-        {yearControl}
-        <section className="control-group risk-model-control">
-          <span className="control-label">Modelo de risco</span>
-          <div className="layer-selector" role="group" aria-label="Modelo de risco">
-            {product.manifest.models.map((item) => (
-              <button
-                type="button"
-                key={item.id}
-                className={model === item.id ? 'active' : undefined}
-                aria-pressed={model === item.id}
-                disabled={comparisonMode}
-                onClick={() => setModel(item.id)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </section>
-        <section className="control-group risk-compare-control">
-          <span className="control-label">Visualização</span>
-          <div className="risk-view-toggle" role="group" aria-label="Como mostrar os modelos">
-            <button
-              type="button"
-              aria-pressed={!comparisonMode}
-              className={!comparisonMode ? 'active' : undefined}
-              onClick={() => setComparisonMode(false)}
-            >Mapa de risco</button>
-            <button
-              type="button"
-              aria-pressed={comparisonMode}
-              className={comparisonMode ? 'active' : undefined}
-              onClick={() => {
-                setHighlightClass(null)
-                setComparisonMode(true)
-              }}
-            >Comparar modelos</button>
-          </div>
-        </section>
-        <section className="control-group risk-scar-control">
-          <span className="control-label">Camadas observadas</span>
-          <label>
-            <input
-              type="checkbox"
-              checked={showScars}
-              onChange={(event) => setShowScars(event.target.checked)}
-            />
-            <i className="scar-swatch risk-scar-swatch" aria-hidden="true" />
-            Áreas queimadas · 2025
-          </label>
-          {scarError && (
-            <div className="overlay-error" role="alert">
-              {scarError}{' '}
-              <button type="button" onClick={() => setScarAttempt((v) => v + 1)}>
-                Tentar novamente
-              </button>
+        <div className="risk-toolbar-primary">
+          {yearControl}
+          <section className="control-group risk-model-control">
+            <span className="control-label">Modelo de risco</span>
+            <div className="layer-selector" role="group" aria-label="Modelo de risco">
+              {product.manifest.models.map((item) => (
+                <button
+                  type="button"
+                  key={item.id}
+                  className={model === item.id ? 'active' : undefined}
+                  aria-pressed={model === item.id}
+                  disabled={comparisonMode}
+                  onClick={() => setModel(item.id)}
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
-          )}
-        </section>
-        <div className="risk-municipality-control">
-          <label htmlFor="risk-municipality-select">Localizar município</label>
-          <select
-            id="risk-municipality-select"
-            value={selectedMunicipality}
-            onChange={(event) => {
-              const id = event.target.value
-              setSelectedMunicipality(id)
-              const place = ACRE_MUNICIPALITY_SEATS.find((item) => item.id === id)
-              if (place) setFocusPoint([place.longitude, place.latitude])
-            }}
-          >
-            <option value="">Escolha uma cidade</option>
-            {ACRE_MUNICIPALITY_SEATS.map((item) => (
-              <option key={item.id} value={item.id}>{item.name}</option>
-            ))}
-          </select>
-          <small>Centraliza na sede do município</small>
+          </section>
+          <section className="control-group risk-scar-control">
+            <span className="control-label">Camada histórica</span>
+            <label>
+              <input
+                type="checkbox"
+                checked={showScars}
+                onChange={(event) => setShowScars(event.target.checked)}
+              />
+              <i className="scar-swatch risk-scar-swatch" aria-hidden="true" />
+              Áreas queimadas · 2025
+            </label>
+            {scarError && (
+              <div className="overlay-error" role="alert">
+                Não foi possível carregar as áreas queimadas.{' '}
+                <button type="button" onClick={() => setScarAttempt((v) => v + 1)}>
+                  Tentar novamente
+                </button>
+              </div>
+            )}
+          </section>
         </div>
-        <details className="risk-coordinate-panel">
-          <summary>Buscar por coordenadas</summary>
-          <form className="risk-coordinate-form" onSubmit={goToCoordinates}>
-            <label htmlFor="risk-coordinate-search">Latitude, longitude</label>
-            <input
-              id="risk-coordinate-search"
-              type="text"
-              value={coordinateText}
-              onChange={(event) => setCoordinateText(event.target.value)}
-              placeholder="-9.97, -67.81"
-              aria-describedby={coordinateError ? 'risk-coordinate-error' : undefined}
-            />
-            <button type="submit">Localizar</button>
-            {coordinateError && <small id="risk-coordinate-error" role="alert">{coordinateError}</small>}
-          </form>
-        </details>
-        <details className="risk-toolbar-context">
-          <summary>Sobre os dados</summary>
-          <p>O mapa usa o histórico de áreas queimadas do MapBiomas Fogo e dados ambientais para estimar o risco anual. São resultados de pesquisa, não registros de incêndios em andamento.</p>
+        <details className="risk-toolbar-tools">
+          <summary>
+            <span>Explorar e comparar</span>
+            <small>{comparisonMode ? 'Comparação entre modelos ativa' : 'Municípios, coordenadas e comparação de modelos'}</small>
+          </summary>
+          <div className="risk-toolbar-secondary">
+            <section className="control-group risk-compare-control">
+              <span className="control-label">Como mostrar os resultados</span>
+              <div className="risk-view-toggle" role="group" aria-label="Como mostrar os modelos">
+                <button
+                  type="button"
+                  aria-pressed={!comparisonMode}
+                  className={!comparisonMode ? 'active' : undefined}
+                  onClick={() => setComparisonMode(false)}
+                >Mapa de risco</button>
+                <button
+                  type="button"
+                  aria-pressed={comparisonMode}
+                  className={comparisonMode ? 'active' : undefined}
+                  onClick={() => {
+                    setHighlightClass(null)
+                    setComparisonMode(true)
+                  }}
+                >Comparar modelos</button>
+              </div>
+            </section>
+            <div className="risk-municipality-control">
+              <label htmlFor="risk-municipality-select">Ir para município</label>
+              <select
+                id="risk-municipality-select"
+                value={selectedMunicipality}
+                onChange={(event) => {
+                  const id = event.target.value
+                  setSelectedMunicipality(id)
+                  const place = ACRE_MUNICIPALITY_SEATS.find((item) => item.id === id)
+                  if (place) setFocusPoint([place.longitude, place.latitude])
+                }}
+              >
+                <option value="">Selecione um município</option>
+                {ACRE_MUNICIPALITY_SEATS.map((item) => (
+                  <option key={item.id} value={item.id}>{item.name}</option>
+                ))}
+              </select>
+              <small>O mapa centraliza na sede municipal</small>
+            </div>
+            <details className="risk-coordinate-panel">
+              <summary>Buscar por coordenadas</summary>
+              <form className="risk-coordinate-form" onSubmit={goToCoordinates}>
+                <label htmlFor="risk-coordinate-search">Latitude, longitude</label>
+                <input
+                  id="risk-coordinate-search"
+                  type="text"
+                  value={coordinateText}
+                  onChange={(event) => setCoordinateText(event.target.value)}
+                  placeholder="-9.97, -67.81"
+                  aria-describedby={coordinateError ? 'risk-coordinate-error' : undefined}
+                />
+                <button type="submit">Localizar</button>
+                {coordinateError && <small id="risk-coordinate-error" role="alert">{coordinateError}</small>}
+              </form>
+            </details>
+            <details className="risk-toolbar-context">
+              <summary>Sobre os dados</summary>
+              <p>
+                O mapa reúne informações ambientais e o histórico de áreas queimadas
+                para estimar o risco anual. São resultados de pesquisa, não
+                registros de incêndios em andamento.
+              </p>
+            </details>
+          </div>
         </details>
       </div>
       {showScars && year !== 2025 && (
