@@ -39,6 +39,9 @@ function RiskMap({
   onSelect,
   scars,
   showScars,
+  highlightClass,
+  onHighlightClassChange,
+  focusPoint,
 }: {
   product: RiskV4Product
   model: RiskV4Model
@@ -46,6 +49,9 @@ function RiskMap({
   onSelect: (selection: RiskV4Selection | null) => void
   scars: ScarCollection | null
   showScars: boolean
+  highlightClass: string | null
+  onHighlightClassChange: (id: string | null) => void
+  focusPoint: [number, number] | null
 }) {
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
@@ -53,11 +59,15 @@ function RiskMap({
   const selectedRef = useRef(selected),
     modelRef = useRef(model),
     scarsRef = useRef(scars),
-    showScarsRef = useRef(showScars)
+    showScarsRef = useRef(showScars),
+    highlightRef = useRef(highlightClass)
   selectedRef.current = selected
   modelRef.current = model
   scarsRef.current = scars
   showScarsRef.current = showScars
+  highlightRef.current = highlightClass
+  const [mapReady, setMapReady] = useState(false)
+  const [copyState, setCopyState] = useState('')
   const [zoom, setZoom] = useState(5)
   const [status, setStatus] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -122,6 +132,16 @@ function RiskMap({
         95,
         RISK_DISPLAY_CLASSES[4].color,
       ])
+      const spotlight = RISK_DISPLAY_CLASSES.find((item) => item.id === highlightRef.current)
+      map.setPaintProperty('risk-v4-fill', 'fill-opacity', spotlight ? [
+        'case',
+        ['all',
+          ['>=', ['get', `percentile_${modelRef.current}`], spotlight.lower],
+          [spotlight.upper === 100 ? '<=' : '<',
+            ['get', `percentile_${modelRef.current}`], spotlight.upper],
+        ],
+        0.91, 0.16,
+      ] as never : 0.85)
       const choice = selectedRef.current
       const selection =
         choice?.kind === 'pixel'
@@ -276,6 +296,7 @@ function RiskMap({
       )
       update()
       setZoom(map.getZoom())
+      setMapReady(true)
     })
     map.on('zoom', () => {
       setZoom(map.getZoom())
@@ -355,7 +376,12 @@ function RiskMap({
 
   useEffect(() => {
     updateRef.current?.()
-  }, [model, selected, scars, showScars])
+  }, [model, selected, scars, showScars, highlightClass])
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !focusPoint || !mapReady) return
+    map.flyTo({ center: focusPoint, zoom: product.rasterBase === null ? 8.2 : 10, essential: true })
+  }, [focusPoint, mapReady, product.rasterBase])
   useEffect(() => {
     if (!retry) return
     setError(null)
@@ -366,6 +392,24 @@ function RiskMap({
       if (source) source.setTiles(source.tiles!)
     }
   }, [retry])
+  async function shareMap() {
+    const map = mapRef.current
+    if (!map) return
+    const { lng, lat } = map.getCenter()
+    const link = new URL(window.location.href)
+    link.searchParams.set('year', String(product.manifest.year))
+    link.searchParams.set('model', model)
+    link.searchParams.set('lon', lng.toFixed(5))
+    link.searchParams.set('lat', lat.toFixed(5))
+    link.searchParams.set('zoom', map.getZoom().toFixed(2))
+    link.searchParams.set('view', 'risk')
+    try {
+      await navigator.clipboard.writeText(link.toString())
+      setCopyState('Link copiado')
+    } catch {
+      setCopyState('O navegador não permitiu copiar o link.')
+    }
+  }
   return (
     <div className="map-shell">
       <div ref={container} className="map-container" />
@@ -376,7 +420,14 @@ function RiskMap({
         aggregated={product.rasterBase === null || zoom < 8.5}
         rasterReduced={product.rasterBase !== null && zoom >= 8.5 && zoom < 12}
         showScars={showScars && scars !== null}
+        highlightClass={highlightClass}
+        onHighlightClassChange={onHighlightClassChange}
       />
+      <div className="risk-map-share">
+        <button type="button" onClick={() => void shareMap()} disabled={!mapReady}>Compartilhar mapa</button>
+        {copyState && <span role="status">{copyState}</span>}
+      </div>
+      {!mapReady && <div className="risk-map-loading" role="status">Preparando o mapa…</div>}
       <div className="map-prototype-note" role="status" aria-live="polite">
         {error ? (
           <>
@@ -675,6 +726,10 @@ export function RiskV4({
     setSelection(next)
     if (next) setDetailsOpen(true)
   }, [])
+  const [highlightClass, setHighlightClass] = useState<string | null>(null)
+  const [coordinateText, setCoordinateText] = useState('')
+  const [coordinateError, setCoordinateError] = useState('')
+  const [focusPoint, setFocusPoint] = useState<[number, number] | null>(null)
   const [showScars, setShowScars] = useState(false)
   const [scars, setScars] = useState<ScarCollection | null>(null)
   const [scarError, setScarError] = useState<string | null>(null)
@@ -832,6 +887,9 @@ export function RiskV4({
             onSelect={handleMapSelection}
             scars={scars}
             showScars={showScars}
+            highlightClass={highlightClass}
+            onHighlightClassChange={setHighlightClass}
+            focusPoint={focusPoint}
           />
           {selection && !detailsOpen && (
             <button
