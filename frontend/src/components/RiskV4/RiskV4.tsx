@@ -113,6 +113,7 @@ function RiskMap({
     map.addControl(new NavigationControl(), 'top-right')
     let query: AbortController | null = null
     const tiles = (id: RiskV4Model) => [`${protocol}://${id}/{z}/{x}/{y}`]
+    let lastScars: ScarCollection | null = null
     const update = () => {
       if (!map.getSource('risk-v4-grid')) return
       const native = client !== null && map.getZoom() >= 8.5 && !comparisonRef.current
@@ -186,17 +187,21 @@ function RiskMap({
               }
             : EMPTY
       ;(map.getSource('risk-v4-selected') as GeoJSONSource).setData(selection)
-      const observed = scarsRef.current ?? EMPTY
-      ;(map.getSource('risk-v4-scars') as GeoJSONSource).setData(observed)
-      ;(map.getSource('risk-v4-scar-points') as GeoJSONSource).setData({
-        type: 'FeatureCollection',
-        features:
-          scarsRef.current?.features.map((feature) => ({
-            type: 'Feature',
-            properties: feature.properties,
-            geometry: { type: 'Point', coordinates: feature.properties.center },
-          })) ?? [],
-      })
+      // Só publica o conjunto de cicatrizes quando ele muda, não a cada zoom.
+      if (scarsRef.current !== lastScars) {
+        lastScars = scarsRef.current
+        const observed = scarsRef.current ?? EMPTY
+        ;(map.getSource('risk-v4-scars') as GeoJSONSource).setData(observed)
+        ;(map.getSource('risk-v4-scar-points') as GeoJSONSource).setData({
+          type: 'FeatureCollection',
+          features:
+            scarsRef.current?.features.map((feature) => ({
+              type: 'Feature',
+              properties: feature.properties,
+              geometry: { type: 'Point', coordinates: feature.properties.center },
+            })) ?? [],
+        })
+      }
       for (const layer of [
         'risk-v4-scar-fill',
         'risk-v4-scar-line',
