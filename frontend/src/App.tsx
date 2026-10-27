@@ -12,7 +12,8 @@ function formatPtDate(value: string) {
 }
 
 export default function App() {
-  const [riskYear, setRiskYear] = useState<2025 | 2026>(() =>
+  const [showMunicipalBoundaries, setShowMunicipalBoundaries] = useState(true)
+  const [riskYear, setRiskYear] = useState<2025 | 2026>(()
     new URLSearchParams(window.location.search).get('year') === '2025' ? 2025 : 2026
   )
   const [section, setSection] = useState<'risk' | 'climate'>('risk')
@@ -89,7 +90,12 @@ export default function App() {
         </button>
       </nav>
       <div hidden={section !== 'risk'}>
-        <RiskV4 year={riskYear} onYearChange={setRiskYear} />
+        <RiskV4
+          year={riskYear}
+          onYearChange={setRiskYear}
+          showMunicipalBoundaries={showMunicipalBoundaries}
+          onMunicipalBoundariesChange={setShowMunicipalBoundaries}
+        />
       </div>
       {section === 'climate' && (
         <>
@@ -131,6 +137,17 @@ export default function App() {
                 {dailyScars} pixels classificados em {formatPtDate(climateDate)}
               </small>
             </section>
+            <section className="control-group climate-boundaries-control">
+              <span className="control-label">Limites do mapa</span>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={showMunicipalBoundaries}
+                  onChange={(event) => setShowMunicipalBoundaries(event.target.checked)}
+                />{' '}
+                Divisas municipais
+              </label>
+            </section>
           </div>
           {climate ? (
             <>
@@ -147,6 +164,7 @@ export default function App() {
                   showScars={showScars}
                   selectedCellId={selectedClimateCell}
                   onCellSelect={setSelectedClimateCell}
+                  showMunicipalBoundaries={showMunicipalBoundaries}
                 />
                 <ClimateDetails
                   product={climate}
