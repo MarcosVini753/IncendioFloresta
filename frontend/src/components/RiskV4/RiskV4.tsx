@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   Map as MapLibreMap,
   NavigationControl,
-  Popup,
   addProtocol,
   removeProtocol,
   type GeoJSONSource,
@@ -64,7 +63,6 @@ function RiskMap({
   const [error, setError] = useState<string | null>(null)
   const [retry, setRetry] = useState(0)
   const clientRef = useRef<RiskRasterClient | null>(null)
-  const popupRef = useRef<Popup | null>(null)
 
   useEffect(() => {
     const client =
@@ -97,8 +95,6 @@ function RiskMap({
     })
     mapRef.current = map
     map.addControl(new NavigationControl(), 'top-right')
-    const popup = new Popup({ closeButton: true })
-    popupRef.current = popup
     let query: AbortController | null = null
     const tiles = (id: RiskV4Model) => [`${protocol}://${id}/{z}/{x}/{y}`]
     const update = () => {
@@ -233,17 +229,6 @@ function RiskMap({
           }, labelLayerId)
         }
       map.addLayer({
-        id: 'risk-v4-hover-line',
-        type: 'line',
-        source: 'risk-v4-grid',
-        filter: ['==', ['get', 'id'], '__none__'],
-        paint: {
-          'line-color': '#153d33',
-          'line-width': 2.6,
-          'line-opacity': 0.92,
-        },
-      })
-      map.addLayer({
         id: 'risk-v4-outline',
         type: 'line',
         source: 'risk-v4-boundary',
@@ -304,23 +289,7 @@ function RiskMap({
     map.on('click', (event) => {
       query?.abort()
       setError(null)
-      popup.remove()
-      const show = (selection: RiskV4Selection) => {
-        onSelect(selection)
-        const label =
-          selection.kind === 'pixel'
-            ? `Pixel científico · ${product.manifest.year}`
-            : `Grupo de 5 km · ${product.manifest.year}`
-        const active = product.manifest.models.find(
-          (item) => item.id === modelRef.current,
-        )!
-        popup
-          .setLngLat(event.lngLat)
-          .setHTML(
-            `<div class="susceptibility-popup"><strong>${label}</strong><span>${active.label} · índice ${decimal(percentile(selection.properties, modelRef.current))}</span><span>${active.value_label}: ${pct(modelValue(selection.properties, modelRef.current))}</span><span>${selection.kind === 'pixel' ? 'Consulta na resolução original' : 'Média dos pixels válidos'}</span></div>`,
-          )
-          .addTo(map)
-      }
+      const show = (selection: RiskV4Selection) => onSelect(selection)
       if (!client || map.getZoom() < 8.5) {
         const id = map.queryRenderedFeatures(event.point, {
           layers: ['risk-v4-fill'],
@@ -365,15 +334,8 @@ function RiskMap({
     map.on('mouseenter', 'risk-v4-fill', () => {
       map.getCanvas().style.cursor = 'pointer'
     })
-    map.on('mousemove', 'risk-v4-fill', (event) => {
-      const id = event.features?.[0]?.properties?.id
-      if (map.getLayer('risk-v4-hover-line'))
-        map.setFilter('risk-v4-hover-line', ['==', ['get', 'id'], id ?? '__none__'])
-    })
     map.on('mouseleave', 'risk-v4-fill', () => {
       map.getCanvas().style.cursor = ''
-      if (map.getLayer('risk-v4-hover-line'))
-        map.setFilter('risk-v4-hover-line', ['==', ['get', 'id'], '__none__'])
     })
     const observer = new ResizeObserver(() => {
       if (container.current?.clientWidth) map.resize()
@@ -382,26 +344,18 @@ function RiskMap({
     return () => {
       observer.disconnect()
       query?.abort()
-      popup.remove()
       map.remove()
       if (client) removeProtocol(protocol)
       client?.destroy()
       updateRef.current = null
       mapRef.current = null
       clientRef.current = null
-      popupRef.current = null
     }
   }, [product, onSelect])
 
   useEffect(() => {
     updateRef.current?.()
   }, [model, selected, scars, showScars])
-  useEffect(() => {
-    popupRef.current?.remove()
-  }, [model])
-  useEffect(() => {
-    if (!selected) popupRef.current?.remove()
-  }, [selected])
   useEffect(() => {
     if (!retry) return
     setError(null)
@@ -491,7 +445,7 @@ function CellPanel({
     <aside id="risk-cell-details" className="cell-details">
       <div className="cell-details-header">
         <div>
-          <span className="eyebrow">Análise da localização</span>
+          <span className="eyebrow">Área selecionada</span>
           <h2>{aggregate ? 'Grupo de 5 km' : 'Pixel de 30 m'}</h2>
           <span className="risk-cell-id">{p.id}</span>
         </div>
@@ -501,20 +455,23 @@ function CellPanel({
         </div>
       </div>
       <div className="active-score">
-        <span className="risk-score-caption">{active.label} · {product.manifest.year}</span>
+        <span className="risk-score-caption">{active.label} · mapa de {product.manifest.year}</span>
         <span className="risk-score-topline">
           <strong>{decimal(currentPercentile)}</strong>
-          <span className="risk-score-unit">índice<br/>percentil</span>
+          <span className="risk-score-unit">posição<br/>no ranking</span>
         </span>
         <span className="risk-score-class">
           <i style={{ backgroundColor: currentClass.color }} aria-hidden="true" />
-          {currentClass.label} · posição relativa
+          {currentClass.label} no mapa do Acre
         </span>
         <div className="risk-score-track" role="img" aria-label={`Índice percentil: ${decimal(currentPercentile)} de 100`}>
           <span style={{ width: `${Math.max(0, Math.min(100, currentPercentile))}%` }} />
         </div>
-        <span className="risk-score-model-value">{active.value_label}: <b>{pct(modelValue(p, model))}</b></span>
-        <small>{aggregate ? 'Média dos percentis válidos no grupo.' : 'Consulta do pixel original.'} Percentil não é chance de incêndio.</small>
+        <small>Esse número indica a posição relativa da área no mapa, de 0 a 100. Não é a chance de ocorrer um incêndio.</small>
+        <details className="risk-score-technical">
+          <summary>Valor calculado pelo modelo</summary>
+          <p>{active.value_label}: {pct(modelValue(p, model))}. {aggregate ? 'Média dos pixels do grupo.' : 'Valor do pixel consultado.'} Valores de modelos diferentes não devem ser comparados como probabilidades equivalentes.</p>
+        </details>
       </div>
       <dl className="model-score-list">
         {product.manifest.models.map((item) => (
@@ -526,23 +483,22 @@ function CellPanel({
             <dd>
               <strong>{decimal(percentile(p, item.id))}</strong>
               <small>
-                {aggregate ? 'Percentil médio' : 'Percentil'} ·{' '}
-                {pct(modelValue(p, item.id))}
+                {aggregate ? 'Posição média no ranking' : 'Posição no ranking'}
               </small>
               <small>
                 {item.calibrated
-                  ? 'Estimativa calibrada experimental'
-                  : 'Escore não calibrado'}
+                  ? 'Valor ajustado pelo estudo'
+                  : 'Valor sem calibração equivalente'}
               </small>
             </dd>
           </div>
         ))}
       </dl>
       <details className="risk-panel-extra">
-        <summary>Distribuição e metadados do local</summary>
+        <summary>Informações técnicas desta área</summary>
       {selection.kind === 'aggregated' && (
         <section className="risk-class-shares">
-          <h3>Proporção dos pixels por classe</h3>
+          <h3>Como se distribuem os pixels nesta área</h3>
           {RISK_DISPLAY_CLASSES.map((category) => {
             const share = Number(
               selection.properties[`share_${model}_${category.id}`],
@@ -791,8 +747,8 @@ export function RiskV4({
         <div className="map-shell map-status" role="status">
           <strong>
             {error
-              ? 'Não foi possível carregar o Risco v4.'
-              : `Carregando Risco v4 de ${year}…`}
+              ? 'Não foi possível carregar o mapa de risco.'
+              : `Preparando o mapa de risco para ${year}…`}
           </strong>
           {error && (
             <>
@@ -835,7 +791,7 @@ export function RiskV4({
               onChange={(event) => setShowScars(event.target.checked)}
             />
             <i className="scar-swatch risk-scar-swatch" aria-hidden="true" />
-            Cicatrizes · 2025
+            Áreas queimadas · 2025
           </label>
           {scarError && (
             <div className="overlay-error" role="alert">
@@ -846,13 +802,17 @@ export function RiskV4({
             </div>
           )}
         </section>
-        <span className="risk-toolbar-context">AB30C <span aria-hidden="true">·</span> MapBiomas Fogo <span aria-hidden="true">·</span> Clima suavizado</span>
+        <details className="risk-toolbar-context">
+          <summary>Sobre os dados</summary>
+          <p>O mapa usa o histórico de áreas queimadas do MapBiomas Fogo e dados ambientais para estimar o risco anual. São resultados de pesquisa, não registros de incêndios em andamento.</p>
+        </details>
       </div>
       {showScars && year !== 2025 && (
-        <p className="temporal-warning" role="status">
-          <strong>Risco anual: 2026 · Cicatrizes observadas: 2025.</strong>{' '}
-          Períodos diferentes; a sobreposição não é uma validação da previsão de
-          2026.{!scars && !scarError ? ' Carregando inventário…' : ''}
+        <p className="risk-year-note" role="status">
+          <strong>Atenção às datas:</strong> o mapa mostra o risco estimado para 2026;
+          os pontos roxos mostram áreas queimadas mapeadas em 2025.
+          Essas observações não comprovam se a estimativa para 2026 acertou.
+          {!scars && !scarError ? ' Carregando as observações…' : ''}
         </p>
       )}
       <section
