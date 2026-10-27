@@ -797,3 +797,43 @@ body { background: var(--atlas-bg); }
   .climate-workspace .map-legend-stack { left:9px;bottom:9px;width:min(220px,calc(100% - 19px)); }
   .climate-workspace .map-prototype-note { left:9px;top:9px; }
 }
+
+
+/* Limites municipais: camada de referência independente das previsões. */
+.risk-toolbar-primary .risk-scar-control {
+  gap: 10px 12px;
+}
+.risk-toolbar-primary .risk-scar-control .risk-boundaries-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #285741;
+  font-weight: 680;
+}
+.risk-toolbar-primary .risk-scar-control .risk-boundaries-toggle input[type="checkbox"] {
+  accent-color: #28644c;
+}
+.climate-controls .climate-boundaries-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 16px;
+  border: 1px solid #dce6de;
+  border-radius: 11px;
+  background: #fff;
+}
+.climate-boundaries-control label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .82rem;
+  color: #2a5341;
+  font-weight: 680;
+  cursor: pointer;
+}
+.climate-boundaries-control input[type="checkbox"] { accent-color: #28644c; }
+@media (max-width: 580px) {
+  .risk-toolbar-primary .risk-scar-control { gap: 9px; }
+  .risk-toolbar-primary .risk-scar-control .risk-boundaries-toggle { width: 100%; }
+}
