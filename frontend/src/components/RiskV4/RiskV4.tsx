@@ -287,13 +287,22 @@ function RiskMap({
         },
       })
       const [w, s, e, n] = product.manifest.bounds
-      map.fitBounds(
-        [
-          [w, s],
-          [e, n],
-        ],
-        { padding: 44, duration: 0 },
-      )
+      const urlParams = new URLSearchParams(window.location.search)
+      const savedLon = urlParams.get('lon')
+      const savedLat = urlParams.get('lat')
+      const savedZoom = urlParams.get('zoom')
+      const lon = Number(savedLon)
+      const lat = Number(savedLat)
+      const zoomValue = Number(savedZoom)
+      if (urlParams.get('view') === 'risk' &&
+          urlParams.get('year') === String(product.manifest.year) &&
+          savedLon !== null && savedLat !== null && savedZoom !== null &&
+          Number.isFinite(lon) && Number.isFinite(lat) && Number.isFinite(zoomValue) &&
+          lon >= w && lon <= e && lat >= s && lat <= n && zoomValue >= 4 && zoomValue <= 14) {
+        map.jumpTo({ center: [lon, lat], zoom: zoomValue })
+      } else {
+        map.fitBounds([[w, s], [e, n]], { padding: 44, duration: 0 })
+      }
       update()
       setZoom(map.getZoom())
       setMapReady(true)
@@ -511,13 +520,7 @@ function CellPanel({
           <strong>{decimal(currentPercentile)}</strong>
           <span className="risk-score-unit">posição<br/>no ranking</span>
         </span>
-        <span className="risk-score-class">
-          <i style={{ backgroundColor: currentClass.color }} aria-hidden="true" />
-          {currentClass.label} no mapa do Acre
-        </span>
-        <div className="risk-score-track" role="img" aria-label={`Índice percentil: ${decimal(currentPercentile)} de 100`}>
-          <span style={{ width: `${Math.max(0, Math.min(100, currentPercentile))}%` }} />
-        </div>
+        <span className="risk-score-class">Classificação nesta área: <b>{currentClass.label}</b></span>
         <small>Esse número indica a posição relativa da área no mapa, de 0 a 100. Não é a chance de ocorrer um incêndio.</small>
         <details className="risk-score-technical">
           <summary>Valor calculado pelo modelo</summary>
@@ -718,7 +721,10 @@ export function RiskV4({
   const [product, setProduct] = useState<RiskV4Product | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
-  const [model, setModel] = useState<RiskV4Model>('random_forest')
+  const [model, setModel] = useState<RiskV4Model>(() => {
+    const saved = new URLSearchParams(window.location.search).get('model')
+    return saved === 'xgboost' ? 'xgboost' : 'random_forest'
+  })
   const [selection, setSelection] = useState<RiskV4Selection | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
   // Callback estável: não reinicializa o mapa a cada seleção.
@@ -781,6 +787,27 @@ export function RiskV4({
       })
     return () => controller.abort()
   }, [showScars, scars, scarAttempt])
+  function goToCoordinates(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const pieces = coordinateText.trim().split(/[,;]/).map((value) => value.trim())
+    if (pieces.length !== 2 || pieces.some((value) => !/^-?\\d+(\\.\\d+)?$/.test(value))) {
+      setCoordinateError('Digite latitude e longitude. Exemplo: -9.97, -67.81')
+      return
+    }
+    const [latitude, longitude] = pieces.map(Number)
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) ||
+        Math.abs(latitude) > 90 || Math.abs(longitude) > 180) {
+      setCoordinateError('Coordenadas inválidas.')
+      return
+    }
+    const [west, south, east, north] = product?.manifest.bounds ?? [-75, -13, -66, -6]
+    if (latitude < south || latitude > north || longitude < west || longitude > east) {
+      setCoordinateError('O ponto informado está fora da área coberta pelo mapa do Acre.')
+      return
+    }
+    setCoordinateError('')
+    setFocusPoint([longitude, latitude])
+  }
   const yearControl = (
     <section className="control-group risk-year-control">
       <label className="control-label" htmlFor="risk-year">
@@ -861,6 +888,19 @@ export function RiskV4({
             </div>
           )}
         </section>
+        <form className="risk-coordinate-form" onSubmit={goToCoordinates}>
+          <label htmlFor="risk-coordinate-search">Encontrar um ponto</label>
+          <input
+            id="risk-coordinate-search"
+            type="text"
+            value={coordinateText}
+            onChange={(event) => setCoordinateText(event.target.value)}
+            placeholder="-9.97, -67.81"
+            aria-describedby={coordinateError ? 'risk-coordinate-error' : undefined}
+          />
+          <button type="submit">Localizar</button>
+          {coordinateError && <small id="risk-coordinate-error" role="alert">{coordinateError}</small>}
+        </form>
         <details className="risk-toolbar-context">
           <summary>Sobre os dados</summary>
           <p>O mapa usa o histórico de áreas queimadas do MapBiomas Fogo e dados ambientais para estimar o risco anual. São resultados de pesquisa, não registros de incêndios em andamento.</p>
