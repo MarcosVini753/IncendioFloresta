@@ -487,27 +487,35 @@ function CellPanel({
   product,
   model,
   onClear,
-  onClose,
   comparisonMode,
 }: {
   selection: RiskV4Selection | null
   product: RiskV4Product
   model: RiskV4Model
   onClear: () => void
-  onClose: () => void
   comparisonMode: boolean
 }) {
   if (!selection)
     return (
-      <aside className="cell-details cell-details-empty">
-        <div>
-          <span className="eyebrow">Local selecionado</span>
-          <h2>Explore o Risco de {product.manifest.year}</h2>
+      <aside id="risk-cell-details" className="cell-details cell-details-empty" aria-label="Análise da localização">
+        <div className="risk-panel-placeholder">
+          <span className="eyebrow">Análise da localização</span>
+          <h2>Selecione uma área do mapa</h2>
           <p>
-            {product.rasterBase === null
-              ? 'Clique em um grupo de 5 km para comparar as médias dos dois modelos. Os pixels originais de 30 m não estão disponíveis nesta publicação.'
-              : 'Clique em um grupo de 5 km ou aproxime para consultar um pixel científico de 30 m e comparar os dois modelos.'}
+            Clique em uma área colorida para ver sua classificação e comparar
+            os resultados dos modelos.
           </p>
+          <div className="risk-panel-placeholder-guide">
+            <strong>Como explorar</strong>
+            <span>1. Escolha o ano e o modelo acima.</span>
+            <span>2. Clique em um quadrado colorido.</span>
+            <span>3. Veja os resultados aqui, sem sair do mapa.</span>
+          </div>
+          <small>
+            {product.rasterBase === null
+              ? 'Nesta publicação, cada quadrado reúne informações de uma área de 5 km.'
+              : 'Ao aproximar, também é possível consultar dados em resolução de aproximadamente 30 m.'}
+          </small>
         </div>
       </aside>
     )
@@ -531,8 +539,7 @@ function CellPanel({
           <span className="risk-cell-id">{p.id}</span>
         </div>
         <div className="cell-details-actions">
-          <button type="button" className="clear-selection" onClick={onClear} aria-label="Limpar seleção" title="Limpar seleção">Limpar</button>
-          <button type="button" className="clear-selection risk-panel-close" onClick={onClose} aria-label="Fechar painel de detalhes" title="Fechar painel">×</button>
+          <button type="button" className="clear-selection" onClick={onClear} aria-label="Limpar seleção atual">Limpar</button>
         </div>
       </div>
       {comparisonMode && (
@@ -771,11 +778,9 @@ export function RiskV4({
     () => new URLSearchParams(window.location.search).get('mode') === 'compare',
   )
   const [selection, setSelection] = useState<RiskV4Selection | null>(null)
-  const [detailsOpen, setDetailsOpen] = useState(false)
   // Callback estável: não reinicializa o mapa a cada seleção.
   const handleMapSelection = useCallback((next: RiskV4Selection | null) => {
     setSelection(next)
-    if (next) setDetailsOpen(true)
   }, [])
   const [highlightClass, setHighlightClass] = useState<string | null>(null)
   const [coordinateText, setCoordinateText] = useState('')
@@ -787,18 +792,9 @@ export function RiskV4({
   const [scarError, setScarError] = useState<string | null>(null)
   const [scarAttempt, setScarAttempt] = useState(0)
   useEffect(() => {
-    if (!detailsOpen) return
-    const onEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setDetailsOpen(false)
-    }
-    window.addEventListener('keydown', onEscape)
-    return () => window.removeEventListener('keydown', onEscape)
-  }, [detailsOpen])
-  useEffect(() => {
     const controller = new AbortController()
     setError(null)
     setSelection(null)
-    setDetailsOpen(false)
     setProduct(cache.current.get(year) ?? null)
     if (cache.current.has(year)) return () => controller.abort()
     void loadRiskV4(year, controller.signal)
@@ -1006,10 +1002,7 @@ export function RiskV4({
           {!scars && !scarError ? ' Carregando as observações…' : ''}
         </p>
       )}
-      <section
-        className={`map-workspace risk-v4-workspace${selection && detailsOpen ? ' has-details' : ''}`}
-        aria-label="Mapa de risco e consulta do local"
-      >
+      <section className="map-workspace risk-v4-workspace" aria-label="Mapa e análise do local selecionado">
         <div className="map-section risk-map-section">
           <RiskMap
             key={year}
@@ -1024,30 +1017,14 @@ export function RiskV4({
             focusPoint={focusPoint}
             comparisonMode={comparisonMode}
           />
-          {selection && !detailsOpen && (
-            <button
-              type="button"
-              className="risk-details-reopen"
-              aria-label="Abrir painel de detalhes do local selecionado"
-              onClick={() => setDetailsOpen(true)}
-            >
-              Ver detalhes do local selecionado
-            </button>
-          )}
         </div>
-        {selection && detailsOpen && (
-          <CellPanel
-            product={product}
-            model={model}
-            selection={selection}
-            comparisonMode={comparisonMode}
-            onClear={() => {
-              setSelection(null)
-              setDetailsOpen(false)
-            }}
-            onClose={() => setDetailsOpen(false)}
-          />
-        )}
+        <CellPanel
+          product={product}
+          model={model}
+          selection={selection}
+          comparisonMode={comparisonMode}
+          onClear={() => setSelection(null)}
+        />
       </section>
       {comparisonMode && (
         <div className="risk-comparison-explainer">
