@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
+import { addMunicipalBoundaryLayer, setMunicipalBoundaryVisibility } from '../../data/municipalBoundaries'
 import { Map as MapLibreMap, NavigationControl, Popup, type GeoJSONSource, type MapLayerMouseEvent } from 'maplibre-gl'
-import { cellStats } from '../../data/climate'
 import type { ClimateProduct, ClimateVariable } from '../../types/climate'
 
 interface ClimateMapProps {
@@ -10,6 +10,7 @@ interface ClimateMapProps {
   showScars: boolean
   selectedCellId: string | null
   onCellSelect: (id: string) => void
+  showMunicipalBoundaries: boolean
 }
 
 const GRID_SOURCE = 'climate-grid'
@@ -29,14 +30,12 @@ const COLORS = {
     -1, '#9ca3af', 0, '#f7f4e7', 1, '#c4e4ef', 10, '#69aed7', 30, '#3164a6', 60, '#422b7a', 170, '#261b59'],
 } as const
 
-function fmt(value: number | null, unit: string) {
-  return value === null ? 'Sem dado' : `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(value)} ${unit}`
-}
-
-export function ClimateMap({ product, variable, date, showScars, selectedCellId, onCellSelect }: ClimateMapProps) {
+export function ClimateMap({ product, variable, date, showScars, selectedCellId, onCellSelect, showMunicipalBoundaries }: ClimateMapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const popupRef = useRef<Popup | null>(null)
+  const boundariesRef = useRef(showMunicipalBoundaries)
+  boundariesRef.current = showMunicipalBoundaries
   const currentRef = useRef({ date, variable, onCellSelect, product, showScars, selectedCellId })
   currentRef.current = { date, variable, onCellSelect, product, showScars, selectedCellId }
 
@@ -65,7 +64,7 @@ export function ClimateMap({ product, variable, date, showScars, selectedCellId,
     if (!containerRef.current) return
     const map = new MapLibreMap({
       container: containerRef.current,
-      style: 'https://demotiles.maplibre.org/style.json',
+      style: 'https://tiles.openfreemap.org/styles/positron',
       center: [-70.3, -9.3], zoom: 5.2, attributionControl: {},
     })
     map.addControl(new NavigationControl(), 'top-right')
@@ -98,6 +97,11 @@ export function ClimateMap({ product, variable, date, showScars, selectedCellId,
           'circle-stroke-color': '#fff', 'circle-stroke-width': 0.7 } })
       map.addLayer({ id: 'climate-boundary-line', type: 'line', source: 'climate-boundary',
         paint: { 'line-color': '#173f32', 'line-width': 2.4 } })
+      // Mantém os limites municipais visíveis acima do clima, sem alterar seus valores.
+      // A seleção e o limite estadual continuam destacáveis.
+      addMunicipalBoundaryLayer(map, boundariesRef.current)
+      map.moveLayer(SELECTED_LINE)
+      map.moveLayer('climate-boundary-line')
 
       const [west, south, east, north] = product.manifest.bounds
       map.fitBounds([[west, south], [east, north]], { padding: 44, duration: 0 })
@@ -125,19 +129,21 @@ export function ClimateMap({ product, variable, date, showScars, selectedCellId,
         if (map.queryRenderedFeatures(event.point, { layers: [SCARS_FILL, SCAR_POINTS] }).length) return
         const id = event.features?.[0]?.properties?.id
         if (typeof id !== 'string') return
-        const active = currentRef.current
-        active.onCellSelect(id)
-        const stats = cellStats(active.product, active.variable, active.date, id)
-        const unit = active.product.manifest.variables[active.variable].unit
+        currentRef.current.onCellSelect(id)
         popupRef.current?.remove()
-        popupRef.current = new Popup({ closeButton: true })
-          .setLngLat(event.lngLat)
-          .setText(`${id} · média espacial: ${fmt(stats[1], unit)}`)
-          .addTo(map)
       })
     })
     mapRef.current = map
-    return () => { popupRef.current?.remove(); map.remove(); mapRef.current = null }
+    const observer = new ResizeObserver(() => {
+      if (containerRef.current?.clientWidth) map.resize()
+    })
+    observer.observe(containerRef.current)
+    return () => {
+      observer.disconnect()
+      popupRef.current?.remove()
+      map.remove()
+      mapRef.current = null
+    }
   }, [product, scarPoints])
 
   useEffect(() => {
@@ -157,6 +163,10 @@ export function ClimateMap({ product, variable, date, showScars, selectedCellId,
     }
     popupRef.current?.remove()
   }, [date, showScars])
+
+  useEffect(() => {
+    setMunicipalBoundaryVisibility(mapRef.current, showMunicipalBoundaries)
+  }, [showMunicipalBoundaries])
 
   useEffect(() => {
     const map = mapRef.current

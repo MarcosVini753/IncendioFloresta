@@ -34,6 +34,32 @@ clima de 2025. Ambos usam 13 preditores. Avaliações históricas de
 2023–2025 são recebidas do professor e correspondem à variante exibida e
 ao nível 30m_fogo. Não há avaliação observada de 2026 na entrega.
 
+## Contornos dos municípios do Acre
+
+A interface exibe, **por padrão**, as divisas dos 22 municípios do Acre sobre o
+mapa de risco anual e o mapa histórico de clima. A opção **Divisas municipais**
+nas barras de controles permite ocultar ou restaurar o traçado sem recarregar os
+modelos; a preferência é mantida ao trocar de aba.
+
+A camada é carregada localmente de
+`frontend/public/data/reference/acre-municipalities.geojson` (aproximadamente
+30 KiB). Foi preparada a partir dos polígonos publicados pelo projeto
+[br-geojson](https://github.com/henriquemalvar/br-geojson), que utiliza a
+[API de Malhas do IBGE](https://servicodados.ibge.gov.br/api/docs/malhas)
+em resolução simplificada. A
+[Malha Municipal do IBGE](https://www.ibge.gov.br/geociencias/organizacao-do-territorio/malhas-territoriais/15774-malhas.html)
+é a referência territorial. O GeoJSON contém o nome e o código IBGE de cada
+município. Trata-se de uma **referência cartográfica simplificada** para
+visualização web, não de limites jurídicos de precisão cadastral nem de uma
+máscara de cálculo dos modelos científicos.
+
+O traçado não altera `grid.geojson`, GeoTIFFs, COGs, percentis,
+cobertura NoData, unidades administrativas dos relatórios ou a camada original
+de limites estaduais. Uma diferença entre o contorno municipal e o contorno
+estadual usado nos produtos científicos pode ocorrer porque as fontes foram
+simplificadas e produzidas em momentos diferentes. A busca por município
+continua levando à sede urbana, não à média do município.
+
 ## Raster no navegador
 
 GeoTIFF.js roda em Web Worker, com até quatro tarefas concorrentes, leitores

@@ -15,7 +15,22 @@ function format(value: number | null, unit: string) {
 
 export function ClimateDetails({ product, variable, date, cellId, onClear }: ClimateDetailsProps) {
   if (!cellId) {
-    return <aside className="cell-details cell-details-empty"><div><span className="eyebrow">Clima local</span><h2>Selecione uma célula</h2><p>Clique no mapa para consultar mínimo, média e máximo espaciais no dia escolhido.</p></div><span className="cell-details-hint">O cinza indica ausência de dados climáticos naquele setor.</span></aside>
+    return (
+      <aside className="cell-details cell-details-empty" aria-label="Detalhes históricos do clima">
+        <div className="risk-panel-placeholder">
+          <span className="eyebrow">Análise do clima</span>
+          <h2>Selecione uma área do mapa</h2>
+          <p>Clique em uma área colorida para consultar a umidade ou a precipitação do dia escolhido.</p>
+          <div className="risk-panel-placeholder-guide">
+            <strong>Como explorar</strong>
+            <span>1. Escolha a informação climática.</span>
+            <span>2. Selecione uma data no calendário.</span>
+            <span>3. Clique no mapa para ver os valores da área.</span>
+          </div>
+          <small>As áreas cinzentas não têm dados climáticos disponíveis.</small>
+        </div>
+      </aside>
+    )
   }
   const index = product.manifest.cell_order.indexOf(cellId)
   const stats = cellStats(product, variable, date, cellId)
@@ -23,7 +38,7 @@ export function ClimateDetails({ product, variable, date, cellId, onClear }: Cli
   const center = product.grid.features[index].properties.centroid
   return (
     <aside className="cell-details">
-      <div className="cell-details-header"><div><span className="eyebrow">Célula visual · {date.split('-').reverse().join('/')}</span><h2>{cellId}</h2></div><button type="button" className="clear-selection" onClick={onClear}>Limpar</button></div>
+      <div className="cell-details-header"><div><span className="eyebrow">Área selecionada · {date.split('-').reverse().join('/')}</span><h2>{cellId}</h2></div><button type="button" className="clear-selection" onClick={onClear}>Limpar</button></div>
       <div className="active-score"><span>{variable === 'humidity' ? 'Umidade relativa média' : 'Precipitação média'}</span><strong>{format(stats[1], unit)}</strong><small>Média espacial ponderada pela área dos pixels</small></div>
       <dl className="cell-metrics">
         <div><dt>Mínimo</dt><dd>{format(stats[0], unit)}</dd></div>

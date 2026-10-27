@@ -12,7 +12,10 @@ function formatPtDate(value: string) {
 }
 
 export default function App() {
-  const [riskYear, setRiskYear] = useState<2025 | 2026>(2026)
+  const [showMunicipalBoundaries, setShowMunicipalBoundaries] = useState(true)
+  const [riskYear, setRiskYear] = useState<2025 | 2026>(() =>
+    new URLSearchParams(window.location.search).get('year') === '2025' ? 2025 : 2026
+  )
   const [section, setSection] = useState<'risk' | 'climate'>('risk')
   const [climate, setClimate] = useState<ClimateProduct | null>(null)
   const [climateError, setClimateError] = useState<string | null>(null)
@@ -49,19 +52,18 @@ export default function App() {
   return (
     <main className="app-shell">
       <header className="app-header">
-        <div>
-          <span className="eyebrow">Produto científico experimental</span>
-          <h1>Monitoramento de Incêndios Florestais — Acre</h1>
-          <p>
-            Risco anual da entrega v4 para 2025 e 2026 e observações históricas
-            de 2025.
-          </p>
+        <div className="app-brand">
+          <span className="brand-symbol" aria-hidden="true"><span /></span>
+          <div className="app-header-copy">
+            <span className="eyebrow">Atlas geoespacial <span aria-hidden="true">/</span> Acre</span>
+            <h1>Incêndios Florestais</h1>
+            <p>Mapas anuais de risco e dados históricos do território acreano.</p>
+          </div>
         </div>
-        <span className="prototype-badge">
-          {section === 'climate'
-            ? 'Clima histórico · cicatrizes mapeadas · 2025'
-            : `Risco anual experimental — ${riskYear}`}
-        </span>
+        <div className="app-header-meta">
+          <span className="atlas-research-status">Estudo científico experimental</span>
+          <span className="header-meta-detail">Mapas de 2025 e 2026 · Não é um sistema de alertas</span>
+        </div>
       </header>
       <nav className="product-tabs" aria-label="Seção do mapa">
         <button
@@ -70,9 +72,9 @@ export default function App() {
           aria-pressed={section === 'risk'}
           onClick={() => setSection('risk')}
         >
-          <span className="product-tab-title">Risco · {riskYear}</span>
+          <span className="product-tab-title">Risco anual <span className="tab-year">{riskYear}</span></span>
           <span className="product-tab-description">
-            Índice percentil · modelos da v4 · clima de {riskYear - 1}
+            Explore e compare os modelos
           </span>
         </button>
         <button
@@ -81,14 +83,19 @@ export default function App() {
           aria-pressed={section === 'climate'}
           onClick={() => setSection('climate')}
         >
-          <span className="product-tab-title">Clima e cicatrizes · 2025</span>
+          <span className="product-tab-title">Clima e cicatrizes <span className="tab-year">2025</span></span>
           <span className="product-tab-description">
-            Dados observados · calendário diário
+            Dados históricos · calendário diário
           </span>
         </button>
       </nav>
       <div hidden={section !== 'risk'}>
-        <RiskV4 year={riskYear} onYearChange={setRiskYear} />
+        <RiskV4
+          year={riskYear}
+          onYearChange={setRiskYear}
+          showMunicipalBoundaries={showMunicipalBoundaries}
+          onMunicipalBoundariesChange={setShowMunicipalBoundaries}
+        />
       </div>
       {section === 'climate' && (
         <>
@@ -130,6 +137,17 @@ export default function App() {
                 {dailyScars} pixels classificados em {formatPtDate(climateDate)}
               </small>
             </section>
+            <section className="control-group climate-boundaries-control">
+              <span className="control-label">Limites do mapa</span>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={showMunicipalBoundaries}
+                  onChange={(event) => setShowMunicipalBoundaries(event.target.checked)}
+                />{' '}
+                Divisas municipais
+              </label>
+            </section>
           </div>
           {climate ? (
             <>
@@ -138,7 +156,7 @@ export default function App() {
                 selectedDate={climateDate}
                 onChange={setClimateDate}
               />
-              <section className="map-workspace climate-workspace">
+              <section className="map-workspace climate-workspace" aria-label="Mapa histórico do clima e análise local">
                 <ClimateMap
                   product={climate}
                   variable={climateVariable}
@@ -146,6 +164,7 @@ export default function App() {
                   showScars={showScars}
                   selectedCellId={selectedClimateCell}
                   onCellSelect={setSelectedClimateCell}
+                  showMunicipalBoundaries={showMunicipalBoundaries}
                 />
                 <ClimateDetails
                   product={climate}
