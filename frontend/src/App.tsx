@@ -51,10 +51,17 @@ export default function App() {
   return (
     <main className="app-shell">
       <header className="app-header">
-        <div className="app-header-copy">
-          <span className="eyebrow">Acre · Pesquisa sobre incêndios florestais</span>
-          <h1>Mapas de risco de incêndio</h1>
-          <p>Explore as áreas do Acre e entenda como o risco foi estimado. Dados experimentais, sem alertas em tempo real.</p>
+        <div className="app-brand">
+          <span className="brand-symbol" aria-hidden="true"><span /></span>
+          <div className="app-header-copy">
+            <span className="eyebrow">Atlas geoespacial <span aria-hidden="true">/</span> Acre</span>
+            <h1>Incêndios Florestais</h1>
+            <p>Mapas anuais de risco e dados históricos do território acreano.</p>
+          </div>
+        </div>
+        <div className="app-header-meta">
+          <span className="atlas-research-status">Estudo científico experimental</span>
+          <span className="header-meta-detail">Mapas de 2025 e 2026 · Não é um sistema de alertas</span>
         </div>
       </header>
       <nav className="product-tabs" aria-label="Seção do mapa">
@@ -66,7 +73,7 @@ export default function App() {
         >
           <span className="product-tab-title">Risco anual <span className="tab-year">{riskYear}</span></span>
           <span className="product-tab-description">
-            Random Forest e XGBoost · índice percentil
+            Explore e compare os modelos
           </span>
         </button>
         <button
@@ -77,7 +84,7 @@ export default function App() {
         >
           <span className="product-tab-title">Clima e cicatrizes <span className="tab-year">2025</span></span>
           <span className="product-tab-description">
-            Observações históricas · calendário diário
+            Dados históricos · calendário diário
           </span>
         </button>
       </nav>
