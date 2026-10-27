@@ -222,3 +222,37 @@ body { background: #f3f5f0; }
 @media(prefers-reduced-motion: reduce) {
   .risk-view-toggle button { transition: none; }
 }
+
+
+.risk-municipality-control {
+  display: grid;
+  gap: 3px;
+  min-width: 180px;
+  max-width: 240px;
+}
+.risk-municipality-control label {
+  color: #567061;
+  font-size: .69rem;
+  font-weight: 750;
+  letter-spacing: .035em;
+}
+.risk-municipality-control select {
+  min-height: 38px;
+  padding: 7px 28px 7px 10px;
+  border: 1px solid #d1ded3;
+  border-radius: 7px;
+  background-color: #fff;
+  color: #254c36;
+  font-size: .8rem;
+  font-weight: 650;
+  max-width: 100%;
+  cursor: pointer;
+}
+.risk-municipality-control small { color: #67796b; font-size: .68rem; }
+.risk-municipality-control select:focus-visible {
+  outline: 3px solid #6b9f77;
+  outline-offset: 2px;
+}
+@media(max-width:580px) {
+  .risk-municipality-control { min-width: 0; max-width: none; width: 100%; }
+}
