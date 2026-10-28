@@ -88,8 +88,9 @@ test('remote mode excludes even locally available sectors and preserves year pat
   for (const year of [2025, 2026]) {
     assert.equal(
       (await f.deployment(year)).raster_base_url,
-      year === 2026 ? `https://assets.example/risk/v4/2026/` : null,
+      `https://assets.example/risk/v4/${year}/`,
     )
+    assert.equal((await f.deployment(year)).raster_mode, 'remote')
     await assert.rejects(stat(f.sector(year)), { code: 'ENOENT' })
   }
 })
@@ -102,22 +103,31 @@ test('local mode still requires every COG', async (t) => {
 test('local mode copies and validates sectors', async (t) => {
   const f = await fixture(t, { sectors: true })
   f.run()
-  assert.equal(await readFile(f.sector(2026), 'utf8'), 'COG!')
-  assert.equal(
-    (await f.deployment(2026)).raster_base_url,
-    '/data/risk/v4/2026/',
-  )
-  await assert.rejects(stat(f.sector(2025)), { code: 'ENOENT' })
-  assert.equal((await f.deployment(2025)).raster_mode, 'aggregated')
+  for (const year of [2025, 2026]) {
+    assert.equal(await readFile(f.sector(year), 'utf8'), 'COG!')
+    assert.equal((await f.deployment(year)).raster_base_url, `/data/risk/v4/${year}/`)
+    assert.equal((await f.deployment(year)).raster_mode, 'local')
+  }
 })
 
-test('clean Vercel checkout requires only the tracked sectors of 2026', async (t) => {
+test('Vercel defaults to local sectors for both years', async (t) => {
   const f = await fixture(t, { sectors: true })
-  await rm(path.join(f.root, 'incendio/produtos/risco/v4/2025/sectors'), { recursive: true })
   f.run({ VERCEL: '1' })
-  assert.equal((await f.deployment(2026)).raster_mode, 'local')
-  assert.equal((await f.deployment(2025)).raster_mode, 'aggregated')
-  await assert.rejects(stat(f.sector(2025)), { code: 'ENOENT' })
+  for (const year of [2025, 2026]) {
+    assert.equal((await f.deployment(year)).raster_mode, 'local')
+    assert.equal(await readFile(f.sector(year), 'utf8'), 'COG!')
+  }
+})
+
+test('missing 2025 sector fails before replacing generated copies', async (t) => {
+  const f = await fixture(t, { sectors: true })
+  f.run()
+  await rm(path.join(f.root, 'incendio/produtos/risco/v4/2025/sectors'), { recursive: true })
+  assert.throws(() => f.run({ VERCEL: '1' }), /Produto v4 ausente/)
+  for (const year of [2025, 2026]) {
+    assert.equal(await readFile(f.sector(year), 'utf8'), 'COG!')
+    assert.equal((await f.deployment(year)).raster_mode, 'local')
+  }
 })
 
 test('invalid mode and credentials fail before synchronizing', async (t) => {
@@ -139,18 +149,21 @@ test('invalid mode and credentials fail before synchronizing', async (t) => {
 test('switching from local to aggregated removes only generated raster copies', async (t) => {
   const f = await fixture(t, { sectors: true })
   f.run()
-  assert.equal((await stat(f.sector(2026))).size, 4)
+  for (const year of [2025, 2026])
+    assert.equal((await stat(f.sector(year))).size, 4)
   f.run({ RISK_RASTER_MODE: 'aggregated' })
-  await assert.rejects(stat(f.sector(2026)), { code: 'ENOENT' })
-  assert.equal(
-    (
-      await stat(
-        path.join(
-          f.root,
-          'incendio/produtos/risco/v4/2026/sectors/AC-V4-R000C000.tif',
-        ),
-      )
-    ).size,
-    4,
-  )
+  for (const year of [2025, 2026]) {
+    await assert.rejects(stat(f.sector(year)), { code: 'ENOENT' })
+    assert.equal(
+      (
+        await stat(
+          path.join(
+            f.root,
+            `incendio/produtos/risco/v4/${year}/sectors/AC-V4-R000C000.tif`,
+          ),
+        )
+      ).size,
+      4,
+    )
+  }
 })

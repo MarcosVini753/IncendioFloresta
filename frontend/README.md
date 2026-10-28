@@ -88,10 +88,11 @@ não valida a previsão de 2026 e não conta incêndios confirmados.
 ## Executar e compilar
 
 ~~~bash
-# Na raiz: preparar os setores locais uma vez.
+# Opcional, na raiz: regenerar setores a partir dos mapas finais recebidos.
 python3 -m venv incendio/.venv  # apenas se o ambiente ainda não existir
 incendio/.venv/bin/pip install -r incendio/risco_anual_v4/requirements.txt
-incendio/.venv/bin/python incendio/importar_risco_professor_v4.py
+incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year 2025
+incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year 2026
 
 cd frontend
 npm install
@@ -101,24 +102,26 @@ npm run preview
 ~~~
 
 Predev/prebuild conferem e sincronizam somente Risco v4/2025, Risco v4/2026 e Clima v1/2025.
-Os COGs de 2026 são versionados; os de 2025 e as cópias public/dist continuam
-ignorados. Código, manifesto, índice e GeoJSON agregado são versionados. Consulte
+Os COGs de 2025 e 2026 são versionados; as cópias public/dist continuam
+ignoradas. Código, manifesto, índice e GeoJSON agregado são versionados. Consulte
 [geração e proveniência](../incendio/PRODUTOS_WEB.md).
 
 ## Build na Vercel e distribuição dos pixels de 30 m
 
-O GitHub inclui **somente os 208 COGs de 2026**, aproximadamente 1,67 GiB,
-com menos de 15 MiB por arquivo. O checkout fornece tudo para publicar o detalhe
-de 30 m de 2026 sem treinamento nem geração científica no build.
+O GitHub inclui **208 COGs de cada ano**, 416 arquivos de 2025 e 2026,
+aproximadamente 3,57 GB (3,33 GiB) ao todo, com menos de 15 MiB por arquivo.
+O checkout fornece tudo para publicar o detalhe de 30 m dos dois anos sem
+treinamento nem geração científica no build.
 
-**2025 permanece agregado em todos os modos**, sem copiar seus setores locais.
 A comparação anual, a consulta agregada e o Clima de 2025 continuam disponíveis.
+Ao aproximar o mapa em qualquer ano, a publicação padrão permite consultar
+os pixels originais.
 
-| Modo de 2026 | Configuração antes do build | Resultado |
+| Modo dos dois anos | Configuração antes do build | Resultado |
 | --- | --- | --- |
-| Local, padrão também na Vercel | Sem variáveis, ou `RISK_RASTER_MODE=local` | Inclui os setores versionados de 2026. |
+| Local, padrão também na Vercel | Sem variáveis, ou `RISK_RASTER_MODE=local` | Inclui os setores versionados de 2025 e 2026. |
 | Apenas agregado | `RISK_RASTER_MODE=aggregated` | Não copia TIFFs de nenhum ano. |
-| Origem externa | `RISK_RASTER_BASE_URL=https://seu-host.example/risk/v4/` | Busca 2026 externamente; não copia TIFFs. |
+| Origem externa | `RISK_RASTER_BASE_URL=https://seu-host.example/risk/v4/` | Busca os setores em `2025/` e `2026/` na origem externa; não copia TIFFs. |
 
 Se o painel da Vercel tiver `RISK_RASTER_MODE=aggregated`, remova a variável ou
 troque para `local` para habilitar os setores incluídos. Remova
@@ -128,11 +131,12 @@ sem credenciais/query/fragmento, com CORS e preferencialmente HTTP Range.
 Cada sincronização gera `deployment.json` por ano, sem alterar o manifesto
 científico. O ano agregado não cria worker raster, não solicita TIFFs e mantém
 a malha visível ao aproximar. O modo local confere presença e tamanho dos COGs
-de 2026 antes de tocar nas cópias geradas.
+de ambos os anos antes de tocar nas cópias geradas.
 
 Verificações focadas: `npm run test:sync`, `npm test` e `npm run build`.
-Os testes de sincronização incluem um checkout sem setores de 2025, como o
-enviado ao GitHub. A exceção do MapLibre no prebundle do Vite permanece.
+Os testes de sincronização conferem os dois anos na publicação padrão da Vercel
+e falha antes de substituir as cópias quando falta um setor de 2025.
+A exceção do MapLibre no prebundle do Vite permanece.
 
 ## Código mantido
 

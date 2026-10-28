@@ -7,7 +7,8 @@ Esta pasta contém o código e os produtos necessários ao site atual:
 - `risco_anual_v4/`: requisitos, geometria do clima e registro das validações.
 - `exportar_clima_2025.py`: prepara o clima e as cicatrizes usados no site,
   sem depender dos pipelines históricos.
-- `produtos/risco/v4/2025/`: resultados agregados e metadados.
+- `produtos/risco/v4/2025/`: resultados agregados, metadados e os 208 COGs
+  versionados para visualizar os pixels de 30 m.
 - `produtos/risco/v4/2026/`: resultados agregados, metadados e os 208 COGs
   versionados para visualizar os pixels de 30 m.
 - `produtos/clima/v1/2025/`: produto observado ativo, preservado apesar da
@@ -21,13 +22,14 @@ arquivo. Dados brutos, resultados locais, ambientes e caches não são enviados.
 
 O frontend não precisa executar Python para compilar ou visualizar os produtos
 versionados. Na pasta frontend, execute npm install e npm run dev/build.
-2026 tem detalhe de 30 m; 2025 permanece agregado.
+2025 e 2026 têm detalhe de 30 m e resumo agregado de 5 km.
 
 ## Reproduzir a importação
 
 ~~~bash
 python3 -m venv incendio/.venv
 incendio/.venv/bin/pip install -r incendio/risco_anual_v4/requirements.txt
+incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year 2025
 incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year 2026
 ~~~
 

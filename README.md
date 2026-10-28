@@ -20,8 +20,9 @@ A versão v2 foi preservada em `archive/risk-v2-before-professor-v4`.
 ## Preparar e executar
 
 Os dois GeoTIFFs finais de cada ano ficam em `entrega_professor_v4/mapas_geotiff`.
-O pacote recebido e os setores de 2025 permanecem locais e ignorados pelo Git.
-Os **208 setores de 2026 são versionados**, totalizando cerca de 1,67 GiB.
+O pacote recebido permanece local e ignorado pelo Git.
+Os **208 setores de cada ano são versionados**: 416 COGs de 2025 e 2026,
+totalizando cerca de 3,57 GB (3,33 GiB).
 
 ~~~bash
 python3 -m venv incendio/.venv  # apenas se o ambiente ainda não existir
@@ -39,9 +40,8 @@ e agrega 172.340.796 pixels em 6.393 grupos de 5 km. Checkpoints permitem
 retomada. O produto ativo só é substituído após a auditoria.
 
 O checkout inclui tudo que o frontend precisa: `npm install` e `npm run build`
-não executam Python nem precisam dos GeoTIFFs brutos. O build publica **2026 em
-30 m** e mantém **2025 apenas agregado**, inclusive na Vercel. Os setores de
-2025 não são enviados, mesmo quando existem localmente.
+não executam Python nem precisam dos GeoTIFFs brutos. O build publica **2025 e
+2026 em 30 m**, inclusive na Vercel, além dos grupos de 5 km de ambos os anos.
 
 Os pipelines e produtos históricos de INPE, Perigo, Suscetibilidade e Risco v1/v2
 foram retirados da versão atual. O importador v4, o exportador do clima utilizado,

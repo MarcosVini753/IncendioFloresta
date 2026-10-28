@@ -1,5 +1,21 @@
 # Conferência da integração v4 — 19/10/2026
 
+## Publicação dos setores de 2025 — 27/10/2026
+
+- Incluídos os 208 COGs de 2025 já existentes, sem treinamento ou recálculo
+  de previsões. Cada SHA-256 corresponde ao checkpoint auditado do importador.
+- Conferidos IDs, arquivos/tamanhos do índice, janelas, geotransformação,
+  EPSG:4326, quatro bandas Float32 e NoData -9999 de todos os setores de 2025.
+  Cobertura: 172.340.796 pixels válidos; 1.784.951.449 bytes.
+- O modo local padrão da Vercel inclui 416 setores, 208 por ano. Os modos
+  agregado e remoto também se aplicam aos dois anos.
+- Oito testes de sincronização aprovados, incluindo setor de 2025 ausente
+  sem substituir as cópias geradas, publicação remota por ano e retorno ao
+  modo agregado sem remover os dados canônicos.
+- TypeScript e build com `VERCEL=1` aprovados. Conferidos os 416 COGs no
+  `dist` por nomes e tamanhos do índice, metadados idênticos aos canônicos e
+  `deployment.json` local nos dois anos. Produtos históricos fora do build.
+
 ## Ampliação para 2025 e seletor anual
 
 - Importados os GeoTIFFs finais próprios de 2025, sem treino ou previsão local:
@@ -76,5 +92,5 @@ incendio/.venv/bin/python frontend/scripts/smoke-professor-v4.py --url http://12
 ~~~
 
 O script usa Playwright/Chromium e Rasterio locais. Na publicação atual os
-setores de 2026 são versionados; somente os de 2025 permanecem ignorados.
-O build padrão inclui 30 m em 2026 e mantém 2025 agregado.
+setores de 2025 e 2026 são versionados: 208 por ano. O build padrão inclui
+30 m nos dois anos, além das respectivas malhas agregadas.

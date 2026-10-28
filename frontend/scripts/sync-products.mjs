@@ -6,12 +6,11 @@ const frontendRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '..',
 )
-// O repositório inclui somente os COGs de 2026. O ano de 2025 é sempre agregado.
+// O repositório inclui os COGs de 2025 e 2026; ambos são publicados por padrão.
 const remoteBase = process.env.RISK_RASTER_BASE_URL?.trim()
 const rasterMode =
   process.env.RISK_RASTER_MODE ||
   (remoteBase ? 'remote' : 'local')
-const modeForYear = (year) => year === 2026 ? rasterMode : 'aggregated'
 if (!['local', 'remote', 'aggregated'].includes(rasterMode))
   throw new Error('RISK_RASTER_MODE deve ser local, remote ou aggregated.')
 if ((rasterMode === 'remote') !== Boolean(remoteBase))
@@ -92,7 +91,7 @@ for (const product of products.filter((item) =>
         entry.url !== `sectors/${entry.id}.tif`
       )
         throw new Error('URL de setor inválida')
-      if (modeForYear(manifest.year) === 'local') {
+      if (rasterMode === 'local') {
         const file = await stat(path.join(riskRoot, entry.url))
         if (!file.isFile() || file.size !== entry.bytes)
           throw new Error(`setor incompleto: ${entry.id}`)
@@ -130,7 +129,7 @@ for (const product of products) {
   await mkdir(path.dirname(destination), { recursive: true })
   const isRisk = product.target.includes('/risk/')
   const year = Number(path.basename(source))
-  const productMode = modeForYear(year)
+  const productMode = rasterMode
   await cp(source, destination, {
     recursive: true,
     dereference: true,
@@ -167,5 +166,5 @@ if (rasterMode === 'aggregated')
   )
 else
   console.log(
-    `Raster de 30 m em 2026: ${rasterMode === 'remote' ? 'servido externamente; confira CORS e HTTP Range na origem' : '208 setores versionados incluídos'}. Risco de 2025 permanece agregado.`,
+    `Raster de 30 m em 2025 e 2026: ${rasterMode === 'remote' ? 'servido externamente; confira CORS e HTTP Range na origem' : '208 setores versionados por ano incluídos'}.`,
   )

@@ -49,10 +49,9 @@ incednido/
 entrega_professor_v2/
 incendio/resultados/risco_professor_v2/
 
-# Entrega v4: insumos recebidos e setores de 2025 permanecem locais.
+# Entrega v4: insumos recebidos e checkpoints permanecem locais.
 entrega_professor_v4/
 incendio/resultados/risco_professor_v4/
-incendio/produtos/risco/v4/2025/sectors/
 incendio/produtos/risco/v4/.2025-staging/
 incendio/produtos/risco/v4/.2026-staging/
 
