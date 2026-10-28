@@ -16,18 +16,18 @@ from pathlib import Path
 import numpy as np
 from pyproj import Geod
 
-from pipeline import geo
-from risco_anual.geometria import clip_boundary, clip_ring, geometry_bounds
+from risco_anual_v4 import climate_geometry as geo
+from risco_anual_v4.climate_geometry import clip_boundary, clip_ring, geometry_bounds
 import rasterio
 import re
 from datetime import date, timedelta
 
 BASE = Path(__file__).resolve().parent
-GRID_SOURCE = BASE / "produtos/risco/v1/2025/aggregated/mapa.geojson"
+GRID_SOURCE = BASE / "produtos/clima/v1/2025/grid.geojson"
 OUTPUT = BASE / "produtos/clima/v1/2025"
 YEAR = 2025
 DATES = [(date(YEAR, 1, 1) + timedelta(days=i)).isoformat() for i in range(365)]
-DATA_ROOT = BASE.parent / "incednido/4_bases_de_dados/novos"
+DATA_ROOT = BASE.parent / "entrega_professor_v4/4_bases_de_dados/novos"
 HUMIDITY = DATA_ROOT / "Umidade_Relativa_Diaria_Acre_2016_2026.tif"
 RAINFALL = DATA_ROOT / "Precipitacao_13h_Diaria_Acre_2016_2026.tif"
 SCARS = DATA_ROOT / "Cicatrizes_Acre_2006_2025.tif"

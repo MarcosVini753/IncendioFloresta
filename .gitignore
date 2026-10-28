@@ -49,10 +49,16 @@ incednido/
 entrega_professor_v2/
 incendio/resultados/risco_professor_v2/
 
-# Entrega v4: mapas recebidos e setores raster reproduzíveis permanecem locais.
+# Entrega v4: insumos recebidos e setores de 2025 permanecem locais.
 entrega_professor_v4/
 incendio/resultados/risco_professor_v4/
-incendio/produtos/risco/v4/2026/sectors/
 incendio/produtos/risco/v4/2025/sectors/
 incendio/produtos/risco/v4/.2025-staging/
 incendio/produtos/risco/v4/.2026-staging/
+
+# Produtos históricos retirados do conteúdo versionado, preservados localmente.
+/data/raw/inpe/
+/incendio/produtos/clima/v1/2015/
+/incendio/produtos/risco/v1/
+/incendio/produtos/risco/v2/
+/incendio/produtos/suscetibilidade/

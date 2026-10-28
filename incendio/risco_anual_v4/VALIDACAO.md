@@ -75,5 +75,6 @@ Para repetir a conferência breve, com o build servido por npm run preview:
 incendio/.venv/bin/python frontend/scripts/smoke-professor-v4.py --url http://127.0.0.1:4173
 ~~~
 
-O script usa Playwright/Chromium e Rasterio locais. Os setores raster ignorados
-pelo Git precisam estar presentes antes de sincronizar e compilar o frontend.
+O script usa Playwright/Chromium e Rasterio locais. Na publicação atual os
+setores de 2026 são versionados; somente os de 2025 permanecem ignorados.
+O build padrão inclui 30 m em 2026 e mantém 2025 agregado.

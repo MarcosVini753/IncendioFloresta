@@ -20,7 +20,8 @@ A versão v2 foi preservada em `archive/risk-v2-before-professor-v4`.
 ## Preparar e executar
 
 Os dois GeoTIFFs finais de cada ano ficam em `entrega_professor_v4/mapas_geotiff`.
-O pacote recebido e os setores raster gerados são locais e ignorados pelo Git.
+O pacote recebido e os setores de 2025 permanecem locais e ignorados pelo Git.
+Os **208 setores de 2026 são versionados**, totalizando cerca de 1,67 GiB.
 
 ~~~bash
 python3 -m venv incendio/.venv  # apenas se o ambiente ainda não existir
@@ -37,13 +38,24 @@ máscaras, domínios e cobertura; grava 208 setores COG sem alterar os valores
 e agrega 172.340.796 pixels em 6.393 grupos de 5 km. Checkpoints permitem
 retomada. O produto ativo só é substituído após a auditoria.
 
-Código, manifesto, índice e grade agregada são versionados. Os COGs devem
-ser gerados ou fornecidos separadamente ao preparar uma nova instalação.
-No modo local, `predev` e `prebuild` conferem todos os setores antes de copiar
-o produto. Na Vercel, sem URL externa, o build publica apenas os grupos de 5 km,
-com aviso no mapa e sem transição para pixels indisponíveis. Para habilitar 30 m
-na publicação, hospede os setores separadamente e configure
-`RISK_RASTER_BASE_URL`; veja os modos de distribuição no README do frontend.
+O checkout inclui tudo que o frontend precisa: `npm install` e `npm run build`
+não executam Python nem precisam dos GeoTIFFs brutos. O build publica **2026 em
+30 m** e mantém **2025 apenas agregado**, inclusive na Vercel. Os setores de
+2025 não são enviados, mesmo quando existem localmente.
+
+Os pipelines e produtos históricos de INPE, Perigo, Suscetibilidade e Risco v1/v2
+foram retirados da versão atual. O importador v4, o exportador do clima utilizado,
+as referências cartográficas e os produtos ativos permanecem. Produtos históricos
+locais são ignorados; o código removido pode ser recuperado pelo Git.
+
+Para a Vercel, mantenha `RISK_RASTER_MODE=local` ou remova a variável para usar
+esse padrão. Remova uma eventual `RISK_RASTER_BASE_URL` se quiser os setores
+incluídos no próprio site. O modo `aggregated` permanece disponível como opção
+explícita para compilar sem rasters. Arquivos em `public` e `dist` são cópias
+geradas e não são versionados.
+
+A limpeza reduz o conteúdo atual enviado e compilado; **não reescreve o histórico
+Git** nem remove deployments anteriores da Vercel.
 
 Veja [produtos e proveniência](incendio/PRODUTOS_WEB.md) e
 [frontend e publicação](frontend/README.md).

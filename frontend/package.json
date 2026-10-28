@@ -4,13 +4,13 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "predev": "node scripts/sync-susceptibility.mjs",
+    "predev": "node scripts/sync-products.mjs",
     "dev": "vite",
-    "prebuild": "node scripts/sync-susceptibility.mjs",
+    "prebuild": "node scripts/sync-products.mjs",
     "build": "tsc -b && vite build",
     "postbuild": "node scripts/prune-unused-products.mjs",
     "test": "vitest run",
-    "test:sync": "node --test scripts/sync-susceptibility.node-test.mjs",
+    "test:sync": "node --test scripts/sync-products.node-test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

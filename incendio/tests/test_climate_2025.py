@@ -3,7 +3,7 @@ import json
 import unittest
 import numpy as np
 import exportar_clima_2025 as climate
-from pipeline import geo
+from risco_anual_v4 import climate_geometry as geo
 
 class Climate2025Test(unittest.TestCase):
     @classmethod
@@ -24,6 +24,7 @@ class Climate2025Test(unittest.TestCase):
                 for matrix in self.matrices.values():
                     self.assertTrue(all(day[i] == [None, None, None] for day in matrix["values"]))
 
+    @unittest.skipUnless(climate.HUMIDITY.exists() and climate.RAINFALL.exists(), "Insumos climáticos brutos são opcionais e locais.")
     def test_sampled_spatial_statistics_match_rasters(self):
         selected = next(i for i, n in enumerate(self.manifest["n_valid_pixels"]) if n >= 5)
         feature = self.grid["features"][selected]

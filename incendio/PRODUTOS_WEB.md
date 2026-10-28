@@ -59,7 +59,7 @@ Cada diretório `incendio/produtos/risco/v4/2025/` e `incendio/produtos/risco/v4
 - `grid.geojson`: grupos de 5 km em UTM 19S, com geometria em EPSG:4326.
 - `boundary.geojson`: limite de referência do Acre.
 - `index.json`: geotransformação original, bandas e setores.
-- `sectors/AC-V4-RxxxCxxx.tif`: COGs gerados, **ignorados pelo Git**.
+- `sectors/AC-V4-RxxxCxxx.tif`: COGs gerados; **2026 é versionado** e 2025 permanece local/ignorado.
 
 Cada grupo guarda `value_<modelo>`, `percentile_<modelo>`,
 `n_source_pixels`, `centroid`, `aggregation: mean` e
@@ -102,19 +102,26 @@ O produto anterior é movido para backup local antes da troca. Uma falha na
 troca tenta restaurar esse backup. Não remover caches/backups para resolver
 uma interrupção sem conferir o estado da geração.
 
-No modo local, o script npm verifica presença e tamanho de todos os setores
-antes de alterar `frontend/public`; uma instalação recém-clonada precisa gerar
-ou receber os COGs ignorados para esse modo. Alternativamente, use
-`RISK_RASTER_MODE=aggregated` para publicar somente grupos de 5 km, ou
-`RISK_RASTER_BASE_URL` para servir os setores de uma origem externa. Na Vercel,
-sem essa URL, o padrão é agregado, com aviso explícito da ausência de 30 m.
-O modo externo não envia setores nem verifica a hospedagem remota.
+O script npm `sync-products.mjs` inclui somente os setores de **2026** no
+modo local, padrão também na Vercel. O GitHub fornece os 208 COGs; o build não
+executa importação científica e não precisa das entradas brutas. O ano de
+**2025 é sempre agregado**, mesmo se seus setores existirem localmente.
 
-O build inclui Risco v4/2025, Risco v4/2026 e Clima v1/2025; inclui os setores
-somente no modo local. Não inclui Risco v2, Perigo, Alerta ou INPE.
-Os manifestos científicos permanecem intactos: `deployment.json` gerado por
-ano contém a configuração de distribuição, separada da proveniência.
-Consulte [configuração do frontend](../frontend/README.md).
+Para compilar sem rasters de nenhum ano, use `RISK_RASTER_MODE=aggregated`.
+A origem externa opcional `RISK_RASTER_BASE_URL` aplica-se somente a 2026.
+`deployment.json`, gerado separadamente do manifesto, registra a distribuição
+de cada ano. O build inclui Risco v4/2025 agregado, Risco v4/2026 e Clima v1/2025.
+
+Os códigos de treino e produtos v1/v2, suscetibilidade, INPE e Perigo foram
+retirados da árvore atual. O exportador `exportar_clima_2025.py` utiliza somente
+`risco_anual_v4/climate_geometry.py`, Rasterio e o grid climático ativo; não
+depende da geometria dos antigos produtos de risco. O clima pronto permanece
+versionado. Insumos e resultados históricos ignorados continuam locais e os
+códigos removidos são recuperáveis pelo histórico/branches de arquivo.
+
+A limpeza não reescreve o histórico Git. As cópias geradas não incluem produtos
+antigos, mas os commits anteriores continuam fazendo parte da história do
+repositório.
 
 Os produtos observados de 2025 permanecem independentes. A sobreposição de
 cicatrizes do inventário anterior inicia desativada no Risco de 2026 e exige

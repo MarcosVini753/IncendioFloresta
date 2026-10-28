@@ -101,59 +101,42 @@ npm run preview
 ~~~
 
 Predev/prebuild conferem e sincronizam somente Risco v4/2025, Risco v4/2026 e Clima v1/2025.
-COGs em setores, public e dist são gerados e ignorados pelo Git. Código,
-manifesto, índice e GeoJSON agregado são versionados. Consulte
+Os COGs de 2026 são versionados; os de 2025 e as cópias public/dist continuam
+ignorados. Código, manifesto, índice e GeoJSON agregado são versionados. Consulte
 [geração e proveniência](../incendio/PRODUTOS_WEB.md).
 
 ## Build na Vercel e distribuição dos pixels de 30 m
 
-Os setores dos dois anos somam aproximadamente **3,4 GiB** e são ignorados pelo
-Git. Portanto um checkout limpo não os contém: não é um erro do Node ou do ano
-2025. Não execute o importador científico no build da Vercel nem adicione esses
-arquivos grandes ao Git para contornar o problema.
+O GitHub inclui **somente os 208 COGs de 2026**, aproximadamente 1,67 GiB,
+com menos de 15 MiB por arquivo. O checkout fornece tudo para publicar o detalhe
+de 30 m de 2026 sem treinamento nem geração científica no build.
 
-A sincronização aceita estas variáveis de ambiente (definidas antes de `npm run
-build`, por exemplo nas configurações do projeto na Vercel):
+**2025 permanece agregado em todos os modos**, sem copiar seus setores locais.
+A comparação anual, a consulta agregada e o Clima de 2025 continuam disponíveis.
 
-| Modo | Configuração | Resultado |
+| Modo de 2026 | Configuração antes do build | Resultado |
 | --- | --- | --- |
-| Local | `RISK_RASTER_MODE=local` | Confere todos os setores e inclui-os em `public` e `dist`; falha se algum estiver ausente ou truncado. Padrão fora da Vercel. |
-| Agregado | `RISK_RASTER_MODE=aggregated` | Publica metadados, grupos de 5 km e Clima; não inclui TIFFs e informa no site a indisponibilidade de 30 m. Padrão com `VERCEL=1`, sem URL externa. |
-| Externo | `RISK_RASTER_BASE_URL=https://seu-host.example/risk/v4/` | Habilita os pixels originais via URL externa; não copia TIFFs para o build. Seleciona `remote` automaticamente. |
+| Local, padrão também na Vercel | Sem variáveis, ou `RISK_RASTER_MODE=local` | Inclui os setores versionados de 2026. |
+| Apenas agregado | `RISK_RASTER_MODE=aggregated` | Não copia TIFFs de nenhum ano. |
+| Origem externa | `RISK_RASTER_BASE_URL=https://seu-host.example/risk/v4/` | Busca 2026 externamente; não copia TIFFs. |
 
-Para testar localmente o mesmo build agregado da Vercel:
+Se o painel da Vercel tiver `RISK_RASTER_MODE=aggregated`, remova a variável ou
+troque para `local` para habilitar os setores incluídos. Remova
+`RISK_RASTER_BASE_URL` ao usar o modo local. URLs externas precisam ser públicas,
+sem credenciais/query/fragmento, com CORS e preferencialmente HTTP Range.
 
-~~~bash
-cd frontend
-RISK_RASTER_MODE=aggregated npm run build
-~~~
+Cada sincronização gera `deployment.json` por ano, sem alterar o manifesto
+científico. O ano agregado não cria worker raster, não solicita TIFFs e mantém
+a malha visível ao aproximar. O modo local confere presença e tamanho dos COGs
+de 2026 antes de tocar nas cópias geradas.
 
-Para habilitar o raster completo, **primeiro publique os setores existentes** em
-um armazenamento estático escolhido. Preserve a estrutura:
+Verificações focadas: `npm run test:sync`, `npm test` e `npm run build`.
+Os testes de sincronização incluem um checkout sem setores de 2025, como o
+enviado ao GitHub. A exceção do MapLibre no prebundle do Vite permanece.
 
-~~~text
-https://seu-host.example/risk/v4/2025/sectors/AC-V4-R000C000.tif
-https://seu-host.example/risk/v4/2026/sectors/AC-V4-R000C000.tif
-...todos os setores de cada index.json
-~~~
+## Código mantido
 
-Configure `RISK_RASTER_BASE_URL` com o prefixo **anterior ao ano**, público, sem
-credenciais, query ou fragmento. O servidor deve permitir CORS para o domínio do
-site e requisições GET com `Range` (idealmente responder 206). Se responder 200,
-o worker admite apenas a leitura integral limitada a um setor do tamanho declarado
-no índice. Não são usadas URLs privadas nem chaves no navegador. O build remoto
-não verifica a disponibilidade da origem externa; confira as URLs e CORS após o
-upload. Nenhum upload, novo serviço de hospedagem ou deploy é feito pelo script.
-
-Cada sincronização gera `deployment.json` por ano, separado do manifesto
-científico, registrando o modo e a URL raster. O loader valida essa configuração;
-o modo agregado não cria worker raster, solicita TIFFs ou oculta a malha ao
-aproximar. Modelos, anos, valores e produtos científicos não são modificados.
-Para voltar ao modo completo local, execute `npm run dev` sem essas variáveis.
-
-Validação focada: `npm run test:sync` verifica checkout sem setores, URL externa,
-inclusão local e configuração inválida; `npm test -- src/data/riskV4.test.ts`
-verifica o contrato de publicação e o carregamento agregado.
-
-A v2 está preservada em `archive/risk-v2-before-professor-v4`.
-Esta atualização não cria hospedagem, backend nem upload automático dos COGs.
+A árvore atual contém a interface v4, seus controles, comparação anual,
+referências municipais, Clima e produtos ativos. Componentes e loaders dos
+protótipos antigos foram removidos. O código anterior continua recuperável pelo
+histórico Git e pelas branches de arquivo, sem reescrever commits remotos.
