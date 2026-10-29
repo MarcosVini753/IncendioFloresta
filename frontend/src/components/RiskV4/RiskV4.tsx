@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import {
   Map as MapLibreMap,
   NavigationControl,
@@ -22,6 +22,8 @@ import {
 import type { ScarCollection } from '../../types/climate'
 import { MapLegend } from '../Legend/MapLegend'
 import { RiskYearComparison } from './RiskYearComparison'
+import { AggregationControl, Calculation, Composition, SummaryValue, summaryNumber } from './Aggregation'
+import { COVERAGE_STOPS, displayGrid, loadAggregationStats, needsStats, parseSummaryMethod, summaryDefinition, summarize, type AggregationStats, type SummaryMethod } from '../../data/riskAggregation'
 import { ACRE_MUNICIPALITY_SEATS } from '../../data/acreMunicipalities'
 import { addMunicipalBoundaryLayer, setMunicipalBoundaryVisibility } from '../../data/municipalBoundaries'
 
@@ -48,6 +50,9 @@ function RiskMap({
   focusPoint,
   comparisonMode,
   showMunicipalBoundaries,
+  method,
+  stats,
+  onNativeChange,
 }: {
   product: RiskV4Product
   model: RiskV4Model
@@ -60,7 +65,14 @@ function RiskMap({
   focusPoint: [number, number] | null
   comparisonMode: boolean
   showMunicipalBoundaries: boolean
+  method: SummaryMethod
+  stats: AggregationStats | null
+  onNativeChange: (native: boolean) => void
 }) {
+  const grid = useMemo(() => displayGrid(product, model, method, stats), [product, model, method, stats])
+  const gridRef = useRef(grid), methodRef = useRef(method)
+  gridRef.current = grid
+  methodRef.current = method
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const updateRef = useRef<(() => void) | null>(null)
@@ -120,9 +132,15 @@ function RiskMap({
     let query: AbortController | null = null
     const tiles = (id: RiskV4Model) => [`${protocol}://${id}/{z}/{x}/{y}`]
     let lastScars: ScarCollection | null = null
+    let lastGrid: typeof grid | null = null
     const update = () => {
       if (!map.getSource('risk-v4-grid')) return
       const native = client !== null && map.getZoom() >= 8.5 && !comparisonRef.current
+      onNativeChange(native)
+      if (lastGrid !== gridRef.current) {
+        lastGrid = gridRef.current
+        ;(map.getSource('risk-v4-grid') as GeoJSONSource).setData(lastGrid)
+      }
       for (const layer of ['risk-v4-fill', 'risk-v4-lines'])
         map.setLayoutProperty(layer, 'visibility', native ? 'none' : 'visible')
       if (client)
@@ -135,26 +153,25 @@ function RiskMap({
       map.setPaintProperty(
         'risk-v4-fill',
         'fill-color',
-        comparisonRef.current ? comparisonColorExpression as never : [
+        comparisonRef.current ? comparisonColorExpression as never : methodRef.current === 'concentration' ? [
+          'interpolate', ['linear'], ['get', 'display_value'],
+          ...COVERAGE_STOPS.flatMap((stop) => [stop.value, stop.color]),
+        ] as never : [
           'step',
-          ['get', `percentile_${modelRef.current}`],
+          ['get', 'display_class'],
           RISK_DISPLAY_CLASSES[0].color,
-          50, RISK_DISPLAY_CLASSES[1].color,
-          70, RISK_DISPLAY_CLASSES[2].color,
-          90, RISK_DISPLAY_CLASSES[3].color,
-          95, RISK_DISPLAY_CLASSES[4].color,
+          1, RISK_DISPLAY_CLASSES[1].color,
+          2, RISK_DISPLAY_CLASSES[2].color,
+          3, RISK_DISPLAY_CLASSES[3].color,
+          4, RISK_DISPLAY_CLASSES[4].color,
         ],
       )
-      const spotlight = comparisonRef.current
+      const spotlight = comparisonRef.current || methodRef.current === 'concentration'
         ? undefined
         : RISK_DISPLAY_CLASSES.find((item) => item.id === highlightRef.current)
       map.setPaintProperty('risk-v4-fill', 'fill-opacity', spotlight ? [
         'case',
-        ['all',
-          ['>=', ['get', `percentile_${modelRef.current}`], spotlight.lower],
-          [spotlight.upper === 100 ? '<=' : '<',
-            ['get', `percentile_${modelRef.current}`], spotlight.upper],
-        ],
+        ['==', ['get', 'display_class'], RISK_DISPLAY_CLASSES.indexOf(spotlight)],
         0.91, 0.16,
       ] as never : comparisonRef.current ? 0.94 : 0.85)
       const choice = selectedRef.current
@@ -221,7 +238,7 @@ function RiskMap({
     }
     updateRef.current = update
     map.on('style.load', () => {
-      map.addSource('risk-v4-grid', { type: 'geojson', data: product.cells })
+      map.addSource('risk-v4-grid', { type: 'geojson', data: gridRef.current })
       map.addSource('risk-v4-boundary', {
         type: 'geojson',
         data: product.boundary,
@@ -401,12 +418,13 @@ function RiskMap({
       updateRef.current = null
       mapRef.current = null
       clientRef.current = null
+      onNativeChange(false)
     }
-  }, [product, onSelect])
+  }, [product, onSelect, onNativeChange])
 
   useEffect(() => {
     updateRef.current?.()
-  }, [model, selected, scars, showScars, highlightClass, comparisonMode])
+  }, [model, selected, scars, showScars, highlightClass, comparisonMode, grid])
   useEffect(() => {
     setMunicipalBoundaryVisibility(mapRef.current, showMunicipalBoundaries)
   }, [showMunicipalBoundaries])
@@ -437,6 +455,7 @@ function RiskMap({
     link.searchParams.set('zoom', map.getZoom().toFixed(2))
     link.searchParams.set('view', 'risk')
     link.searchParams.set('mode', comparisonMode ? 'compare' : 'risk')
+    link.searchParams.set('summary', method)
     try {
       await navigator.clipboard.writeText(link.toString())
       setCopyState('Link copiado')
@@ -457,6 +476,7 @@ function RiskMap({
         highlightClass={highlightClass}
         onHighlightClassChange={onHighlightClassChange}
         comparisonMode={comparisonMode}
+        summaryMethod={method}
       />
       <div className="risk-map-share">
         <button type="button" onClick={() => void shareMap()} disabled={!mapReady}>Compartilhar mapa</button>
@@ -476,13 +496,13 @@ function RiskMap({
             </button>
           </>
         ) : comparisonMode ? (
-          'Comparação de modelos · grupos de 5 km'
+          'Comparação de médias dos percentis · grupos de 5 km'
         ) : product.rasterBase === null ? (
-          'Visualização agregada · grupos de 5 km'
+          `Grupos de 5 km · ${summaryDefinition(method).label}`
         ) : (
           status ||
           (zoom < 8.5
-            ? 'Visualização agregada · grupos de 5 km'
+            ? `Grupos de 5 km · ${summaryDefinition(method).label}`
             : zoom < 12
               ? 'Raster reduzido · consulta a 30 m'
               : 'Resolução original · aproximadamente 30 m')
@@ -498,12 +518,16 @@ function CellPanel({
   model,
   onClear,
   comparisonMode,
+  method,
+  stats,
 }: {
   selection: RiskV4Selection | null
   product: RiskV4Product
   model: RiskV4Model
   onClear: () => void
   comparisonMode: boolean
+  method: SummaryMethod
+  stats: AggregationStats | null
 }) {
   if (!selection)
     return (
@@ -554,26 +578,29 @@ function CellPanel({
       </div>
       {comparisonMode && (
         <div className="risk-model-delta">
-          <span className="eyebrow">Diferença entre os modelos</span>
+          <span className="eyebrow">Diferença entre médias dos percentis</span>
           <strong>{formatRankingDifference(rankDelta)}</strong>
           <p>
-            O valor mostra a distância entre as posições atribuídas pelos dois
-            modelos para esta área. Não mede a mudança do risco nem a chance de incêndio.
+            O valor compara as médias das posições dos pixels no estado,
+            atribuídas pelos dois modelos. Não mede a mudança do risco nem a chance de incêndio.
           </p>
           <div className="risk-delta-pair" role="group" aria-label="Posição dos dois modelos">
-            <div><span>Random Forest</span><strong>{decimal(p.percentile_random_forest)}</strong></div>
-            <div><span>XGBoost</span><strong>{decimal(p.percentile_xgboost)}</strong></div>
+            <div><span>Random Forest</span><strong>{summaryNumber(p.percentile_random_forest)}</strong></div>
+            <div><span>XGBoost</span><strong>{summaryNumber(p.percentile_xgboost)}</strong></div>
           </div>
         </div>
       )}
       {!comparisonMode && <div className="active-score">
         <span className="risk-score-caption">{active.label} · mapa de {product.manifest.year}</span>
-        <span className="risk-score-topline">
-          <strong>{decimal(currentPercentile)}</strong>
+        {selection.kind === 'aggregated' ? <>
+          <small>{method === 'mean' ? 'Percentil médio dos pixels' : summaryDefinition(method).label}</small>
+          <SummaryValue cell={selection.properties} model={model} method={method} stats={stats} />
+        </> : <><span className="risk-score-topline">
+          <strong>{summaryNumber(currentPercentile)}</strong>
           <span className="risk-score-unit">posição<br/>no ranking</span>
         </span>
         <span className="risk-score-class">Classificação nesta área: <b>{currentClass.label}</b></span>
-        <small>Esse número indica a posição relativa da área no mapa, de 0 a 100. Não é a chance de ocorrer um incêndio.</small>
+        <small>O percentil indica a posição do pixel perante o estado, não a chance de um incêndio.</small></>}
         <details className="risk-score-technical">
           <summary>Valor calculado pelo modelo</summary>
           <p>{active.value_label}: {pct(modelValue(p, model))}. {aggregate ? 'Média dos pixels do grupo.' : 'Valor do pixel consultado.'} Valores de modelos diferentes não devem ser comparados como probabilidades equivalentes.</p>
@@ -587,19 +614,22 @@ function CellPanel({
           >
             <dt>{item.label}</dt>
             <dd>
-              <strong>{decimal(percentile(p, item.id))}</strong>
+              <strong>{selection.kind === 'aggregated' ? (() => {
+                const r = summarize(selection.properties, item.id, method, stats)
+                return method === 'mode' ? RISK_DISPLAY_CLASSES[r.classIndex!].label : r.value === null ? 'Indisponível' : `${summaryNumber(r.value)}${method === 'concentration' ? '%' : ''}`
+              })() : decimal(percentile(p, item.id), 2)}</strong>
               <small>
-                {aggregate ? 'Posição média no ranking' : 'Posição no ranking'}
+                {aggregate ? summaryDefinition(method).label : 'Posição no ranking'}
               </small>
-              <small>
-                {item.calibrated
-                  ? 'Valor ajustado pelo estudo'
-                  : 'Valor sem calibração equivalente'}
-              </small>
+              <small>{aggregate ? 'Resumo espacial dos pixels' : 'Índice percentil recebido'}</small>
             </dd>
           </div>
         ))}
       </dl>}
+      {selection.kind === 'aggregated' && <>
+        <Composition cell={selection.properties} model={model} />
+        {!comparisonMode && <Calculation cell={selection.properties} model={model} method={method} stats={stats} />}
+      </>}
       {!comparisonMode && (
         <RiskYearComparison
           year={product.manifest.year}
@@ -609,43 +639,6 @@ function CellPanel({
       )}
       <details className="risk-panel-extra">
         <summary>Informações técnicas desta área</summary>
-      {selection.kind === 'aggregated' && (
-        <section className="risk-class-shares">
-          <h3>Como se distribuem os pixels nesta área</h3>
-          {RISK_DISPLAY_CLASSES.map((category) => {
-            const share = Number(
-              selection.properties[`share_${model}_${category.id}`],
-            )
-            return (
-              <div className="risk-class-share" key={category.id}>
-                <span
-                  className="risk-class-swatch"
-                  style={{ backgroundColor: category.color }}
-                />
-                <span className="risk-class-name">
-                  {category.label}
-                  <small>
-                    índice {category.lower}–
-                    {category.upper === 100 ? '100' : `<${category.upper}`}
-                  </small>
-                </span>
-                <strong>{decimal(share * 100)}%</strong>
-                <small>
-                  {decimal(
-                    Math.round(share * selection.properties.n_source_pixels),
-                    0,
-                  )}{' '}
-                  pixels
-                </small>
-              </div>
-            )
-          })}
-          <p>
-            A contagem de pixels aproxima a proporção da área; são pixels
-            válidos, não incêndios.
-          </p>
-        </section>
-      )}
       <dl className="cell-metrics">
         <div>
           <dt>Treino</dt>
@@ -691,7 +684,7 @@ function CellPanel({
       </dl>
       <p className="cell-details-note">
         {aggregate
-          ? 'A cor classifica a média dos percentis recebidos. Escores e proporções também vêm dos pixels originais.'
+          ? 'A cor representa o resumo escolhido dos pixels originais. Na comparação de modelos, são usadas exclusivamente médias dos percentis.'
           : 'Consulta feita na resolução original, mesmo quando o raster desenhado usa uma versão reduzida.'}{' '}
         Os percentis estaduais do professor são preservados.
       </p>
@@ -781,6 +774,16 @@ export function RiskV4({
   onMunicipalBoundariesChange: (next: boolean) => void
 }) {
   const cache = useRef(new Map<number, RiskV4Product>())
+  const statsCache = useRef(new Map<number, AggregationStats>())
+  const [method, setMethod] = useState<SummaryMethod>(() => parseSummaryMethod(new URLSearchParams(window.location.search).get('summary')))
+  const [stats, setStats] = useState<AggregationStats | null>(null)
+  const [statsLoading, setStatsLoading] = useState(false)
+  const [statsError, setStatsError] = useState('')
+  const [statsAttempt, setStatsAttempt] = useState(0)
+  const [summaryNotice, setSummaryNotice] = useState('')
+  const [native, setNative] = useState(false)
+  const methodRef = useRef(method)
+  methodRef.current = method
   const [product, setProduct] = useState<RiskV4Product | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
@@ -805,6 +808,36 @@ export function RiskV4({
   const [scars, setScars] = useState<ScarCollection | null>(null)
   const [scarError, setScarError] = useState<string | null>(null)
   const [scarAttempt, setScarAttempt] = useState(0)
+  useEffect(() => {
+    setHighlightClass(null)
+  }, [method])
+  useEffect(() => {
+    if (!product || product.manifest.year !== year) return
+    const controller = new AbortController()
+    setStatsError('')
+    const cached = statsCache.current.get(year)
+    if (cached && cached.source_identity === product.manifest.provenance.identity) {
+      setStats(cached)
+      setStatsLoading(false)
+      return () => controller.abort()
+    }
+    setStats(null)
+    setStatsLoading(true)
+    void loadAggregationStats(product, controller.signal).then((result) => {
+      if (controller.signal.aborted) return
+      statsCache.current.set(year, result)
+      setStats(result)
+      setSummaryNotice('')
+    }).catch((reason: unknown) => {
+      if (controller.signal.aborted) return
+      setStatsError(reason instanceof Error ? reason.message : 'Falha nas estatísticas adicionais.')
+      if (needsStats(methodRef.current)) {
+        setSummaryNotice(`${summaryDefinition(methodRef.current).label} indisponível neste ano. Exibindo média dos percentis.`)
+        setMethod('mean')
+      }
+    }).finally(() => { if (!controller.signal.aborted) setStatsLoading(false) })
+    return () => controller.abort()
+  }, [product, year, statsAttempt])
   useEffect(() => {
     const controller = new AbortController()
     setError(null)
@@ -907,6 +940,8 @@ export function RiskV4({
       </section>
     )
   const active = product.manifest.models.find((item) => item.id === model)!
+  const activeStats = stats?.year === year && stats.source_identity === product.manifest.provenance.identity ? stats : null
+  const effectiveMethod = needsStats(method) && !activeStats ? 'mean' : method
   return (
     <>
       <div className="risk-v4-toolbar" aria-label="Configuração do mapa de risco">
@@ -979,6 +1014,7 @@ export function RiskV4({
                   className={comparisonMode ? 'active' : undefined}
                   onClick={() => {
                     setHighlightClass(null)
+                    if (selection?.kind === 'pixel') setSelection(null)
                     setComparisonMode(true)
                   }}
                 >Comparar modelos</button>
@@ -1030,6 +1066,10 @@ export function RiskV4({
           </div>
         </details>
       </div>
+      <AggregationControl method={method} onChange={(next) => { setMethod(next); setSummaryNotice('') }}
+        native={native} comparison={comparisonMode} available={activeStats !== null}
+        loading={statsLoading} error={statsError} retry={() => setStatsAttempt((v) => v + 1)}
+        notice={needsStats(method) && !activeStats ? 'Carregando o resumo escolhido; exibindo a média provisoriamente.' : summaryNotice} />
       {showScars && year !== 2025 && (
         <p className="risk-year-note" role="status">
           <strong>Atenção às datas:</strong> o mapa mostra o risco estimado para 2026;
@@ -1053,6 +1093,9 @@ export function RiskV4({
             focusPoint={focusPoint}
             comparisonMode={comparisonMode}
             showMunicipalBoundaries={showMunicipalBoundaries}
+            method={effectiveMethod}
+            stats={activeStats}
+            onNativeChange={setNative}
           />
         </div>
         <CellPanel
@@ -1061,6 +1104,8 @@ export function RiskV4({
           selection={selection}
           comparisonMode={comparisonMode}
           onClear={() => setSelection(null)}
+          method={effectiveMethod}
+          stats={activeStats}
         />
       </section>
       {comparisonMode && (
@@ -1068,7 +1113,7 @@ export function RiskV4({
           <strong>Como interpretar a comparação</strong>
           <p>Azul: XGBoost colocou a área mais acima em seu ranking. Terracota:
           Random Forest colocou a área mais acima. Tons claros: classificações próximas.
-          A comparação usa apenas os grupos de 5 km do mesmo ano e não indica qual modelo acertou.</p>
+          A comparação usa exclusivamente médias dos percentis nos grupos de 5 km do mesmo ano e não indica qual modelo acertou.</p>
         </div>
       )}
       <Evaluation product={product} model={model} />
@@ -1079,7 +1124,9 @@ export function RiskV4({
           <p>
             {comparisonMode
               ? 'Nesta visualização, as cores mostram diferenças entre o ranking do Random Forest e o do XGBoost para o mesmo ano. Elas não representam probabilidades nem evolução do risco.'
-              : 'As cores comparam as áreas do Acre entre si. Os tons quentes mostram áreas mais altas na classificação do modelo; os verdes, mais baixas. Isso não quer dizer que um incêndio vai acontecer nesses lugares.'}
+              : !native && effectiveMethod === 'concentration'
+                ? 'As cores mostram a fração dos pixels válidos em Alto ou Muito alto. A porcentagem aproxima a cobertura da área, sem representar a chance de um incêndio.'
+                : 'Na visão de 5 km, as cores mostram o resumo espacial escolhido. Ao aproximar, mostram os índices dos pixels recebidos. Tons quentes indicam classes mais altas; não significam que um incêndio acontecerá.'}
           </p>
         </div>
         <details className="risk-methodology">

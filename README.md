@@ -8,6 +8,9 @@ da entrega do professor v4 e observações históricas de **2025**.
 - Seletor de ano: 2026 inicialmente, com alternância para 2025.
 - Risco 2025: treino 2016–2024 e clima de 2024. Risco 2026: treino 2016–2025 e clima de 2025. Nenhum treino ou previsão é executado pelo site.
 - Mapa afastado: grupos de 5 km, coloridos pela classe da média dos percentis.
+- Nove resumos selecionáveis dos grupos: média inicial, moda, mediana,
+  concentração ≥90 e cinco opções analíticas avançadas. Mediana e P75 exatos;
+  comparações entre modelos/anos continuam usando a média dos percentis.
 - Zoom a partir de 8,5: raster progressivo de aproximadamente 30 m; clique sempre consulta o pixel original.
 - Random Forest tem calibração temporal recebida; XGBoost tem correção de amostragem e não é calibrado.
 - Percentil é posição relativa no ranking, sem símbolo de porcentagem. A saída percentual do modelo aparece separadamente.

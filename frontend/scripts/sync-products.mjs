@@ -1,6 +1,7 @@
 import { cp, mkdir, rm, stat, readFile, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { createHash } from 'node:crypto'
 
 const frontendRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -84,6 +85,18 @@ for (const product of products.filter((item) =>
       !index.sectors.length
     )
       throw new Error('manifesto/índice inválido')
+    const summaries = JSON.parse(await readFile(path.join(riskRoot, 'aggregation-stats.json'), 'utf8'))
+    const grid = JSON.parse(await readFile(path.join(riskRoot, 'grid.geojson'), 'utf8'))
+    if (summaries.schema_version !== '1.0' || summaries.product !== 'risk_v4_aggregation_stats' ||
+        summaries.year !== manifest.year || summaries.source_identity !== manifest.provenance?.identity ||
+        summaries.counts?.groups !== grid.features.length || summaries.counts?.source_pixels !== index.valid_pixels ||
+        !summaries.groups || Object.keys(summaries.groups).length !== grid.features.length ||
+        !grid.features.every(({ properties: p }) => summaries.groups[p.id]?.n_source_pixels === p.n_source_pixels))
+      throw new Error('estatísticas derivadas incompatíveis')
+    for (const name of ['manifest.json', 'index.json', 'grid.geojson']) {
+      const hash = createHash('sha256').update(await readFile(path.join(riskRoot, name))).digest('hex')
+      if (summaries.input_sha256?.[name] !== hash) throw new Error(`Estatísticas desatualizadas: ${name}`)
+    }
     for (const entry of index.sectors) {
       if (
         typeof entry.id !== 'string' ||
@@ -99,7 +112,7 @@ for (const product of products.filter((item) =>
     }
   } catch (error) {
     throw new Error(
-      `Produto v4 ausente, inválido ou incompleto em ${riskRoot}. Para pixels locais, execute incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year ${path.basename(riskRoot)} com os GeoTIFFs finais. Para publicar sem COGs locais, use RISK_RASTER_MODE=aggregated; para COGs externos, configure RISK_RASTER_BASE_URL (veja frontend/README.md).`,
+      `Produto v4 ausente, inválido ou incompleto em ${riskRoot}. Para pixels locais, execute incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year ${path.basename(riskRoot)} com os GeoTIFFs finais. Para gerar/atualizar os resumos, execute incendio/.venv/bin/python incendio/risco_anual_v4/exportar_resumos.py --year ${path.basename(riskRoot)}. Para publicar sem COGs locais, use RISK_RASTER_MODE=aggregated; para COGs externos, configure RISK_RASTER_BASE_URL (veja frontend/README.md).`,
       { cause: error },
     )
   }

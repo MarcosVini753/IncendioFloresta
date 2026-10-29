@@ -1,5 +1,6 @@
 import { RISK_DISPLAY_CLASSES } from '../../data/riskDisplayPalette'
 import { COMPARISON_STOPS } from '../../data/riskComparison'
+import { COVERAGE_STOPS, summaryDefinition, type SummaryMethod } from '../../data/riskAggregation'
 
 interface MapLegendProps {
   modelLabel: string
@@ -9,6 +10,7 @@ interface MapLegendProps {
   highlightClass?: string | null
   onHighlightClassChange?: (id: string | null) => void
   comparisonMode?: boolean
+  summaryMethod?: SummaryMethod
 }
 
 export function MapLegend({
@@ -19,9 +21,10 @@ export function MapLegend({
   highlightClass = null,
   onHighlightClassChange,
   comparisonMode = false,
+  summaryMethod = 'mean',
 }: MapLegendProps) {
   const description = aggregated
-    ? 'A cor representa a classificação da média dos pixels de cada área de 5 km.'
+    ? summaryDefinition(summaryMethod).description
     : rasterReduced
       ? 'Ao aproximar, as cores resumem pixels menores.'
       : 'As cores representam a classificação dos pixels individuais.'
@@ -32,7 +35,7 @@ export function MapLegend({
         <section className="map-legend map-legend-comparison" aria-label="Legenda da diferença entre modelos">
           <div className="map-legend-heading">
             <strong>Onde os modelos discordam</strong>
-            <span>Mesmo ano · áreas de 5 km</span>
+            <span>Médias dos percentis · mesmo ano · áreas de 5 km</span>
           </div>
           <div className="risk-difference-scale" role="img" aria-label="Azul indica ranking mais alto no XGBoost; terracota indica ranking mais alto no Random Forest; centro claro indica valores próximos">
             {COMPARISON_STOPS.map((stop) => (
@@ -58,11 +61,20 @@ export function MapLegend({
       </div>
     )
   }
+  if (aggregated && summaryMethod === 'concentration') return <div className="map-legend-stack">
+    <section className="map-legend" aria-label="Legenda de concentração de pixels altos">
+      <strong>Pixels Alto + Muito alto</strong><p>{modelLabel}</p>
+      <div className="aggregation-coverage-gradient" style={{ background: `linear-gradient(to right, ${COVERAGE_STOPS.map((s) => `${s.color} ${s.value}%`).join(', ')})` }} />
+      <div className="legend-scale"><span>0%</span><span>50%</span><span>100%</span></div>
+      <p>Fração dos pixels válidos com índice ≥90. Aproxima a cobertura da área; não é chance de incêndio.</p>
+    </section>
+    {showScars && <div className="scar-legend risk-scar-legend"><strong>Áreas queimadas · 2025</strong><span>Observações históricas independentes.</span></div>}
+  </div>
   return (
     <div className="map-legend-stack">
       <section className="map-legend" aria-label={`Legenda do risco: ${modelLabel}`}>
         <div className="map-legend-heading">
-          <strong>Risco relativo</strong>
+          <strong>{aggregated ? summaryDefinition(summaryMethod).label : 'Risco relativo · pixels'}</strong>
           <span>{modelLabel}</span>
         </div>
         <div className="risk-legend-swatches" aria-hidden="true">
@@ -71,12 +83,12 @@ export function MapLegend({
           ))}
         </div>
         <div className="risk-legend-extremes">
-          <span>Menor posição</span>
-          <span>Maior posição</span>
+          <span>{aggregated && summaryMethod === 'mode' ? 'Muito baixo' : 'Menor índice'}</span>
+          <span>{aggregated && summaryMethod === 'mode' ? 'Muito alto' : 'Maior índice'}</span>
         </div>
         <details className="map-legend-help">
           <summary>Entenda as cores</summary>
-          <p>{description} Os valores indicam posição no ranking, não a chance de um incêndio.</p>
+          <p>{description} {aggregated ? 'As classes descrevem o resumo escolhido, sem recalibrar o modelo.' : 'O percentil indica posição no estado.'} Não é a chance de um incêndio.</p>
           <div className="risk-legend-filter" role="group" aria-label="Destacar uma classe de risco">
             {RISK_DISPLAY_CLASSES.map((riskClass) => (
               <button

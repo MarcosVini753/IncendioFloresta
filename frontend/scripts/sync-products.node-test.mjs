@@ -12,6 +12,7 @@ import {
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 
 async function fixture(t, { sectors = false } = {}) {
   const root = await mkdtemp(path.join(tmpdir(), 'risk-sync-'))
@@ -24,17 +25,22 @@ async function fixture(t, { sectors = false } = {}) {
     await mkdir(dir, { recursive: true })
     await writeFile(
       path.join(dir, 'manifest.json'),
-      JSON.stringify({ schema_version: '4.0', year }),
+      JSON.stringify({ schema_version: '4.0', year, provenance: { identity: `fixture-${year}` } }),
     )
     await writeFile(
       path.join(dir, 'index.json'),
       JSON.stringify({
         year,
+        valid_pixels: 1,
         sectors: [
           { id: 'AC-V4-R000C000', url: 'sectors/AC-V4-R000C000.tif', bytes: 4 },
         ],
       }),
     )
+    await writeFile(path.join(dir, 'grid.geojson'), JSON.stringify({type:'FeatureCollection',features:[{properties:{id:'sample',n_source_pixels:1}}]}))
+    const hashes = {}
+    for (const name of ['manifest.json','index.json','grid.geojson']) hashes[name] = createHash('sha256').update(await readFile(path.join(dir,name))).digest('hex')
+    await writeFile(path.join(dir,'aggregation-stats.json'),JSON.stringify({schema_version:'1.0',product:'risk_v4_aggregation_stats',year,source_identity:`fixture-${year}`,input_sha256:hashes,counts:{groups:1,source_pixels:1},groups:{sample:{n_source_pixels:1}}}))
     if (sectors) {
       await mkdir(path.join(dir, 'sectors'))
       await writeFile(path.join(dir, 'sectors/AC-V4-R000C000.tif'), 'COG!')
@@ -98,6 +104,21 @@ test('remote mode excludes even locally available sectors and preserves year pat
 test('local mode still requires every COG', async (t) => {
   const f = await fixture(t)
   assert.throws(() => f.run(), /Produto v4 ausente/)
+})
+
+test('missing or stale summary product fails preflight in aggregate mode too', async (t) => {
+  const f = await fixture(t)
+  const file = path.join(f.root, 'incendio/produtos/risco/v4/2025/aggregation-stats.json')
+  const original = await readFile(file, 'utf8')
+  await rm(file)
+  assert.throws(() => f.run({ RISK_RASTER_MODE: 'aggregated' }), /exportar_resumos/)
+  const invalid = JSON.parse(original)
+  invalid.year = 2026
+  await writeFile(file, JSON.stringify(invalid))
+  assert.throws(() => f.run({ RISK_RASTER_MODE: 'aggregated' }), /Produto v4 ausente/)
+  await writeFile(file, original)
+  await writeFile(path.join(f.root, 'incendio/produtos/risco/v4/2025/grid.geojson'), '{}')
+  assert.throws(() => f.run({ RISK_RASTER_MODE: 'aggregated' }), /Produto v4 ausente/)
 })
 
 test('local mode copies and validates sectors', async (t) => {

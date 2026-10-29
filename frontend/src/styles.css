@@ -2494,3 +2494,21 @@ body { background: #f5f7f5; }
   border-top: 1px solid #e4ece6;
 }
 .risk-coordinate-panel .risk-coordinate-form { width: fit-content; max-width: 100%; }
+
+.aggregation-control { margin: 12px 0; padding: 14px 18px; border: 1px solid #d9e3de; border-radius: 14px; background: #fff; display: grid; gap: 7px; }
+.aggregation-control select { width: min(100%, 460px); min-height: 42px; padding: 8px; border: 1px solid #b9cec4; border-radius: 7px; background: #fff; color: #193f33; font: inherit; }
+.aggregation-control select:focus-visible { outline: 3px solid #468b65; outline-offset: 2px; }
+.aggregation-control select:disabled { opacity: .65; }
+.aggregation-control small { line-height: 1.5; }
+.aggregation-notice { padding: 8px 10px; border-left: 3px solid #b68125; background: #fff7df; font-size: .82rem; line-height: 1.5; }
+.aggregation-composition { margin: 18px 0; }
+.aggregation-composition-bar { display: flex; height: 16px; overflow: hidden; border-radius: 5px; margin: 12px 0; }
+.aggregation-composition-bar span { height: 100%; }
+.aggregation-composition .risk-class-share { gap: 5px; }
+.aggregation-calculation { padding: 12px 0; border-block: 1px solid #dce6e0; font-size: .85rem; line-height: 1.6; }
+.aggregation-calculation summary { cursor: pointer; font-weight: 650; color: #244d3c; }
+.aggregation-calculation code { display: block; white-space: normal; overflow-wrap: anywhere; padding: 8px; background: #f0f5f1; }
+.aggregation-calculation details { overflow-x: auto; }
+.aggregation-formula-table { width: 100%; font-size: .76rem; border-collapse: collapse; }
+.aggregation-formula-table th, .aggregation-formula-table td { text-align: left; padding: 5px 3px; border-bottom: 1px solid #dce6e0; }
+.aggregation-coverage-gradient { width: 100%; height: 17px; border-radius: 4px; margin: 10px 0; }

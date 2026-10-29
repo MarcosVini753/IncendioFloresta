@@ -14,8 +14,36 @@ A cor representa o índice percentil recebido, de 0 a 100 sem %. As classes
 são fixas: Muito baixo [0,50), Baixo [50,70), Moderado [70,90), Alto [90,95)
 e Muito alto [95,100]. Percentil não é chance de incêndio.
 
-Até zoom 8,5: grupos de 5 km, com cor pela classe da média dos percentis.
-O clique compara médias dos modelos e a proporção dos pixels em cada classe.
+Até zoom 8,5: grupos de 5 km, com média dos percentis inicialmente selecionada.
+O controle **Como resumir os grupos de 5 km?** muda apenas o resumo espacial,
+separadamente da escolha de modelo. O clique mostra o resumo de ambos os modelos
+e a composição original das classes, sempre visível.
+
+### Resumos dos grupos
+
+- Uso principal: média, moda das classes, mediana e concentração de índices ≥90.
+- Análise avançada experimental: P75, média ponderada por área, raridade local,
+  raridade estadual e CDF estadual do valor médio da banda 1.
+
+A média continua como padrão. Moda exibe uma categoria e sua proporção, nunca
+um percentil inventado; empates usam a menor classe. Sem maioria absoluta, o
+painel avisa que o grupo é misto. Concentração tem legenda contínua própria de
+0–100% dos pixels válidos, uma aproximação da cobertura da área.
+
+Mediana e P75 são exatos em relação aos valores recebidos, usando `inverted_cdf`
+(posição `ceil(q*n)`, sem interpolação). Os demais resumos seguem as definições
+do estudo de representatividade. As ponderações não recalibram probabilidades.
+A CDF estadual usa `<=` sobre todos os pixels do ano/modelo; não ranqueia grupos.
+
+O método é mantido ao trocar de ano/modelo e guardado no link `summary=`.
+Ao entrar no raster, o seletor é desativado, preservando a escolha para o retorno
+à visão agregada. Comparações entre modelos e entre anos continuam usando
+exclusivamente médias dos percentis, com identificação explícita.
+
+O produto adicional `aggregation-stats.json` é carregado uma vez por ano e validado
+contra identidade, cobertura, grupos e modelos do produto científico. Sua falha
+mantém média, moda e concentração utilizáveis. Métodos indisponíveis voltam à
+média com aviso e botão para tentar novamente.
 
 A partir de zoom 8,5: o raster é lido por setores COG. Enquanto afastado,
 usa overviews por média; ao aproximar, usa os dados originais de cerca de 30 m.
@@ -102,6 +130,7 @@ npm run preview
 ~~~
 
 Predev/prebuild conferem e sincronizam somente Risco v4/2025, Risco v4/2026 e Clima v1/2025.
+Também verificam os dois produtos de resumos e os hashes de seus metadados de origem.
 Os COGs de 2025 e 2026 são versionados; as cópias public/dist continuam
 ignoradas. Código, manifesto, índice e GeoJSON agregado são versionados. Consulte
 [geração e proveniência](../incendio/PRODUTOS_WEB.md).

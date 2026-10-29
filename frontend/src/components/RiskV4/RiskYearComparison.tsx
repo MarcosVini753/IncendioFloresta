@@ -46,7 +46,7 @@ export function RiskYearComparison({ year, selection, model }: Props) {
       open={open}
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
-      <summary>Comparar esta área com {comparisonYear}</summary>
+      <summary>Comparar médias dos percentis com {comparisonYear}</summary>
       <div className="risk-year-compare-body">
         {!other && !error && <p role="status">Carregando o mapa de {comparisonYear}…</p>}
         {error && <p role="alert">Não foi possível consultar {comparisonYear}: {error}</p>}
@@ -55,17 +55,18 @@ export function RiskYearComparison({ year, selection, model }: Props) {
             <div className="risk-year-comparison-grid">
               <div>
                 <small>{year} · mapa atual</small>
-                <strong>{current.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</strong>
+                <strong>{current.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
               </div>
               <div>
                 <small>{comparisonYear} · mesmo grupo</small>
-                <strong>{previous?.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</strong>
+                <strong>{previous?.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
               </div>
             </div>
+            <p>Esta comparação usa exclusivamente a média dos percentis dos pixels, independentemente do resumo escolhido no mapa.</p>
             <p>
               {Math.abs(gap) < 0.05
-                ? 'A posição relativa permaneceu praticamente igual.'
-                : `No ranking do mapa de ${year}, este grupo aparece ${Math.abs(gap).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} pontos ${gap > 0 ? 'acima' : 'abaixo'} de sua posição no mapa de ${comparisonYear}.`}
+                ? 'O percentil médio permaneceu praticamente igual.'
+                : `A média de ${year} está ${Math.abs(gap).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} pontos ${gap > 0 ? 'acima' : 'abaixo'} da média de ${comparisonYear}.`}
             </p>
             <p className="risk-year-compare-note">
               São mapas de anos diferentes, com treinamentos e referências climáticas
