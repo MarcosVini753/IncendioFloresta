@@ -1,0 +1,9 @@
+# Tabelas detalhadas e exportação PDF são reproduzíveis e permanecem locais.
+/representatividade/grupos_*.csv
+/representatividade/*.pdf
+
+# Figuras pequenas referenciadas pelo relatório; exceções ao *.png de incendio.
+!/representatividade/comparacao_mapas_2026_random_forest.png
+!/representatividade/distribuicao_pixels_e_grupos.png
+!/representatividade/distribuicoes_estaduais.png
+!/representatividade/exemplo_distribuicao.png

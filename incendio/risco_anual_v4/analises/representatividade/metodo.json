@@ -1,0 +1,23 @@
+{
+  "generated_at": "2026-10-28T01:46:39.849752+00:00",
+  "source": "COGs publicados, resolução original, sem treinamento ou alteração dos produtos",
+  "classes": [
+    "Muito baixo",
+    "Baixo",
+    "Moderado",
+    "Alto",
+    "Muito alto"
+  ],
+  "cuts": [
+    50,
+    70,
+    90,
+    95
+  ],
+  "quantile_histogram_width": 0.5,
+  "median_definition": "inverted_cdf (nearest rank); whole-group numerical intervals, exact example",
+  "mode_ties": "lowest class wins; number of ties recorded",
+  "statewide_cdf": "exact <= CDF of band-1 values at each group's mean; changes order of operations AND ties (right CDF versus received histogram mid-bin ranks)",
+  "area_weighting": "WGS84 geodesic area of each native pixel's four corners; near-equal areas locally",
+  "observations": "Descriptive analysis, no probability calibration or predictive validation. Areas approximated by pixel counts except explicitly area-weighted means."
+}

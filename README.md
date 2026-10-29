@@ -70,3 +70,10 @@ Inclui dimensionamento, custos de três anos, limites das estimativas e
 
 O estudo considera que não há equipamento institucional disponível.
 Veja [fontes e instruções para gerar PDF e Word](docs/infraestrutura/LEIA-ME.md).
+
+## Representatividade dos grupos de 5 km
+
+O [estudo da agregação espacial](incendio/risco_anual_v4/analises/representatividade/relatorio.md)
+compara média, classe predominante, mediana e concentração de pixels altos nos
+produtos de 2025 e 2026. Inclui figuras, resumos estatísticos e instruções para
+reproduzir a análise e gerar o PDF localmente.

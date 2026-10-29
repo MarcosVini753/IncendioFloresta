@@ -1,0 +1,1186 @@
+{
+  "year": 2025,
+  "groups": 6393,
+  "valid_pixels": 172340796,
+  "provenance_identity": "dc006767740c763cc07d1e917fa6f597550452c285b812464eba692fe351a48d",
+  "input_sha256": {
+    "grid.geojson": "f1c3bbd15db010d3b9926fc98ec839c2ff5f48ab4180bc505d54d5a1652692ac",
+    "index.json": "e9f3ca31f332e29c9af7ec8fcfda7910d57fa5f35b9adbdef41d417b5a1a1747",
+    "manifest.json": "b9be10f180aa83c3a5c776af2f42ab5dbe7b973fcaba049837d58269f499b142"
+  },
+  "quantile_method": "inverse_empirical_cdf; group values enclosed in 0.5-wide intervals; example exact",
+  "models": {
+    "random_forest": {
+      "native_class_counts": [
+        85281404,
+        35330714,
+        34491747,
+        8621482,
+        8615449
+      ],
+      "native_class_shares_percent": [
+        49.48416508416266,
+        20.500493684617773,
+        20.013686718726774,
+        5.002577567298691,
+        4.999076945194102
+      ],
+      "native_value": {
+        "mean": 1.2172964986921646,
+        "std": 4.919676132468555,
+        "minimum": 0.3984873294830322,
+        "maximum": 75.87940979003906,
+        "noninteger_fraction": 0.9999998201238435,
+        "quantile_intervals": {
+          "0.05": [
+            0.3949116993489742,
+            0.3999447497610978
+          ],
+          "0.25": [
+            0.3949116993489742,
+            0.3999447497610978
+          ],
+          "0.5": [
+            0.3999447497610978,
+            0.4050419451364931
+          ],
+          "0.75": [
+            0.47752927365769116,
+            0.4836152643020435
+          ],
+          "0.9": [
+            0.8659643233600653,
+            0.877000821143634
+          ],
+          "0.95": [
+            2.1827299118429946,
+            2.210548256299404
+          ],
+          "0.99": [
+            25.147800129956043,
+            25.46830252585034
+          ]
+        }
+      },
+      "native_percentile": {
+        "mean": 49.999922349312754,
+        "std": 28.790505656076583,
+        "noninteger_fraction": 0.99999994777789
+      },
+      "comparisons": {
+        "current_mean": {
+          "groups_by_class": [
+            3098,
+            1155,
+            2044,
+            87,
+            9
+          ],
+          "native_pixel_coverage_by_display_class": [
+            48.91669468672989,
+            17.86197389966796,
+            31.862825444997945,
+            1.3058399707054853,
+            0.05266599789872156
+          ],
+          "changed_groups": 0,
+          "higher": 0,
+          "lower": 0,
+          "native_class_agreement_percent": 74.8469996622274,
+          "ordinal_class_absolute_error": 0.31762922227654095,
+          "very_high_pixels_displayed_as_moderate_percent": 76.81070365572357,
+          "display_by_native_class_counts": [
+            [
+              79652119,
+              3561275,
+              792262,
+              132020,
+              165745
+            ],
+            [
+              5040712,
+              19790690,
+              4270398,
+              783070,
+              898598
+            ],
+            [
+              587974,
+              11932487,
+              28789688,
+              6984911,
+              6617587
+            ],
+            [
+              599,
+              46262,
+              634631,
+              697451,
+              871552
+            ],
+            [
+              0,
+              0,
+              4768,
+              24030,
+              61967
+            ]
+          ]
+        },
+        "modal_class": {
+          "groups_by_class": [
+            3327,
+            1332,
+            1520,
+            39,
+            175
+          ],
+          "native_pixel_coverage_by_display_class": [
+            52.65178304038935,
+            20.518188276210584,
+            23.583109132210346,
+            0.5529892063397456,
+            2.6939303448499796
+          ],
+          "changed_groups": 936,
+          "higher": 238,
+          "lower": 698,
+          "native_class_agreement_percent": 77.8515935367967,
+          "ordinal_class_absolute_error": 0.320788102893525,
+          "very_high_pixels_displayed_as_moderate_percent": 49.18456368321605,
+          "display_by_native_class_counts": [
+            [
+              82940910,
+              4392709,
+              2265869,
+              512540,
+              628474
+            ],
+            [
+              1712542,
+              24419696,
+              6190579,
+              1379985,
+              1658407
+            ],
+            [
+              478979,
+              6051036,
+              24561159,
+              5314673,
+              4237471
+            ],
+            [
+              0,
+              35602,
+              295486,
+              389566,
+              232372
+            ],
+            [
+              148973,
+              431671,
+              1178654,
+              1024718,
+              1858725
+            ]
+          ]
+        },
+        "median_class": {
+          "groups_by_class": [
+            3183,
+            1232,
+            1686,
+            269,
+            23
+          ],
+          "native_pixel_coverage_by_display_class": [
+            50.29625661007159,
+            19.06309751522791,
+            26.18323754289727,
+            4.174692914845305,
+            0.28271541695792096
+          ],
+          "changed_groups": 596,
+          "higher": 278,
+          "lower": 318,
+          "native_class_agreement_percent": 76.53932734533731,
+          "ordinal_class_absolute_error": 0.30323338532102406,
+          "very_high_pixels_displayed_as_moderate_percent": 53.89687757422741,
+          "display_by_native_class_counts": [
+            [
+              81277849,
+              3554799,
+              1321354,
+              237524,
+              289443
+            ],
+            [
+              3127673,
+              22696715,
+              5073398,
+              916358,
+              1039350
+            ],
+            [
+              813786,
+              8582544,
+              25691093,
+              5393519,
+              4643458
+            ],
+            [
+              53901,
+              486204,
+              2335257,
+              1959484,
+              2359853
+            ],
+            [
+              8195,
+              10452,
+              70645,
+              114597,
+              283345
+            ]
+          ]
+        },
+        "p75_class": {
+          "groups_by_class": [
+            2860,
+            968,
+            1555,
+            652,
+            358
+          ],
+          "native_pixel_coverage_by_display_class": [
+            45.11872569046275,
+            14.806831343636128,
+            24.14839316397262,
+            10.425833822886602,
+            5.500215979041898
+          ],
+          "changed_groups": 1615,
+          "higher": 1613,
+          "lower": 2,
+          "native_class_agreement_percent": 70.27143706589356,
+          "ordinal_class_absolute_error": 0.3899927675859174,
+          "very_high_pixels_displayed_as_moderate_percent": 24.32147181185798,
+          "display_by_native_class_counts": [
+            [
+              75615279,
+              1614667,
+              405166,
+              54582,
+              68277
+            ],
+            [
+              6321477,
+              17004480,
+              1692962,
+              241134,
+              258158
+            ],
+            [
+              2691560,
+              12415033,
+              21699187,
+              2716349,
+              2095404
+            ],
+            [
+              472645,
+              3286999,
+              7773473,
+              3514323,
+              2920525
+            ],
+            [
+              180443,
+              1009535,
+              2920959,
+              2095094,
+              3273085
+            ]
+          ]
+        },
+        "inverse_local_frequency": {
+          "groups_by_class": [
+            2460,
+            567,
+            3349,
+            12,
+            5
+          ],
+          "native_pixel_coverage_by_display_class": [
+            38.496898900246464,
+            8.557019198170583,
+            52.86129698507369,
+            0.08423542386330861,
+            0.0005494926459548208
+          ],
+          "changed_groups": 1677,
+          "higher": 1560,
+          "lower": 117,
+          "native_class_agreement_percent": 60.515618716302086,
+          "ordinal_class_absolute_error": 0.517504334841299,
+          "very_high_pixels_displayed_as_moderate_percent": 98.91479828851637,
+          "display_by_native_class_counts": [
+            [
+              64023852,
+              2320750,
+              1260,
+              0,
+              0
+            ],
+            [
+              8664149,
+              5908856,
+              158934,
+              7797,
+              7499
+            ],
+            [
+              12593403,
+              27101108,
+              34315681,
+              8569434,
+              8521954
+            ],
+            [
+              0,
+              0,
+              15872,
+              44007,
+              85293
+            ],
+            [
+              0,
+              0,
+              0,
+              244,
+              703
+            ]
+          ]
+        },
+        "inverse_statewide_frequency": {
+          "groups_by_class": [
+            2856,
+            988,
+            2008,
+            521,
+            20
+          ],
+          "native_pixel_coverage_by_display_class": [
+            44.96470063884351,
+            15.205009845724515,
+            31.428936303624827,
+            8.167866997666646,
+            0.23348621414049867
+          ],
+          "changed_groups": 1089,
+          "higher": 1089,
+          "lower": 0,
+          "native_class_agreement_percent": 70.56952725227056,
+          "ordinal_class_absolute_error": 0.3524223248916641,
+          "very_high_pixels_displayed_as_moderate_percent": 48.75527671279814,
+          "display_by_native_class_counts": [
+            [
+              74905224,
+              2345833,
+              201122,
+              18635,
+              21709
+            ],
+            [
+              7157289,
+              16315907,
+              2192485,
+              261970,
+              276784
+            ],
+            [
+              3025793,
+              15447471,
+              26704179,
+              4786950,
+              4200486
+            ],
+            [
+              193098,
+              1216188,
+              5336278,
+              3454654,
+              3876349
+            ],
+            [
+              0,
+              5315,
+              57683,
+              99273,
+              240121
+            ]
+          ]
+        },
+        "statewide_cdf_of_mean_value": {
+          "groups_by_class": [
+            2578,
+            673,
+            1145,
+            1016,
+            981
+          ],
+          "native_pixel_coverage_by_display_class": [
+            40.47629152182864,
+            10.121083576752193,
+            17.69609616982389,
+            16.17972392328976,
+            15.526804808305517
+          ],
+          "changed_groups": 2778,
+          "higher": 2778,
+          "lower": 0,
+          "native_class_agreement_percent": 58.95044084628691,
+          "ordinal_class_absolute_error": 0.6782192360304521,
+          "very_high_pixels_displayed_as_moderate_percent": 5.181099673389048,
+          "display_by_native_class_counts": [
+            [
+              68188390,
+              1556547,
+              11348,
+              642,
+              236
+            ],
+            [
+              7024987,
+              9964153,
+              422868,
+              19554,
+              11194
+            ],
+            [
+              5087381,
+              9515550,
+              14333932,
+              1114355,
+              446375
+            ],
+            [
+              3183447,
+              8638036,
+              10882314,
+              3066004,
+              2114464
+            ],
+            [
+              1797199,
+              5656428,
+              8841285,
+              4420927,
+              6043180
+            ]
+          ]
+        },
+        "area_weighted_mean": {
+          "groups_by_class": [
+            3098,
+            1155,
+            2044,
+            87,
+            9
+          ],
+          "native_pixel_coverage_by_display_class": [
+            48.91669468672989,
+            17.86197389966796,
+            31.862825444997945,
+            1.3058399707054853,
+            0.05266599789872156
+          ],
+          "changed_groups": 0,
+          "higher": 0,
+          "lower": 0,
+          "native_class_agreement_percent": 74.8469996622274,
+          "ordinal_class_absolute_error": 0.31762922227654095,
+          "very_high_pixels_displayed_as_moderate_percent": 76.81070365572357,
+          "display_by_native_class_counts": [
+            [
+              79652119,
+              3561275,
+              792262,
+              132020,
+              165745
+            ],
+            [
+              5040712,
+              19790690,
+              4270398,
+              783070,
+              898598
+            ],
+            [
+              587974,
+              11932487,
+              28789688,
+              6984911,
+              6617587
+            ],
+            [
+              599,
+              46262,
+              634631,
+              697451,
+              871552
+            ],
+            [
+              0,
+              0,
+              4768,
+              24030,
+              61967
+            ]
+          ]
+        }
+      },
+      "diagnostics": {
+        "modal_ties": 1,
+        "no_class_majority": 1174,
+        "high_majority_colored_below_high": 196,
+        "very_high_majority_colored_below_very_high": 14,
+        "max_area_weighting_difference": 0.000989862206679959,
+        "count_poisson_diagnostic": {
+          "subset": "n_source_pixels >= 28000; exploratory heterogeneity, not a formal Poisson test",
+          "groups": 5837,
+          "mean": 2819.459311290046,
+          "variance": 21543567.60554847,
+          "variance_over_mean": 7641.028022387453
+        }
+      },
+      "example": {
+        "id": "AC-5KM-E105N1773",
+        "centroid": [
+          -68.7488771774226,
+          -10.24483665774107
+        ],
+        "pixels": 28560,
+        "counts": [
+          0,
+          5740,
+          6211,
+          2917,
+          13692
+        ],
+        "shares_percent": [
+          0.0,
+          20.098039215686274,
+          21.74719887955182,
+          10.21358543417367,
+          47.94117647058824
+        ],
+        "mean_percentile": 87.08224848846093,
+        "mean_value_percent": 9.213976846038461,
+        "median": 93.93486022949219,
+        "p75": 97.87151336669922,
+        "p90": 99.21200561523438,
+        "class_mean_percentiles": [
+          null,
+          64.84147645106299,
+          81.05416146976862,
+          92.31386797894834,
+          98.02600001592299
+        ],
+        "modal_class": "Muito alto",
+        "share_high_or_very_high": 58.15476190476191,
+        "area_weighted_mean": 87.08214253667703,
+        "inverse_local_frequency_mean": 84.05887647892573,
+        "inverse_statewide_frequency_mean": 93.45349293448045,
+        "statewide_cdf_of_mean_value": 97.7605888509416
+      }
+    },
+    "xgboost": {
+      "native_class_counts": [
+        86174924,
+        34461243,
+        34465601,
+        8620500,
+        8618528
+      ],
+      "native_class_shares_percent": [
+        50.002626191885525,
+        19.99598690492296,
+        19.998515615536554,
+        5.002007766054417,
+        5.000863521600539
+      ],
+      "native_value": {
+        "mean": 1.3508014489579654,
+        "std": 4.738312374664595,
+        "minimum": 0.0006511073443107307,
+        "maximum": 87.6051025390625,
+        "noninteger_fraction": 0.9999998723459534,
+        "quantile_intervals": {
+          "0.05": [
+            0.002621199038635242,
+            0.0026546055619755364
+          ],
+          "0.25": [
+            0.008840971692004944,
+            0.008953647655495937
+          ],
+          "0.5": [
+            0.02834653633489665,
+            0.028707805820246863
+          ],
+          "0.75": [
+            0.5701642722807478,
+            0.5774308727139853
+          ],
+          "0.9": [
+            2.63936832236573,
+            2.673006408663309
+          ],
+          "0.95": [
+            6.569011164762649,
+            6.652731562017393
+          ],
+          "0.99": [
+            25.792889644274872,
+            26.12161354399205
+          ]
+        }
+      },
+      "native_percentile": {
+        "mean": 49.999999969413935,
+        "std": 28.867512914550918,
+        "noninteger_fraction": 0.9999999709877166
+      },
+      "comparisons": {
+        "current_mean": {
+          "groups_by_class": [
+            3058,
+            1201,
+            2022,
+            104,
+            8
+          ],
+          "native_pixel_coverage_by_display_class": [
+            48.13470514549555,
+            18.691437980824922,
+            31.565455343492786,
+            1.5723096694992635,
+            0.03609186068747182
+          ],
+          "changed_groups": 0,
+          "higher": 0,
+          "lower": 0,
+          "native_class_agreement_percent": 74.68102329062005,
+          "ordinal_class_absolute_error": 0.3195481643243658,
+          "very_high_pixels_displayed_as_moderate_percent": 75.15485242955641,
+          "display_by_native_class_counts": [
+            [
+              79274316,
+              2719786,
+              717397,
+              104888,
+              139347
+            ],
+            [
+              5937546,
+              20077633,
+              4523063,
+              763803,
+              910928
+            ],
+            [
+              959285,
+              11605240,
+              28465800,
+              6892590,
+              6477242
+            ],
+            [
+              3777,
+              58574,
+              756630,
+              843930,
+              1046820
+            ],
+            [
+              0,
+              10,
+              2711,
+              15289,
+              44191
+            ]
+          ]
+        },
+        "modal_class": {
+          "groups_by_class": [
+            3337,
+            1265,
+            1568,
+            50,
+            173
+          ],
+          "native_pixel_coverage_by_display_class": [
+            52.66770730245438,
+            19.594011855440193,
+            24.39802703475966,
+            0.688454520077765,
+            2.6517992872680014
+          ],
+          "changed_groups": 909,
+          "higher": 234,
+          "lower": 675,
+          "native_class_agreement_percent": 77.94819457605384,
+          "ordinal_class_absolute_error": 0.319859431309578,
+          "very_high_pixels_displayed_as_moderate_percent": 49.468586747063995,
+          "display_by_native_class_counts": [
+            [
+              83412295,
+              3984027,
+              2248507,
+              471588,
+              651529
+            ],
+            [
+              1698236,
+              23585692,
+              5724746,
+              1237279,
+              1522523
+            ],
+            [
+              886449,
+              6438875,
+              24986170,
+              5472796,
+              4263464
+            ],
+            [
+              926,
+              45723,
+              356595,
+              477307,
+              305937
+            ],
+            [
+              177018,
+              406926,
+              1149583,
+              961530,
+              1875075
+            ]
+          ]
+        },
+        "median_class": {
+          "groups_by_class": [
+            3210,
+            1191,
+            1696,
+            268,
+            28
+          ],
+          "native_pixel_coverage_by_display_class": [
+            50.6027046550255,
+            18.46910524888141,
+            26.433185326589765,
+            4.130832725177851,
+            0.36417204432547706
+          ],
+          "changed_groups": 608,
+          "higher": 257,
+          "lower": 351,
+          "native_class_agreement_percent": 76.65084127846316,
+          "ordinal_class_absolute_error": 0.30417981822481543,
+          "very_high_pixels_displayed_as_moderate_percent": 53.82218402028746,
+          "display_by_native_class_counts": [
+            [
+              81955286,
+              3300749,
+              1399685,
+              241801,
+              311583
+            ],
+            [
+              2986682,
+              22107932,
+              4926015,
+              839147,
+              970027
+            ],
+            [
+              1149217,
+              8565884,
+              25731086,
+              5470295,
+              4638680
+            ],
+            [
+              71320,
+              460972,
+              2303764,
+              1945591,
+              2337463
+            ],
+            [
+              12419,
+              25706,
+              105051,
+              123666,
+              360775
+            ]
+          ]
+        },
+        "p75_class": {
+          "groups_by_class": [
+            2895,
+            920,
+            1552,
+            659,
+            367
+          ],
+          "native_pixel_coverage_by_display_class": [
+            45.551102131383914,
+            14.139405506749544,
+            24.227590314715734,
+            10.37636207738068,
+            5.705539969770129
+          ],
+          "changed_groups": 1594,
+          "higher": 1580,
+          "lower": 14,
+          "native_class_agreement_percent": 70.61430016837105,
+          "ordinal_class_absolute_error": 0.3909822373107758,
+          "very_high_pixels_displayed_as_moderate_percent": 23.636368066565428,
+          "display_by_native_class_counts": [
+            [
+              76476203,
+              1475821,
+              424744,
+              56593,
+              69771
+            ],
+            [
+              5654755,
+              16677903,
+              1604028,
+              204105,
+              227173
+            ],
+            [
+              3180353,
+              12253283,
+              21583169,
+              2700110,
+              2037107
+            ],
+            [
+              559168,
+              3004483,
+              7873833,
+              3560358,
+              2884863
+            ],
+            [
+              304445,
+              1049753,
+              2979827,
+              2099334,
+              3399614
+            ]
+          ]
+        },
+        "inverse_local_frequency": {
+          "groups_by_class": [
+            2515,
+            626,
+            3237,
+            10,
+            5
+          ],
+          "native_pixel_coverage_by_display_class": [
+            39.31751887695818,
+            9.39406534944866,
+            51.254703500383044,
+            0.033162780564156155,
+            0.0005494926459548208
+          ],
+          "changed_groups": 1598,
+          "higher": 1420,
+          "lower": 178,
+          "native_class_agreement_percent": 62.26852694819861,
+          "ordinal_class_absolute_error": 0.5051268128064118,
+          "very_high_pixels_displayed_as_moderate_percent": 99.4900289237327,
+          "display_by_native_class_counts": [
+            [
+              66041810,
+              1717008,
+              1307,
+              0,
+              0
+            ],
+            [
+              6750039,
+              8096596,
+              1294087,
+              29892,
+              19193
+            ],
+            [
+              13383075,
+              24647639,
+              33156006,
+              8571468,
+              8574576
+            ],
+            [
+              0,
+              0,
+              14201,
+              18928,
+              24024
+            ],
+            [
+              0,
+              0,
+              0,
+              212,
+              735
+            ]
+          ]
+        },
+        "inverse_statewide_frequency": {
+          "groups_by_class": [
+            2829,
+            1014,
+            2018,
+            509,
+            23
+          ],
+          "native_pixel_coverage_by_display_class": [
+            44.42679723958104,
+            15.684381543647971,
+            31.688658325565584,
+            7.918328867414538,
+            0.2818340237908615
+          ],
+          "changed_groups": 1063,
+          "higher": 1063,
+          "lower": 0,
+          "native_class_agreement_percent": 70.67568725863376,
+          "ordinal_class_absolute_error": 0.3547899477033865,
+          "very_high_pixels_displayed_as_moderate_percent": 49.7697286590007,
+          "display_by_native_class_counts": [
+            [
+              74663697,
+              1676990,
+              194760,
+              13057,
+              16992
+            ],
+            [
+              7621431,
+              16683164,
+              2234547,
+              237957,
+              253489
+            ],
+            [
+              3639660,
+              15033740,
+              26781365,
+              4868303,
+              4289418
+            ],
+            [
+              248968,
+              1057938,
+              5171964,
+              3391914,
+              3775727
+            ],
+            [
+              1168,
+              9411,
+              82965,
+              109269,
+              282902
+            ]
+          ]
+        },
+        "statewide_cdf_of_mean_value": {
+          "groups_by_class": [
+            2650,
+            818,
+            1748,
+            921,
+            256
+          ],
+          "native_pixel_coverage_by_display_class": [
+            41.541872070731294,
+            12.499845944775606,
+            27.419651699879584,
+            14.53854315492427,
+            4.000087129689247
+          ],
+          "changed_groups": 2124,
+          "higher": 2124,
+          "lower": 0,
+          "native_class_agreement_percent": 64.62383114442619,
+          "ordinal_class_absolute_error": 0.47012294175547387,
+          "very_high_pixels_displayed_as_moderate_percent": 19.652126209951398,
+          "display_by_native_class_counts": [
+            [
+              70249206,
+              1329503,
+              14238,
+              530,
+              116
+            ],
+            [
+              8072527,
+              12505758,
+              874565,
+              47903,
+              41581
+            ],
+            [
+              6139451,
+              14916332,
+              21718134,
+              2787605,
+              1693724
+            ],
+            [
+              1390478,
+              5003942,
+              9950859,
+              4363791,
+              4346771
+            ],
+            [
+              323262,
+              705708,
+              1907805,
+              1420671,
+              2536336
+            ]
+          ]
+        },
+        "area_weighted_mean": {
+          "groups_by_class": [
+            3058,
+            1201,
+            2022,
+            104,
+            8
+          ],
+          "native_pixel_coverage_by_display_class": [
+            48.13470514549555,
+            18.691437980824922,
+            31.565455343492786,
+            1.5723096694992635,
+            0.03609186068747182
+          ],
+          "changed_groups": 0,
+          "higher": 0,
+          "lower": 0,
+          "native_class_agreement_percent": 74.68102329062005,
+          "ordinal_class_absolute_error": 0.3195481643243658,
+          "very_high_pixels_displayed_as_moderate_percent": 75.15485242955641,
+          "display_by_native_class_counts": [
+            [
+              79274316,
+              2719786,
+              717397,
+              104888,
+              139347
+            ],
+            [
+              5937546,
+              20077633,
+              4523063,
+              763803,
+              910928
+            ],
+            [
+              959285,
+              11605240,
+              28465800,
+              6892590,
+              6477242
+            ],
+            [
+              3777,
+              58574,
+              756630,
+              843930,
+              1046820
+            ],
+            [
+              0,
+              10,
+              2711,
+              15289,
+              44191
+            ]
+          ]
+        }
+      },
+      "diagnostics": {
+        "modal_ties": 2,
+        "no_class_majority": 1160,
+        "high_majority_colored_below_high": 185,
+        "very_high_majority_colored_below_very_high": 20,
+        "max_area_weighting_difference": 0.0008966988437748569,
+        "count_poisson_diagnostic": {
+          "subset": "n_source_pixels >= 28000; exploratory heterogeneity, not a formal Poisson test",
+          "groups": 5837,
+          "mean": 2817.489977728285,
+          "variance": 21851721.453942727,
+          "variance_over_mean": 7755.74061546851
+        }
+      },
+      "example": {
+        "id": "AC-5KM-E105N1773",
+        "centroid": [
+          -68.7488771774226,
+          -10.24483665774107
+        ],
+        "pixels": 28560,
+        "counts": [
+          0,
+          5542,
+          5602,
+          3357,
+          14059
+        ],
+        "shares_percent": [
+          0.0,
+          19.404761904761905,
+          19.61484593837535,
+          11.754201680672269,
+          49.22619047619048
+        ],
+        "mean_percentile": 87.80417881372595,
+        "mean_value_percent": 12.356596167927155,
+        "median": 94.55328369140625,
+        "p75": 98.63277435302734,
+        "p90": 99.42085266113281,
+        "class_mean_percentiles": [
+          null,
+          63.732662068081005,
+          82.13369450676403,
+          92.60098937270114,
+          98.40717375258971
+        ],
+        "modal_class": "Muito alto",
+        "share_high_or_very_high": 60.98039215686275,
+        "area_weighted_mean": 87.80405346694153,
+        "inverse_local_frequency_mean": 84.21862992503397,
+        "inverse_statewide_frequency_mean": 93.93521117312918,
+        "statewide_cdf_of_mean_value": 97.10067197322218
+      }
+    }
+  }
+}
