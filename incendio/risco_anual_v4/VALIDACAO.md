@@ -1,5 +1,33 @@
 # Conferência da integração v4 — 19/10/2026
 
+## Resumos selecionáveis — 29/10/2026
+
+- Gerados `aggregation-stats.json` de 2025 e 2026 a partir dos 416 COGs,
+  na resolução original. Cada ano cobre 6.393 grupos e 172.340.796 pixels.
+- Médias/proporções coincidem com o produto publicado. Os arquivos registram
+  hashes dos COGs, metadados e exportador. Os insumos científicos permanecem
+  inalterados; o frontend não executa previsões ou treinamento.
+- Quantis exatos por partição de arquivos temporários, `inverted_cdf`, sem
+  interpolação. Auditoria independente por janelas nos dois modelos/anos:
+  grupos pequenos, caso do relatório e grupo cruzando fronteira de setores.
+- Exemplo RF/2026: média 87,241988; mediana 94,031158; P75 98,169739;
+  moda Muito alto (48,2843%); concentração 58,6765%; raridade local 84,113244;
+  raridade estadual 93,580131; CDF estadual do valor médio 98,096719.
+- Três testes Python focados, 25 Vitest e nove testes de sincronização
+  aprovados. Cobrem quantis pequenos/empates, classes vazias, produtos reais,
+  identidade/ano/modelos/contagens inválidos e erros HTTP/rede.
+- Conferência breve em Chromium local com mapa-base real: nove métodos,
+  números do exemplo, modelo, anos, cache, compartilhamento com `summary=`,
+  comparações pela média, consulta original de 30 m e retorno ao agregado.
+- Arquivo adicional com HTTP 503: média/moda/concentração permanecem
+  disponíveis, método adicional retorna à média com aviso e nova tentativa
+  recupera as opções. Conferência móvel a 390 px e nenhum erro JS não tratado.
+- TypeScript e build aprovados. Conferidos os dois JSONs derivados no `dist`,
+  idênticos aos canônicos e servidos com HTTP 200 pela prévia local; os 416
+  COGs continuam incluídos com nomes/tamanhos do índice. Conferência adicional
+  no build local de produção: média, moda, concentração, mediana e fórmula
+  com a posição real do quantil, sem erros JavaScript.
+
 ## Publicação dos setores de 2025 — 27/10/2026
 
 - Incluídos os 208 COGs de 2025 já existentes, sem treinamento ou recálculo

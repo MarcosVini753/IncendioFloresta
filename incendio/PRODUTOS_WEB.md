@@ -59,6 +59,8 @@ Cada diretório `incendio/produtos/risco/v4/2025/` e `incendio/produtos/risco/v4
 - `grid.geojson`: grupos de 5 km em UTM 19S, com geometria em EPSG:4326.
 - `boundary.geojson`: limite de referência do Acre.
 - `index.json`: geotransformação original, bandas e setores.
+- `aggregation-stats.json`: produto derivado, contrato próprio 1.0, resumos
+  exatos e metodologias por grupo/modelo; não altera os campos do GeoJSON.
 - `sectors/AC-V4-RxxxCxxx.tif`: COGs gerados e versionados nos dois anos.
 
 Cada grupo guarda `value_<modelo>`, `percentile_<modelo>`,
@@ -85,6 +87,47 @@ por essa diferença. Polígonos visuais são recortados pelo limite quando há
 interseção válida. A seleção individual usa o retângulo original do pixel.
 
 ## Retomada e publicação
+
+### Gerar os resumos selecionáveis
+
+```bash
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 \
+incendio/.venv/bin/python incendio/risco_anual_v4/exportar_resumos.py
+```
+
+`--year 2025` ou `--year 2026` restringe a geração. O exportador lê os COGs
+versionados, sem treino, previsão ou dependência dos CSVs exploratórios locais.
+Usa aproximadamente 1,3 GiB temporários em disco por ano para os percentis,
+com leitura por setor e partição por grupo para os quantis. Remove os arquivos
+temporários ao concluir ou interromper por exceção e publica o JSON atomicamente.
+
+Mediana/P75 usam a posição `ceil(q*n)` e não são aproximações de histograma.
+Área usa cantos geodésicos WGS84. Classes ocupadas recebem pesos iguais na
+raridade local; raridade estadual usa inversos das frequências daquele ano e
+modelo. A CDF da banda 1 conta valores menores ou iguais à média do grupo e tem
+outra convenção de empates que o histograma do professor. Classes vazias ficam
+com média `null` e são excluídas das ponderações.
+
+Os arquivos registram hashes de manifesto, grade, índice e todos os COGs,
+identidade do produto de origem e hash do exportador executado. A auditoria
+confere contagens/médias/proporções e relê janelas independentes de grupos,
+incluindo grupo pequeno, caso do relatório e fronteira entre setores.
+Uma reimportação dos mapas requer regenerar os resumos antes do build.
+
+Os resumos dos dois anos são versionados e sincronizados automaticamente;
+o build não executa Python. A validação npm rejeita arquivo ausente ou obsoleto
+antes de substituir as cópias geradas. COGs, manifesto científico e GeoJSON
+original permanecem inalterados.
+
+Verificação focada dos cálculos:
+
+```bash
+incendio/.venv/bin/python -m unittest incendio.risco_anual_v4.test_resumos
+cd frontend
+npm test
+npm run test:sync
+npm run build
+```
 
 Checkpoints locais em `incendio/resultados/risco_professor_v4` vinculam cada
 setor aos hashes dos mapas, relatórios, limite e versão do contrato de importação.
