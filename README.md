@@ -59,3 +59,14 @@ Git** nem remove deployments anteriores da Vercel.
 
 Veja [produtos e proveniência](incendio/PRODUTOS_WEB.md) e
 [frontend e publicação](frontend/README.md).
+
+## Planejamento de infraestrutura
+
+O [estudo de contratação versus servidor próprio](docs/infraestrutura/estudo-servidor-risco-v4-2026-10-26.md)
+compara publicação direta dos COGs (opção B) e servidor de mapas (opção C),
+separando retreino anual, aplicação dos modelos e exposição dos resultados.
+Inclui dimensionamento, custos de três anos, limites das estimativas e
+[memória de cálculo reproduzível](docs/infraestrutura/calcular_cenarios.py).
+
+O estudo considera que não há equipamento institucional disponível.
+Veja [fontes e instruções para gerar PDF e Word](docs/infraestrutura/LEIA-ME.md).

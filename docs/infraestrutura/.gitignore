@@ -1,0 +1,4 @@
+# Exportações e resultados reproduzíveis; fontes e relatório Markdown versionados.
+*.pdf
+*.docx
+/resultados_calculo.json
