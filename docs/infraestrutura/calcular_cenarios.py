@@ -13,7 +13,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 HERE = Path(__file__).resolve().parent
 
-
 def calculate():
     raw = json.loads((HERE / 'premissas_e_cotacoes.json').read_text())
     p = {k: D(str(v)) if isinstance(v, (int, float)) else v for k, v in raw['premissas'].items()}
