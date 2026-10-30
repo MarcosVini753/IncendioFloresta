@@ -628,7 +628,7 @@ function CellPanel({
       </dl>}
       {selection.kind === 'aggregated' && <>
         <Composition cell={selection.properties} model={model} />
-        {!comparisonMode && <Calculation cell={selection.properties} model={model} method={method} stats={stats} />}
+        {!comparisonMode && <Calculation cell={selection.properties} model={model} method={method} stats={stats} year={product.manifest.year} />}
       </>}
       {!comparisonMode && (
         <RiskYearComparison

@@ -36,6 +36,12 @@ do estudo de representatividade. As ponderações não recalibram probabilidades
 A CDF estadual usa `<=` sobre todos os pixels do ano/modelo; não ranqueia grupos.
 
 O método é mantido ao trocar de ano/modelo e guardado no link `summary=`.
+O seletor oferece uma explicação técnica mesmo sem seleção. No painel do grupo,
+**Como este resultado foi calculado?** reúne definições, notação, procedimento,
+memória numérica da área, pesos e contribuições por classe, tratamento de NoData,
+regra de atribuição espacial, convenções de quantis/empates, classificação da cor
+e proveniência com hashes e referências metodológicas. Essas seções são
+expansíveis; os valores publicados e os nove métodos permanecem os mesmos.
 Ao entrar no raster, o seletor é desativado, preservando a escolha para o retorno
 à visão agregada. Comparações entre modelos e entre anos continuam usando
 exclusivamente médias dos percentis, com identificação explícita.

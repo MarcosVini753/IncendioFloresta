@@ -2512,3 +2512,28 @@ body { background: #f5f7f5; }
 .aggregation-formula-table { width: 100%; font-size: .76rem; border-collapse: collapse; }
 .aggregation-formula-table th, .aggregation-formula-table td { text-align: left; padding: 5px 3px; border-bottom: 1px solid #dce6e0; }
 .aggregation-coverage-gradient { width: 100%; height: 17px; border-radius: 4px; margin: 10px 0; }
+
+.aggregation-method-overview { max-width: 900px; padding-top: 5px; font-size: .86rem; line-height: 1.65; }
+.aggregation-method-overview > summary { width: fit-content; color: #244d3c; cursor: pointer; font-weight: 650; }
+.aggregation-method-overview[open] { margin-top: 7px; border-top: 1px solid #e0e9e3; }
+.aggregation-calculation > details { margin-top: 12px; border: 1px solid #dce6e0; border-radius: 6px; padding: 10px; }
+.aggregation-calculation h4, .aggregation-method-overview h4 { font-size: .86rem; margin: 16px 0 6px; }
+.aggregation-method-explanation ol { padding-left: 22px; }
+.aggregation-method-explanation li { margin-bottom: 8px; }
+.aggregation-equation code { display: block; background: #edf4ef; border-radius: 5px; padding: 10px; white-space: pre-wrap; overflow-wrap: anywhere; color: #204333; }
+.aggregation-symbols, .aggregation-context { display: grid; gap: 9px; margin: 12px 0; }
+.aggregation-symbols > div { display: grid; grid-template-columns: minmax(48px, auto) minmax(0, 1fr); gap: 10px; }
+.aggregation-symbols dt, .aggregation-context dt { font-weight: 650; color: #244d3c; }
+.aggregation-symbols dd, .aggregation-context dd { margin: 0; overflow-wrap: anywhere; }
+.aggregation-context > div { padding-bottom: 5px; border-bottom: 1px solid #edf1ee; }
+.aggregation-context dt { font-size: .75rem; }
+.aggregation-calculation .aggregation-table-scroll { max-width: 100%; overflow-x: auto; margin: 12px 0; }
+.aggregation-table-scroll:focus-visible { outline: 2px solid #468b65; outline-offset: 2px; }
+.aggregation-formula-table caption { text-align: left; font-weight: 650; margin-bottom: 7px; }
+.aggregation-formula-table th[scope="row"] { font-weight: 500; }
+.aggregation-worked-example .aggregation-formula-table { min-width: 560px; }
+.aggregation-calculation code { white-space: pre-wrap; }
+.aggregation-precision-note { padding: 9px; background: #f5f7f4; font-size: .76rem; }
+.aggregation-input-hashes code { overflow-wrap: anywhere; font-size: .7rem; }
+.aggregation-input-hashes dd { margin: 5px 0 12px; }
+.aggregation-calculation a { color: #225d43; text-decoration: underline; }
