@@ -25,13 +25,14 @@ async function fixture(t, { sectors = false } = {}) {
     await mkdir(dir, { recursive: true })
     await writeFile(
       path.join(dir, 'manifest.json'),
-      JSON.stringify({ schema_version: '6.0', year, provenance: { identity: `fixture-${year}` } }),
+      JSON.stringify({ schema_version: '6.0', year, models: [{ id: 'random_forest' }, { id: 'xgboost' }], provenance: { identity: `fixture-${year}` } }),
     )
     await writeFile(
       path.join(dir, 'index.json'),
       JSON.stringify({
         year,
         valid_pixels: 1,
+        bands: ['value_random_forest', 'percentile_random_forest', 'value_xgboost', 'percentile_xgboost'],
         sectors: [
           { id: 'AC-V6-R000C000', url: 'sectors/AC-V6-R000C000.tif', bytes: 4 },
         ],
@@ -40,7 +41,7 @@ async function fixture(t, { sectors = false } = {}) {
     await writeFile(path.join(dir, 'grid.geojson'), JSON.stringify({type:'FeatureCollection',features:[{properties:{id:'sample',n_source_pixels:1}}]}))
     const hashes = {}
     for (const name of ['manifest.json','index.json','grid.geojson']) hashes[name] = createHash('sha256').update(await readFile(path.join(dir,name))).digest('hex')
-    await writeFile(path.join(dir,'aggregation-stats.json'),JSON.stringify({schema_version:'1.0',product:'risk_v6_aggregation_stats',year,source_identity:`fixture-${year}`,input_sha256:hashes,counts:{groups:1,source_pixels:1},groups:{sample:{n_source_pixels:1}}}))
+    await writeFile(path.join(dir,'aggregation-stats.json'),JSON.stringify({schema_version:'1.0',product:'risk_v6_aggregation_stats',year,source_identity:`fixture-${year}`,input_sha256:hashes,counts:{groups:1,source_pixels:1},groups:{sample:{n_source_pixels:1,models:{random_forest:{},xgboost:{}}}}}))
     if (sectors) {
       await mkdir(path.join(dir, 'sectors'))
       await writeFile(path.join(dir, 'sectors/AC-V6-R000C000.tif'), 'COG!')

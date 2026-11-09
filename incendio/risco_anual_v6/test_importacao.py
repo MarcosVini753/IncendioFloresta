@@ -29,9 +29,10 @@ class ImportTests(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         read_sources([source], Window(0, 0, 3, 1))
 
-    def test_two_float32_bands_are_preserved_exactly_including_mask(self):
+    def test_four_float32_bands_are_preserved_exactly_including_mask(self):
         data = np.array([[[.12345678, -9999], [0, 9.876543]],
                          [[94.031158, -9999], [50, 98.169739]]], dtype="float32")
+        data = np.concatenate([data, data + np.where(data == -9999, 0, .00001).astype("float32")])
         mask = data[0] != -9999
         affine = from_origin(-71, -8, .000269, .000269)
         with tempfile.TemporaryDirectory() as tmp:

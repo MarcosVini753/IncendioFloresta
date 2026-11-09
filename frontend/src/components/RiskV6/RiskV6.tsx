@@ -103,7 +103,7 @@ function RiskMap({
     if (client)
       addProtocol(protocol, async (request, controller) => {
         const match = request.url.match(
-          /:\/\/(random_forest)\/(\d+)\/(\d+)\/(\d+)/,
+          /:\/\/(random_forest|xgboost)\/(\d+)\/(\d+)\/(\d+)/,
         )
         if (!match) throw new Error('Endereço raster inválido.')
         return {
@@ -139,7 +139,7 @@ function RiskMap({
       for (const layer of ['risk-v6-fill', 'risk-v6-lines'])
         map.setLayoutProperty(layer, 'visibility', native ? 'none' : 'visible')
       if (client)
-        for (const id of ['random_forest'] as const)
+        for (const id of ['random_forest', 'xgboost'] as const)
           map.setLayoutProperty(
             `risk-v6-${id}`,
             'visibility',
@@ -257,7 +257,7 @@ function RiskMap({
         paint: { 'line-color': 'rgba(255,255,255,.28)', 'line-width': 0.4 },
       }, labelLayerId)
       if (client)
-        for (const id of ['random_forest'] as const) {
+        for (const id of ['random_forest', 'xgboost'] as const) {
           map.addSource(`risk-v6-${id}`, {
             type: 'raster',
             tiles: tiles(id),
@@ -431,7 +431,7 @@ function RiskMap({
   useEffect(() => {
     if (!retry) return
     setError(null)
-    for (const id of ['random_forest'] as const) {
+    for (const id of ['random_forest', 'xgboost'] as const) {
       const source = mapRef.current?.getSource(`risk-v6-${id}`) as
         | RasterTileSource
         | undefined
@@ -578,9 +578,19 @@ function CellPanel({
         <small>O percentil indica a posição do pixel perante o estado, não a chance de um incêndio.</small></>}
         <details className="risk-score-technical">
           <summary>Valor calculado pelo modelo</summary>
-          <p>{active.value_label}: {pct(modelValue(p, model))}. {aggregate ? 'Média dos pixels do grupo.' : 'Valor do pixel consultado.'} A calibração foi recebida da equipe científica e pode superestimar ou subestimar anos atípicos.</p>
+          <p>{active.value_label}: {pct(modelValue(p, model))}. {aggregate ? 'Média dos pixels do grupo.' : 'Valor do pixel consultado.'} {active.calibrated ? 'A calibração temporal foi recebida da equipe científica e pode errar a frequência de anos atípicos.' : 'O XGBoost não tem calibração temporal; seu escore percentual não é uma probabilidade calibrada.'}</p>
         </details>
       </div>
+      <dl className="model-score-list" aria-label="Resultados dos dois modelos">
+        {product.manifest.models.map((item) => <div key={item.id} className={item.id === model ? 'active' : undefined}>
+          <dt>{item.label}</dt><dd>
+            {selection.kind === 'aggregated'
+              ? <SummaryValue cell={selection.properties} model={item.id} method={method} stats={stats} />
+              : <strong>{summaryNumber(percentile(p, item.id))} · índice percentil</strong>}
+            <small>{item.value_label}: {pct(modelValue(p, item.id))}</small>
+          </dd>
+        </div>)}
+      </dl>
       {selection.kind === 'aggregated' && <>
         <Composition cell={selection.properties} model={model} />
         <Calculation cell={selection.properties} model={model} method={method} stats={stats} year={product.manifest.year} />
@@ -740,7 +750,7 @@ export function RiskV6({
   const [product, setProduct] = useState<RiskV6Product | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
-  const model: RiskV6Model = 'random_forest'
+  const [model, setModel] = useState<RiskV6Model>(() => new URLSearchParams(window.location.search).get('model') === 'xgboost' ? 'xgboost' : 'random_forest')
   const [selection, setSelection] = useState<RiskV6Selection | null>(null)
   // Callback estável: não reinicializa o mapa a cada seleção.
   const handleMapSelection = useCallback((next: RiskV6Selection | null) => {
@@ -757,7 +767,7 @@ export function RiskV6({
   const [scarAttempt, setScarAttempt] = useState(0)
   useEffect(() => {
     setHighlightClass(null)
-  }, [method])
+  }, [method, model])
   useEffect(() => {
     if (!product || product.manifest.year !== year) return
     const controller = new AbortController()
@@ -896,7 +906,11 @@ export function RiskV6({
           {yearControl}
           <section className="control-group risk-model-control">
             <span className="control-label">Modelo de risco</span>
-            <strong className="risk-fixed-model">Random Forest · F30C</strong>
+            <div className="layer-selector" role="group" aria-label="Modelo de risco">
+              {product.manifest.models.map((item) => <button type="button" key={item.id}
+                className={model === item.id ? 'active' : undefined} aria-pressed={model === item.id}
+                onClick={() => setModel(item.id)}>{item.label}</button>)}
+            </div>
             <small>Modelo sem clima · entrega v6</small>
           </section>
           <section className="control-group risk-scar-control">
@@ -1054,7 +1068,7 @@ export function RiskV6({
             <p>
               Os arquivos GeoTIFF finais foram publicados sem recalcular as
               estimativas nem os percentis. O Random Forest recebeu calibração
-              temporal da equipe científica. O cenário é F30C, sem clima, com cobertura pelo limite do IBGE de 2024. Este produto é experimental e não
+              temporal da equipe científica. O XGBoost tem correção de amostragem e não é calibrado. O cenário é F30C, sem clima, com cobertura pelo limite do IBGE de 2024. Este produto é experimental e não
               oferece alertas operacionais de incêndio.
             </p>
           </details>

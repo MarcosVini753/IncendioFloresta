@@ -60,7 +60,7 @@ export function validateRiskV6Manifest(v: unknown): RiskV6Manifest {
   const models = v.models
   if (
     !Array.isArray(models) ||
-    models.length !== 1 ||
+    models.length !== 2 ||
     !RISK_V6_MODELS.every((id) => {
       const model = models.find((m) => record(m) && m.id === id)
       return (
@@ -236,6 +236,8 @@ export function validateRiskV6Product(
       JSON.stringify([
         'value_random_forest',
         'percentile_random_forest',
+        'value_xgboost',
+        'percentile_xgboost',
       ]) ||
     index.valid_pixels !== count ||
     !Array.isArray(index.sectors) ||

@@ -74,7 +74,7 @@ export default function App() {
         >
           <span className="product-tab-title">Risco anual <span className="tab-year">{riskYear}</span></span>
           <span className="product-tab-description">
-            Random Forest · paisagem e histórico de fogo
+            Random Forest e XGBoost · cenário F30C
           </span>
         </button>
         <button

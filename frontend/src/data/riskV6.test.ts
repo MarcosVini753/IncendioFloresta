@@ -23,6 +23,9 @@ describe('publicação independente dos setores raster', () => {
       (v: any) => { v.training.climate_year = 2025 },
       (v: any) => { v.training.predictors.pop() },
       (v: any) => { v.models.push({ ...v.models[0], id: 'xgboost' }) },
+      (v: any) => { v.models.pop() },
+      (v: any) => { v.models[1].calibrated = true },
+      (v: any) => { v.models[1].calibration = [0, 1] },
       (v: any) => { v.territory.year = 2007 },
     ]) {
       const value = JSON.parse(manifestText)
@@ -31,7 +34,7 @@ describe('publicação independente dos setores raster', () => {
     }
   })
 
-  it('exige cobertura completa e duas bandas RF, sem misturar setores v4', () => {
+  it('exige cobertura completa e quatro bandas RF/XGBoost, sem misturar setores v4', () => {
     const manifest = validateRiskV6Manifest(JSON.parse(manifestText))
     const grid = JSON.parse(gridText), boundary = JSON.parse(boundaryText)
     for (const mutate of [
@@ -46,7 +49,7 @@ describe('publicação independente dos setores raster', () => {
     }
     const product = validateRiskV6Product(manifest, grid, boundary, JSON.parse(indexText))
     expect(product.manifest.counts.source_pixels).toBe(185661783)
-    expect(product.index.bands).toEqual(['value_random_forest', 'percentile_random_forest'])
+    expect(product.index.bands).toEqual(['value_random_forest', 'percentile_random_forest', 'value_xgboost', 'percentile_xgboost'])
   })
 
   it('explica produto ausente e falha HTTP sem aceitar HTML do fallback SPA', async () => {

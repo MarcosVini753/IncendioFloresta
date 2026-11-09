@@ -79,6 +79,8 @@ for (const product of products.filter((item) =>
     )
     if (
       manifest.schema_version !== '6.0' ||
+      JSON.stringify(manifest.models?.map((m) => m.id)) !== JSON.stringify(['random_forest', 'xgboost']) ||
+      JSON.stringify(index.bands) !== JSON.stringify(['value_random_forest', 'percentile_random_forest', 'value_xgboost', 'percentile_xgboost']) ||
       manifest.year !== Number(path.basename(riskRoot)) ||
       index.year !== manifest.year ||
       !Array.isArray(index.sectors) ||
@@ -91,7 +93,7 @@ for (const product of products.filter((item) =>
         summaries.year !== manifest.year || summaries.source_identity !== manifest.provenance?.identity ||
         summaries.counts?.groups !== grid.features.length || summaries.counts?.source_pixels !== index.valid_pixels ||
         !summaries.groups || Object.keys(summaries.groups).length !== grid.features.length ||
-        !grid.features.every(({ properties: p }) => summaries.groups[p.id]?.n_source_pixels === p.n_source_pixels))
+        !grid.features.every(({ properties: p }) => summaries.groups[p.id]?.n_source_pixels === p.n_source_pixels && ['random_forest', 'xgboost'].every((id) => summaries.groups[p.id]?.models?.[id])))
       throw new Error('estatísticas derivadas incompatíveis')
     for (const name of ['manifest.json', 'index.json', 'grid.geojson']) {
       const hash = createHash('sha256').update(await readFile(path.join(riskRoot, name))).digest('hex')

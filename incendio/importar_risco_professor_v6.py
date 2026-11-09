@@ -26,9 +26,9 @@ from shapely import transform as transform_geometry
 BASE = Path(__file__).resolve().parent
 REPO = BASE.parent
 CACHE = BASE / "resultados/risco_professor_v6"
-MODELS = ("random_forest",)
-NAMES = ("RandomForest",)
-LABELS = ("Random Forest",)
+MODELS = ("random_forest", "xgboost")
+NAMES = ("RandomForest", "XGBoost")
+LABELS = ("Random Forest", "XGBoost")
 CLASSES = (
     ("very_low", "Muito baixo", 0, 50, "#1a9850"),
     ("low", "Baixo", 50, 70, "#91cf60"),
@@ -36,7 +36,7 @@ CLASSES = (
     ("high", "Alto", 90, 95, "#fc8d59"),
     ("very_high", "Muito alto", 95, 100, "#d73027"),
 )
-CONTRACT = "6.0-import-1"
+CONTRACT = "6.0-import-2"
 SIZE = 1024
 GRID_METRES = 5000
 EXPECTED_PIXELS = 185661783
@@ -114,7 +114,7 @@ def aggregate_block(values, mask, window, affine, project):
 
 def verify_cog(path, values, mask, affine):
     with rasterio.open(path) as cog:
-        if cog.count != 2 or cog.crs.to_epsg() != 4326 or cog.transform != affine:
+        if cog.count != 2 * len(MODELS) or cog.crs.to_epsg() != 4326 or cog.transform != affine:
             raise ValueError(f"Contrato COG inválido: {path}")
         if cog.tags(ns="IMAGE_STRUCTURE").get("LAYOUT") != "COG":
             raise ValueError(f"Arquivo não é COG: {path}")
@@ -134,7 +134,7 @@ def write_cog(path, values, mask, affine, year):
         driver="GTiff",
         width=mask.shape[1],
         height=mask.shape[0],
-        count=2,
+        count=2 * len(MODELS),
         dtype="float32",
         crs="EPSG:4326",
         transform=affine,
@@ -148,6 +148,8 @@ def write_cog(path, values, mask, affine, year):
         dst.descriptions = (
             "random_forest_value_pct",
             "random_forest_percentile",
+            "xgboost_value_pct",
+            "xgboost_percentile",
         )
         dst.update_tags(year=year, scenario="F30C", source_values="unchanged")
     try:
@@ -201,7 +203,7 @@ def build(source_root, reports_root, year=2026):
             raise ValueError(f"Relatório incompatível: {report}")
         if bool(metadata["calibracao"]) != (model == "random_forest"):
             raise ValueError("Semântica de calibração inesperada.")
-        if metadata["colunas"] != PREDICTORS or len(metadata["calibracao"]) != 2:
+        if metadata["colunas"] != PREDICTORS or (model == "random_forest" and (len(metadata["calibracao"]) != 2 or not np.isfinite(metadata["calibracao"]).all())) or (model == "xgboost" and metadata["calibracao"] is not None):
             raise ValueError("Preditores ou calibração F30C incompatíveis.")
         reports.append(metadata)
         evaluation[model] = []
@@ -274,6 +276,7 @@ def build(source_root, reports_root, year=2026):
             tags = source.tags()
             if (
                 source.count != 2
+                or source.dtypes != ("float32", "float32")
                 or source.crs.to_epsg() != 4326
                 or source.descriptions != ("probabilidade_pct", "indice_risco")
             ):
@@ -366,9 +369,9 @@ def build(source_root, reports_root, year=2026):
                         stats = dict(
                             keys=np.array([], dtype=np.int64),
                             counts=np.array([], dtype=np.int64),
-                            sums=np.empty((0, 2)),
+                            sums=np.empty((0, 2 * len(MODELS))),
                             centres=np.empty((0, 2)),
-                            classes=np.empty((0, 1, 5)),
+                            classes=np.empty((0, len(MODELS), 5)),
                         )
                     np.savez_compressed(checkpoint, **stats)
                     dump(
@@ -387,9 +390,9 @@ def build(source_root, reports_root, year=2026):
                     if key not in merged:
                         merged[key] = [
                             0,
+                            np.zeros(2 * len(MODELS)),
                             np.zeros(2),
-                            np.zeros(2),
-                            np.zeros((1, 5), dtype=np.int64),
+                            np.zeros((len(MODELS), 5), dtype=np.int64),
                         ]
                     group = merged[key]
                     group[0] += int(stats["counts"][index])
@@ -416,6 +419,9 @@ def build(source_root, reports_root, year=2026):
                         f'Setores: {done}/{total}; {len(sectors)} com dados; {sum(s["valid_pixels"] for s in sectors):,} pixels conferidos.',
                         flush=True,
                     )
+        for stale in (staging / "sectors").glob("*.tif"):
+            if stale.name not in {Path(e["url"]).name for e in sectors}:
+                stale.unlink()
         count = sum(entry["valid_pixels"] for entry in sectors)
         expected = evaluation["random_forest"][-1]["metrics"]["n"]
         if count != expected or count != EXPECTED_PIXELS or sum(v[0] for v in merged.values()) != count:
@@ -479,6 +485,8 @@ def build(source_root, reports_root, year=2026):
             "bands": [
                 "value_random_forest",
                 "percentile_random_forest",
+                "value_xgboost",
+                "percentile_xgboost",
             ],
             "valid_pixels": count,
             "sectors": sectors,

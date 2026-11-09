@@ -20,7 +20,7 @@ from rasterio.io import MemoryFile
 from rasterio.windows import Window, from_bounds
 
 BASE = Path(__file__).resolve().parents[1]
-MODELS = ("random_forest",)
+MODELS = ("random_forest", "xgboost")
 CLASSES = ("very_low", "low", "moderate", "high", "very_high")
 CUTS = [50, 70, 90, 95]
 METHODS = {
@@ -119,11 +119,11 @@ def build(year):
     offsets = np.r_[0,counts.cumsum()]
     written = np.zeros(g,dtype=np.int64)
     hits = np.zeros(g,dtype=np.int64)
-    sums = np.zeros((g,2))
-    per_class = np.zeros((g,1,5),dtype=np.int64)
-    class_sums = np.zeros((g,1,5))
+    sums = np.zeros((g,2*len(MODELS)))
+    per_class = np.zeros((g,len(MODELS),5),dtype=np.int64)
+    class_sums = np.zeros((g,len(MODELS),5))
     areas = np.zeros(g)
-    area_sums = np.zeros((g,1))
+    area_sums = np.zeros((g,len(MODELS)))
     thresholds = [np.unique([p[f"value_{m}"] for p in props]) for m in MODELS]
     cdf_counts = [np.zeros(len(t)+1,dtype=np.int64) for t in thresholds]
     input_hashes = {name:digest(root/name) for name in ("manifest.json","index.json","grid.geojson")}
@@ -138,7 +138,7 @@ def build(year):
     cache = BASE/"resultados/aggregation_stats_v6"
     cache.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=f"{year}-",dir=cache) as scratch, rasterio.Env(GDAL_CACHEMAX=64*1024*1024):
-        pixels = np.memmap(Path(scratch)/"percentiles.dat",dtype="float32",mode="w+",shape=(1,total))
+        pixels = np.memmap(Path(scratch)/"percentiles.dat",dtype="float32",mode="w+",shape=(len(MODELS),total))
         for i,entry in enumerate(index["sectors"],1):
             payload = (root/entry["url"]).read_bytes()
             if len(payload)!=entry["bytes"]:
@@ -163,9 +163,9 @@ def build(year):
                 raise ValueError("Pixel sem grupo")
             pixel_areas = row_areas[rr+entry["window"][1]]
             areas[positions] += np.bincount(inv,weights=pixel_areas,minlength=len(local))
-            for band in range(2):
+            for band in range(2*len(MODELS)):
                 sums[positions,band] += np.bincount(inv,weights=values[band],minlength=len(local))
-            for mi in range(1):
+            for mi in range(len(MODELS)):
                 pct = values[mi*2+1]
                 category = np.searchsorted(CUTS,pct,side="right")
                 per_class[positions,mi] += np.bincount(inv*5+category,minlength=len(local)*5).reshape(-1,5)
@@ -179,7 +179,8 @@ def build(year):
                 if written[position]+length>counts[position]:
                     raise ValueError("Grupo com pixels excedentes")
                 indices = order[start:start+length]
-                pixels[0,offset:offset+length] = values[1,indices]
+                for mi in range(len(MODELS)):
+                    pixels[mi,offset:offset+length] = values[mi*2+1,indices]
                 written[position] += length
                 hits[position] += 1
                 start += length

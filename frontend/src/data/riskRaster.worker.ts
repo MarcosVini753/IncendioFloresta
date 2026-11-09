@@ -100,7 +100,7 @@ function aborted(signal: AbortSignal) {
 async function reader(entry: RiskV6Sector) {
   let pending = readers.get(entry.id)
   if (!pending) {
-    // Os setores têm no máximo 1024² × 2 Float32. Servidores sem Range podem
+    // Os setores têm no máximo 1024² × 4 Float32. Servidores sem Range podem
     // responder com o setor completo, nunca com um GeoTIFF de todo o estado.
     pending = (async () => {
       const url = new URL(entry.url, base).href
@@ -163,7 +163,7 @@ async function block(
   ]
   const pixels = (await image.readRasters({
     window,
-    samples: [0, 1],
+    samples: [0, 1, 2, 3],
     interleave: true,
     signal,
   })) as Float32Array
@@ -215,10 +215,10 @@ async function query(
     by = Math.floor(y / 256)
   const pixels = await block(entry, 0, image, bx, by, signal)
   const width = Math.min(256, image.getWidth() - bx * 256)
-  const offset = ((y - by * 256) * width + x - bx * 256) * 2
-  const values = Array.from(pixels.subarray(offset, offset + 2))
+  const offset = ((y - by * 256) * width + x - bx * 256) * 4
+  const values = Array.from(pixels.subarray(offset, offset + 4))
   if (
-    values.length !== 2 ||
+    values.length !== 4 ||
     values.some((v) => !Number.isFinite(v) || v < 0 || v > 100)
   )
     return null
@@ -236,6 +236,8 @@ async function query(
     bbox: [west, south, east, north],
     value_random_forest: values[0],
     percentile_random_forest: values[1],
+    value_xgboost: values[2],
+    percentile_xgboost: values[3],
   }
 }
 
@@ -243,7 +245,7 @@ const tileLat = (y: number, n: number) =>
   (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))) * 180) / Math.PI
 
 async function tile(job: Extract<Job, { type: 'tile' }>, signal: AbortSignal) {
-  const { z, x, y } = job
+  const { z, x, y, model } = job
   const n = 2 ** z,
     west = (x / n) * 360 - 180,
     east = ((x + 1) / n) * 360 - 180
@@ -310,8 +312,8 @@ async function tile(job: Extract<Job, { type: 'tile' }>, signal: AbortSignal) {
       const data = await block(entry, level, image, piece.bx, piece.by, signal)
       const width = Math.min(256, image.getWidth() - piece.bx * 256)
       for (const [target, sx, sy] of piece.pixels) {
-        const source = ((sy - piece.by * 256) * width + sx - piece.bx * 256) * 2
-        const value = data[source + 1]
+        const source = ((sy - piece.by * 256) * width + sx - piece.bx * 256) * 4
+        const value = data[source + (model === 'random_forest' ? 1 : 3)]
         if (!Number.isFinite(value) || value < 0 || value > 100) continue
         const category =
           value < 50 ? 0 : value < 70 ? 1 : value < 90 ? 2 : value < 95 ? 3 : 4

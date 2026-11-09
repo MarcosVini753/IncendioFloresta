@@ -1,10 +1,9 @@
 # Frontend — Risco v6 e Clima de 2025
 
 React + MapLibre + GeoTIFF.js. Abre no **Random Forest F30C de 2026**, sem clima,
-com média dos percentis como resumo. 2025 também está disponível. Não há mapas
-XGBoost no produto web ativo; seletor/comparação entre modelos foram removidos.
-Os GeoTIFFs XGBoost F30C foram recebidos posteriormente e ainda não foram
-integrados ao site. O arquivo de altitude também não é uma camada da interface.
+com média dos percentis como resumo. 2025 também está disponível. Random Forest e XGBoost são selecionáveis localmente, com comparação dos
+resultados no painel. A troca preserva câmera, seleção e resumo. O arquivo de
+altitude não é uma camada da interface.
 
 ## Leitura do mapa
 
@@ -15,7 +14,8 @@ integrados ao site. O arquivo de altitude também não é uma camada da interfac
 - O clique no raster consulta sempre o pixel Float32 original, não uma overview.
   Mostra linha/coluna, centro, índice e probabilidade calibrada recebida.
 - Percentil: escala 0–100 sem `%`, posição relativa entre os pixels do ano.
-  Probabilidade calibrada: banda distinta, já percentual, apresentada separadamente.
+  Banda de valor: probabilidade calibrada RF ou escore XGBoost corrigido por
+  amostragem, sem calibração. Ambos já percentuais, apresentados separadamente.
 - Classes: [0,50), [50,70), [70,90), [90,95), [95,100]. Concentração tem escala
   própria contínua de 0–100% dos pixels válidos, não de chance de fogo.
 - O painel mostra composição, contagens, fórmula, variáveis, memória de cálculo,
@@ -45,7 +45,7 @@ npm run preview
 
 `predev` e `prebuild` verificam/sincronizam os produtos canônicos em
 `incendio/produtos/risco/v6/{2025,2026}` e `incendio/produtos/clima/v1/2025`.
-São 222 setores de duas bandas Float32 por ano, gerados dos GeoTIFFs completos.
+São 222 setores de quatro bandas Float32 por ano, gerados dos GeoTIFFs completos.
 O build nunca executa Python ou modelos. Public/dist são gerados e ignorados.
 A sincronização valida os dois anos antes de substituir as cópias geradas.
 
@@ -57,14 +57,15 @@ Modos raster:
   setores externos em `<base>/<ano>/sectors/…`; exige HTTP público e CORS.
 
 O worker suporta HTTP Range. Sem Range, lê somente um setor de no máximo
-1024² × 2 Float32, nunca o GeoTIFF completo do estado. Mantém quatro transferências
+1024² × 4 Float32, nunca o GeoTIFF completo do estado. Mantém quatro transferências
 simultâneas, LRU de até 32 setores e teto de 128 MiB para blocos decodificados.
 Pan/zoom cancela trabalhos obsoletos. Tiles Web Mercator são convertidos para a
 grade EPSG:4326 antes da amostragem. As cores são aplicadas depois da leitura.
 A exclusão de MapLibre do prebundle do Vite é preservada para WSL/Windows.
 
-Links antigos preservam ano, câmera e resumo. `model=xgboost` e `mode=compare`
-são ignorados; links novos identificam Random Forest e não incluem comparação.
+Links preservam ano, modelo, câmera e resumo. `model=xgboost` seleciona XGBoost;
+valores desconhecidos selecionam Random Forest. `mode=compare` continua ignorado;
+não há mapa de diferenças entre modelos nesta atualização.
 
 ## Clima e avaliações
 
@@ -73,7 +74,7 @@ diário preservado. As cicatrizes ficam inicialmente ocultas no risco; ativá-la
 em 2026 mostra aviso temporal. Sua origem/cobertura não é a mesma da avaliação
 MapBiomas Fogo de 30 m. O risco F30C não utiliza clima.
 
-A avaliação mostra os mapas completos RandomForest_F30C de 2023–2025 contra
+A avaliação mostra os mapas completos RandomForest_F30C e XGBoost_F30C de 2023–2025 contra
 `30m_fogo`, recebidos do professor, sem substituir por métricas amostrais.
 Não há avaliação observada de 2026 nem contagem de incêndios confirmados.
 

@@ -20,7 +20,7 @@ const s26 = JSON.parse(s26Text) as AggregationStats
 afterEach(() => vi.unstubAllGlobals())
 
 describe('resumos dos pixels científicos', () => {
-  it('valida ambos os anos, todos os grupos e Random Forest da v6', () => {
+  it('valida ambos os anos, todos os grupos e os dois modelos da v6', () => {
     expect(validateAggregationStats(s25, p25).year).toBe(2025)
     expect(validateAggregationStats(s26, p26).year).toBe(2026)
   })
@@ -43,7 +43,7 @@ describe('resumos dos pixels científicos', () => {
     expect(cell).not.toHaveProperty('display_value')
   })
   it('basic methods work without the additional file and ties choose the lower class', () => {
-    const cell: RiskV6Cell = { id: 'tie', centroid: [0,0], n_source_pixels: 2, aggregation: 'mean', value_random_forest: 1, percentile_random_forest: 60,
+    const cell: RiskV6Cell = { id: 'tie', centroid: [0,0], n_source_pixels: 2, aggregation: 'mean', value_random_forest: 1, percentile_random_forest: 60, value_xgboost: 2, percentile_xgboost: 70,
       share_random_forest_very_low: .5, share_random_forest_low: .5, share_random_forest_moderate: 0, share_random_forest_high: 0, share_random_forest_very_high: 0 }
     expect(summarize(cell, 'random_forest', 'mode', null)).toMatchObject({ classIndex: 0, tied: true, mixed: true })
     expect(summarize(cell, 'random_forest', 'concentration', null).value).toBe(0)
@@ -53,6 +53,20 @@ describe('resumos dos pixels científicos', () => {
     expect(parseSummaryMethod('unknown')).toBe('mean')
     expect(parseSummaryMethod('p75')).toBe('p75')
   })
+  it('reproduz XGBoost diretamente dos GeoTIFFs originais dos dois anos', () => {
+    for (const [product, raw, expected] of [
+      [p25, s25, [87.58593042090493, 94.31383514404297, 98.58039855957031, 58.83053221288515]],
+      [p26, s26, [87.47408114935503, 95.0771255493164, 98.9540023803711, 58.66596638655462]],
+    ] as const) {
+      const stats = validateAggregationStats(raw, product)
+      const cell = product.cells.features.find((f) => f.properties.id === 'AC-5KM-E105N1773')!.properties
+      for (const [i, method] of (['mean', 'median', 'p75', 'concentration'] as const).entries())
+        expect(summarize(cell, 'xgboost', method, stats).value).toBeCloseTo(expected[i], 7)
+      const grid = displayGrid(product, 'xgboost', 'median', stats)
+      expect(grid.features.find((f) => f.properties.id === cell.id)!.properties.display_value).toBe(expected[1])
+      expect(cell.percentile_random_forest).not.toBe(cell.percentile_xgboost)
+    }
+  })
   it('rejects wrong year, provenance, missing model, invalid quantile, counts and CDF', () => {
     expect(() => validateAggregationStats(s25, p26)).toThrow()
     for (const mutate of [
@@ -60,6 +74,7 @@ describe('resumos dos pixels científicos', () => {
       (s: typeof s26) => { delete (s.groups as Record<string, unknown>)['AC-5KM-E105N1773'] },
       (s: typeof s26) => { s.groups['AC-5KM-E105N1773'].models.random_forest.median = -1 },
       (s: typeof s26) => { delete (s.groups['AC-5KM-E105N1773'].models as Record<string, unknown>).random_forest },
+      (s: typeof s26) => { delete (s.groups['AC-5KM-E105N1773'].models as Record<string, unknown>).xgboost },
       (s: typeof s26) => { s.groups['AC-5KM-E105N1773'].models.random_forest.class_counts[0] = 1 },
       (s: typeof s26) => { s.groups['AC-5KM-E105N1773'].models.random_forest.state_cdf_count_le = 0 },
     ]) {

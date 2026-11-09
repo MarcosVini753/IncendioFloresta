@@ -1,7 +1,7 @@
 # Incêndios Florestais — Acre
 
 Aplicação React + MapLibre para o **Risco anual experimental v6 de 2025 e 2026**,
-com **Random Forest**, cenário **F30C, sem clima**, e observações históricas de 2025.
+com **Random Forest e XGBoost**, cenário **F30C, sem clima**, e observações históricas de 2025.
 
 - Abre em 2026 com média dos percentis; 2025 permanece disponível.
 - Treino recebido: 2016–2024 para 2025 e 2016–2025 para 2026. São 11 preditores
@@ -20,8 +20,8 @@ com **Random Forest**, cenário **F30C, sem clima**, e observações históricas
   no mapa completo, separados das validações amostrais. Não há avaliação observada de 2026.
 - Clima e cicatrizes de 2025 são independentes e preservados. As cicatrizes ficam
   inicialmente ocultas no risco; quando ativadas em 2026, há aviso temporal.
-- O produto web ativo contém somente Random Forest. Os GeoTIFFs XGBoost F30C
-  já estão disponíveis localmente; sua integração ao site permanece pendente.
+- Os dois modelos são selecionáveis no mapa e comparados no painel da área.
+  Random Forest permanece inicial. XGBoost tem correção de amostragem, sem calibração temporal.
   Perigo, Alerta e INPE continuam fora do produto ativo.
 
 O GeoTIFF de altitude recebido permanece local e fora da visualização. Seu uso
@@ -62,7 +62,7 @@ incendio/.venv/bin/python incendio/risco_anual_v6/exportar_resumos.py --year 202
 ```
 
 O importador verifica todos os pixels, preserva máscara e valores e permite
-retomada por checkpoints com hashes. Cada ano tem 222 setores de duas bandas
+retomada por checkpoints com hashes. Cada ano tem 222 setores de quatro bandas
 Float32; apenas os produtos v6 são distribuídos no site. Artefatos anteriores
 permanecem recuperáveis pela branch de arquivo e pelo histórico, sem reescrita.
 

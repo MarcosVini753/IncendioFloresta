@@ -32,7 +32,7 @@ export function Composition({ cell, model }: { cell: RiskV6Cell; model: RiskV6Mo
   const result = summarize(cell, model, 'mode', null)
   return <section className="risk-class-shares aggregation-composition">
     <h3>Composição dos pixels do grupo</h3>
-    <small>Random Forest · classes originais dos pixels</small>
+    <small>{model === 'random_forest' ? 'Random Forest' : 'XGBoost'} · classes originais dos pixels</small>
     <p><strong>{summaryNumber(result.concentration)}%</strong> em Alto ou Muito alto · cobertura aproximada da área válida.</p>
     <div className="aggregation-composition-bar" role="img" aria-label="Distribuição dos pixels nas cinco classes">
       {RISK_DISPLAY_CLASSES.map((c, i) => <span key={c.id} style={{ width: `${100 * result.counts[i] / cell.n_source_pixels}%`, backgroundColor: c.color }} title={`${c.label}: ${summaryNumber(100 * result.counts[i] / cell.n_source_pixels)}%`} />)}

@@ -1,6 +1,6 @@
 import type { Feature, FeatureCollection, MultiPolygon, Polygon } from 'geojson'
 
-export const RISK_V6_MODELS = ['random_forest'] as const
+export const RISK_V6_MODELS = ['random_forest', 'xgboost'] as const
 export type RiskV6Model = (typeof RISK_V6_MODELS)[number]
 export const RISK_V6_CLASSES = [
   {
@@ -25,6 +25,8 @@ export const RISK_V6_CLASSES = [
 export interface RiskV6Values {
   value_random_forest: number
   percentile_random_forest: number
+  value_xgboost: number
+  percentile_xgboost: number
 }
 
 export interface RiskV6Cell extends RiskV6Values {

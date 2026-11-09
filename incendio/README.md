@@ -3,7 +3,7 @@
 O site importa mapas finais; não executa modelos. A entrega recebida e os dados
 brutos ficam locais, ignorados pelo Git.
 
-- `importar_risco_professor_v6.py`: importa Random Forest F30C, sem clima,
+- `importar_risco_professor_v6.py`: importa Random Forest e XGBoost F30C, sem clima,
   de 2025/2026. Não treina, prevê nem reaplica a calibração.
 - `risco_anual_v6/`: requisitos, exportador dos nove resumos e testes focados.
 - `produtos/risco/v6/<ano>/`: contrato 6.0, agregado, contorno IBGE 2024,

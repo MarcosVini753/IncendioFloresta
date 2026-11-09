@@ -69,7 +69,45 @@ O caminho padrão de entrada foi atualizado para
 sem mudança nas fórmulas ou nos produtos gerados; seus hashes registram a versão
 do importador usada originalmente.
 
-Os mapas XGBoost F30C de 2023–2026 estão agora disponíveis localmente, mas ainda
-não foram integrados ao produto web, que contém somente Random Forest 2025/2026.
+Os mapas XGBoost F30C de 2023–2026 foram recebidos posteriormente. Sua
+integração de 2025/2026 está registrada na seção a seguir; 2023/2024 permanecem
+somente como fontes locais e avaliações históricas.
 O GeoTIFF de altitude fica fora da visualização até validar suas unidades,
 NoData e correspondência com a grade científica. Não foi adicionado como camada.
+
+
+## Integração XGBoost — 09/11/2026
+
+Os produtos ativos de 2025/2026 passam a conter Random Forest e XGBoost F30C,
+com 185.661.783 pixels por modelo/ano, 6.875 grupos e 222 setores por ano.
+Cada COG tem quatro bandas Float32: valor/percentil RF, valor/percentil XGBoost.
+As máscaras e valores foram comparados integralmente com os dois GeoTIFFs
+originais, sem reexecutar modelos nem reaplicar a correção de prior ou calibração.
+Os valores e os nove resumos RF foram comparados aos produtos anteriores em
+todos os grupos dos dois anos e permaneceram idênticos.
+
+Auditoria independente de XGBoost no grupo AC-5KM-E105N1773 (28.560 pixels),
+diretamente dos GeoTIFFs originais:
+
+| Ano | Média dos percentis | Mediana | P75 | Concentração >=90 |
+| --- | ---: | ---: | ---: | ---: |
+| 2025 | 87,58593042 | 94,31383514 | 98,58039856 | 58,83053221% |
+| 2026 | 87,47408115 | 95,07712555 | 98,95400238 | 58,66596639% |
+
+O XGBoost é identificado como escore corrigido por amostragem, sem calibração
+temporal. O Random Forest continua padrão, com calibração temporal recebida.
+Cada modelo tem suas próprias estatísticas estaduais, painel e avaliação.
+A altitude continua fora da visualização e os produtos de Clima não mudaram.
+
+
+Validação desta integração: cinco testes Python, 26 testes Vitest, nove testes
+Node de sincronização, TypeScript e build aprovados. Os 454 arquivos do risco
+retornaram HTTP 200; os quatro valores de cada pixel consultado conferiram com
+os GeoTIFFs originais em 2025/2026, inclusive com resposta HTTP 200 de um setor
+inteiro sem Range. Chromium conferiu dois modelos × nove resumos, preservação
+da seleção, troca local sem requisições JSON adicionais, comparação anual pela
+média, links e consulta nativa. Nenhum erro JavaScript não tratado foi observado.
+Os setores dos dois anos somam 4.296.060.793 bytes; o maior tem 15.378.968 bytes,
+abaixo do limite de leitura integral de 32 MiB do worker. Os produtos canônicos
+de Clima não foram modificados. Não houve commit, push ou deploy automático
+nesta integração.
