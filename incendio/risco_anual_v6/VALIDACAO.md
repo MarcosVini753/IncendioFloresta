@@ -59,4 +59,17 @@ Os setores somam 1.755.407.302 bytes. GeoTIFFs recebidos, caches e checkpoints
 permanecem locais e ignorados. A v4 foi preservada na branch
 `archive/risk-v4-before-professor-v6` e seus produtos locais foram movidos para
 `incendio/resultados/risco_professor_v4/archived-web-products-before-v6`.
-Nenhum commit novo, push ou deploy foi executado nesta substituição.
+Na preparação inicial não houve commit, push ou deploy automático. Os commits
+locais foram solicitados posteriormente; isso não publica o site.
+
+## Atualizações dos arquivos recebidos
+
+O caminho padrão de entrada foi atualizado para
+`entrega_professor_v6/mapas_geotiff/mapas_geotiff`. A alteração é de localização,
+sem mudança nas fórmulas ou nos produtos gerados; seus hashes registram a versão
+do importador usada originalmente.
+
+Os mapas XGBoost F30C de 2023–2026 estão agora disponíveis localmente, mas ainda
+não foram integrados ao produto web, que contém somente Random Forest 2025/2026.
+O GeoTIFF de altitude fica fora da visualização até validar suas unidades,
+NoData e correspondência com a grade científica. Não foi adicionado como camada.

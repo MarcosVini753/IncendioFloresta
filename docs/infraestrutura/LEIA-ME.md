@@ -28,8 +28,11 @@ python3 -m venv /tmp/infra-risco-documentos-venv
 /tmp/infra-risco-documentos-venv/bin/python docs/infraestrutura/gerar_documentos.py
 ```
 
-O gerador consulta as tabelas da entrega recebida e o manifesto de 2026 para
-conferir as contagens. Manter essas evidências disponíveis. O texto é um
+O gerador consulta as evidências históricas da v4 preservadas localmente em
+`incendio/dados_locais/estudo_infraestrutura_v4/`: `amostras_30m.csv`,
+`banco_vencedores.csv` e `manifest.json` de 2026. Essa pasta é ignorada pelo Git.
+A entrega v4 completa não é necessária. Manter essas evidências disponíveis;
+não substituí-las pelas da v6, que representa outro modelo. O texto é um
 retrato datado: mudar as premissas financeiras não atualiza automaticamente
 as descrições científicas, a disponibilidade de fontes ou os preços citados.
 

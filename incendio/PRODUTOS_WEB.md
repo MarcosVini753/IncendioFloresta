@@ -1,172 +1,98 @@
-# Produtos web — Risco professor v4 de 2025 e 2026
+# Produtos web — Risco v6 de 2025 e 2026
 
-## Entrada e ambiente
+## Origem e semântica
 
-Esta integração importa os GeoTIFFs finais do professor, sem executar
-treinamento, previsão, seleção de parâmetros ou calibração. Os pipelines
-anteriores permanecem disponíveis, mas não alimentam o frontend ativo.
+Importação dos GeoTIFFs `risco_30m_RandomForest_F30C_<ano>.tif` em
+`entrega_professor_v6/mapas_geotiff/mapas_geotiff/`. Relatórios em
+`entrega_professor_v6/2_resultados/`. São resultados recebidos: nenhum treino,
+previsão, correção de prior ou calibração é executado novamente.
 
-O importador usa Python >=3.11, NumPy, Rasterio com o driver COG, PyProj e
-Shapely. Instale `risco_anual_v4/requirements.txt` em um ambiente local.
+Cenário F30C: 11 preditores de uso do solo, distâncias até água e estrada,
+altitude, histórico de fogo de 30 m, desmatamento e frações de agropecuária.
+**Sem clima.** O ano de uso do solo é o anterior ao mapa. Treino 2016–2024 para
+2025 e 2016–2025 para 2026, semente 42, amostragem 1:19 com correção recebida.
+O manifesto registra os coeficientes de Platt temporal do Random Forest.
 
-Entradas padrão, na raiz do repositório:
+- Banda 1: probabilidade anual calibrada recebida, em porcentagem. Não multiplicar
+  novamente por 100. Calibração não garante frequência correta em anos atípicos.
+- Banda 2: índice percentil estadual recebido em Float32, entre 0 e 100. Não é
+  uma probabilidade e não recebe `%`. Não recalcular o ranking para a viewport.
+- NoData −9999: excluído; zero continua válido. Ambas as bandas têm a mesma máscara.
 
-- `entrega_professor_v4/mapas_geotiff/risco_30m_RandomForest_AB30C_suave_2026.tif`
-- `entrega_professor_v4/mapas_geotiff/risco_30m_XGBoost_AB30C_suave_2026.tif`
-- Relatórios em `entrega_professor_v4/2_resultados/treino_MapBiomas_Fogo`.
-- Limite cartográfico versionado em `incendio/recursos/limite_acre.geojson`.
+A máscara recebida foi ampliada para o Acre do IBGE 2024: **185.661.783 pixels**.
+O contorno web é a dissolução dos 22 municípios simplificados recebidos. Ele é
+referência cartográfica, não substitui a máscara dos rasters. Lacunas de cobertura
+continuam sem estimativa. Não são preenchidas por vizinhança nem por risco zero.
 
-~~~bash
-incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year 2025
-incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year 2026
-~~~
+## Contrato 6.0 e publicação
 
-`--year` seleciona 2025 ou 2026 (padrão). Cada ano lê os dois GeoTIFFs e
-relatórios correspondentes, publica em `incendio/produtos/risco/v4/ANO` e tem
-staging e checkpoints separados. Para 2025, o treino é 2016–2024 e o clima é
-de 2024; para 2026, treino 2016–2025 e clima de 2025. Não se reutilizam os
-valores de 2026 como se fossem de 2025. `--source-root` e `--reports-root` permitem indicar pastas alternativas.
-O pacote original, GeoTIFFs, modelos e arquivos Zone.Identifier ficam fora do Git.
+Cada `incendio/produtos/risco/v6/<ano>/` contém:
 
-## Semântica científica
+- `manifest.json`: cenário F30C, um modelo, ausência de clima, treino, calibração,
+  território, hashes das fontes e avaliações históricas `30m_fogo`.
+- `grid.geojson`: 6.875 grupos UTM 19S de 5 km; geometria EPSG:4326 e IDs estáveis
+  `AC-5KM-E…N…`. Centro representativo é a média dos centros dos pixels válidos.
+- `boundary.geojson`: contorno derivado dos municípios IBGE 2024 recebidos.
+- `index.json`: grade original 27.341 × 14.942, EPSG:4326, setores alinhados,
+  janelas, bboxes, bytes, contagens e duas bandas na ordem valor/percentil RF.
+- `sectors/AC-V6-RxxxCxxx.tif`: 222 COGs de até 1024², duas bandas Float32,
+  sem perdas e com overviews por média. Os COGs inteiros arredondados recebidos
+  não são usados para preparar esses setores.
+- `aggregation-stats.json`: contrato derivado 1.0,
+  `product: risk_v6_aggregation_stats`, vinculado ao ano, identidade e hashes
+  do manifesto, grade, índice, setores e exportador.
 
-Os mapas são da variante AB30C com clima suavizado, treinada com MapBiomas
-Fogo 5.1. O treino vai de 2016 ao ano anterior ao previsto; o clima também é
-do ano anterior, sem usar queimadas do ano previsto como histórico.
-A grade original é EPSG:4326, com pixel de 0,000269494585 graus, aproximadamente 30 m.
+Os campos científicos são `value_random_forest`, `percentile_random_forest`
+e as cinco proporções `share_random_forest_<classe>`. A máscara define os
+pixels participantes. Grupos são definidos pelo centro do pixel reprojetado
+para EPSG:31979 e floor(X/5000), floor(Y/5000). O recorte visual não altera os pesos.
 
-A banda 1 já contém o valor em porcentagem. **Não multiplicar novamente por 100.**
-Random Forest tem calibração temporal (Platt) fornecida pelo professor;
-XGBoost tem correção de amostragem e não é calibrado. A calibração não transforma
-o mapa em uma previsão operacional.
+## Nove resumos, sem alterar as previsões
 
-A banda 2 contém o índice percentil estadual produzido pelo histograma do
-pipeline recebido. Preservar esses valores, sem recalcular rankings no frontend,
-na viewport ou sobre os grupos de 5 km.
+Média, moda e concentração usam média/proporções do GeoJSON. O produto derivado
+acrescenta mediana/P75 exatos, média por área geodésica WGS84, médias por classe,
+ponderações por raridade local/estadual e CDF empírica estadual da média da banda 1.
 
-Avaliações publicadas: mapas `AB30C_suave`, anos 2023–2025, nível `30m_fogo`.
-São relatórios fornecidos pelo professor, não métricas recalculadas nesta
-integração. Seus histogramas aproximam ranking e métricas. Os relatórios de
-2026 não contêm observações para avaliação; não associar métricas de 2025
-à previsão de 2026. Pixels positivos não equivalem a incêndios confirmados.
+Quantis: inversa da CDF empírica, posição ceil(q*n), sem interpolação. Moda:
+empate pela classe mais baixa. Concentração: fração com índice >=90. Frequências
+estaduais são calculadas novamente para cada ano, sobre a cobertura v6 inteira.
+CDF: contagem exata de valores da banda 1 <= média do grupo, dividida por N.
+Não confundir com a média dos percentis nem com ranking entre grupos.
 
-## Produto canônico e contrato
+O exportador lê resolução original por setores, acumula Float64 e usa arquivo
+memmap temporário para quantis com RAM limitada. Os campos originais não mudam.
+Ele audita médias, classes, cobertura e quantis por releitura independente.
+Arquivos são substituídos por rename após auditoria; checkpoints de importação
+são vinculados aos hashes das entradas, código e referência territorial.
 
-Cada diretório `incendio/produtos/risco/v4/2025/` e `incendio/produtos/risco/v4/2026/` contém:
+## Avaliações e observações
 
-- `manifest.json`: contrato 4.0, modelos, unidades, calibração, treinamento,
-  proveniência/hashes, classes, arquivos e avaliações históricas.
-- `grid.geojson`: grupos de 5 km em UTM 19S, com geometria em EPSG:4326.
-- `boundary.geojson`: limite de referência do Acre.
-- `index.json`: geotransformação original, bandas e setores.
-- `aggregation-stats.json`: produto derivado, contrato próprio 1.0, resumos
-  exatos e metodologias por grupo/modelo; não altera os campos do GeoJSON.
-- `sectors/AC-V4-RxxxCxxx.tif`: COGs gerados e versionados nos dois anos.
+Avaliações publicadas: RandomForest_F30C, mapas completos de 2023–2025,
+nível `30m_fogo`, fornecidas pelo professor. Não misturar esses resultados
+com validação amostral/rolante nem com rótulos MODIS. Não há avaliação observada
+para 2026. Pixels queimados não são contagens de incêndios confirmados.
 
-Cada grupo guarda `value_<modelo>`, `percentile_<modelo>`,
-`n_source_pixels`, `centroid`, `aggregation: mean` e
-`share_<modelo>_<classe>`. Médias e proporções usam apenas pixels válidos.
-A cor classifica a média dos percentis nas faixas [0,50), [50,70), [70,90),
-[90,95), [95,100]. As proporções contam pixels e aproximam a proporção da área.
+Clima/cicatrizes de 2025 permanecem no contrato anterior e com sua fonte/cobertura
+originais. A sobreposição em 2026 possui aviso de diferença temporal. O risco v6
+não usa o clima mostrado nessa aba. Os GeoTIFFs XGBoost F30C de 2023–2026 já
+estão disponíveis na pasta de entrada, junto dos mapas Random Forest. A integração
+web permanece limitada ao Random Forest de 2025/2026; receber novos arquivos
+não altera automaticamente o contrato, os setores ou os resumos publicados.
 
-Os setores preservam janelas da grade original de até 1024 × 1024 pixels.
-Setores vazios são omitidos. Quatro bandas Float32, nesta ordem:
+O `altitude_acre_ibge2024.tif` é um insumo local, não uma camada publicada.
+O arquivo recebido tem CRS EPSG:4674 e dimensões 27.324 × 14.964, diferentes dos
+mapas de risco EPSG:4326 com 27.341 × 14.942 pixels. Os metadados não declaram
+unidade vertical nem NoData. Seu uso na visualização foi adiado até validar esses
+aspectos e a correspondência espacial. Não associar os arquivos por linha/coluna
+nem presumir que esse GeoTIFF seja exatamente o insumo de altitude usado no treino.
 
-1. valor percentual de Random Forest;
-2. percentil de Random Forest;
-3. valor percentual de XGBoost;
-4. percentil de XGBoost.
+Após a reorganização dos arquivos recebidos, mudou somente o caminho padrão
+`--source-root` do importador. Os produtos existentes preservam o hash do código
+executado na geração original; não houve recálculo por causa dessa mudança de caminho.
 
-NoData é -9999 e nunca é tratado como risco zero. Compressão é sem perda;
-overviews são calculadas por média, ignorando NoData. Cada COG é reaberto e
-comparado integralmente à janela de entrada antes de salvar seu checkpoint.
+## Distribuição e histórico
 
-A cobertura científica é a máscara dos GeoTIFFs. O limite cartográfico pode
-diferir ligeiramente dessa máscara; não são descartados pixels científicos
-por essa diferença. Polígonos visuais são recortados pelo limite quando há
-interseção válida. A seleção individual usa o retângulo original do pixel.
-
-## Retomada e publicação
-
-### Gerar os resumos selecionáveis
-
-```bash
-OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 \
-incendio/.venv/bin/python incendio/risco_anual_v4/exportar_resumos.py
-```
-
-`--year 2025` ou `--year 2026` restringe a geração. O exportador lê os COGs
-versionados, sem treino, previsão ou dependência dos CSVs exploratórios locais.
-Usa aproximadamente 1,3 GiB temporários em disco por ano para os percentis,
-com leitura por setor e partição por grupo para os quantis. Remove os arquivos
-temporários ao concluir ou interromper por exceção e publica o JSON atomicamente.
-
-Mediana/P75 usam a posição `ceil(q*n)` e não são aproximações de histograma.
-Área usa cantos geodésicos WGS84. Classes ocupadas recebem pesos iguais na
-raridade local; raridade estadual usa inversos das frequências daquele ano e
-modelo. A CDF da banda 1 conta valores menores ou iguais à média do grupo e tem
-outra convenção de empates que o histograma do professor. Classes vazias ficam
-com média `null` e são excluídas das ponderações.
-
-Os arquivos registram hashes de manifesto, grade, índice e todos os COGs,
-identidade do produto de origem e hash do exportador executado. A auditoria
-confere contagens/médias/proporções e relê janelas independentes de grupos,
-incluindo grupo pequeno, caso do relatório e fronteira entre setores.
-Uma reimportação dos mapas requer regenerar os resumos antes do build.
-
-Os resumos dos dois anos são versionados e sincronizados automaticamente;
-o build não executa Python. A validação npm rejeita arquivo ausente ou obsoleto
-antes de substituir as cópias geradas. COGs, manifesto científico e GeoJSON
-original permanecem inalterados.
-
-Verificação focada dos cálculos:
-
-```bash
-incendio/.venv/bin/python -m unittest incendio.risco_anual_v4.test_resumos
-cd frontend
-npm test
-npm run test:sync
-npm run build
-```
-
-Checkpoints locais em `incendio/resultados/risco_professor_v4` vinculam cada
-setor aos hashes dos mapas, relatórios, limite e versão do contrato de importação.
-Uma retomada confere o hash do COG e reutiliza os agregados locais por setor.
-Para alterar regras de cálculo, incrementar a versão do contrato no importador.
-
-O importador confere máscaras e valores em toda a área na primeira execução,
-soma a cobertura dos setores e agregados, e recalcula três grupos diretamente
-das entradas. A máscara atual possui **172.340.796 pixels**, distribuídos em
-**208 setores** e **6.393 grupos** por ano. Os 416 COGs dos dois anos totalizam
-aproximadamente 3,57 GB (3,33 GiB); o maior setor tem menos de 15 MiB.
-
-A geração usa staging; somente o produto auditado substitui o diretório ativo.
-O produto anterior é movido para backup local antes da troca. Uma falha na
-troca tenta restaurar esse backup. Não remover caches/backups para resolver
-uma interrupção sem conferir o estado da geração.
-
-O script npm `sync-products.mjs` inclui os setores de **2025 e 2026** no
-modo local, padrão também na Vercel. O GitHub fornece os 416 COGs; o build não
-executa importação científica e não precisa das entradas brutas.
-
-Para compilar sem rasters de nenhum ano, use `RISK_RASTER_MODE=aggregated`.
-A origem externa opcional `RISK_RASTER_BASE_URL` aplica-se aos dois anos,
-em subdiretórios `2025/` e `2026/`.
-`deployment.json`, gerado separadamente do manifesto, registra a distribuição
-de cada ano. O build inclui Risco v4/2025 e v4/2026 nas duas resoluções e
-Clima v1/2025.
-
-Os códigos de treino e produtos v1/v2, suscetibilidade, INPE e Perigo foram
-retirados da árvore atual. O exportador `exportar_clima_2025.py` utiliza somente
-`risco_anual_v4/climate_geometry.py`, Rasterio e o grid climático ativo; não
-depende da geometria dos antigos produtos de risco. O clima pronto permanece
-versionado. Insumos e resultados históricos ignorados continuam locais e os
-códigos removidos são recuperáveis pelo histórico/branches de arquivo.
-
-A limpeza não reescreve o histórico Git. As cópias geradas não incluem produtos
-antigos, mas os commits anteriores continuam fazendo parte da história do
-repositório.
-
-Os produtos observados de 2025 permanecem independentes. A sobreposição de
-cicatrizes do inventário anterior inicia desativada no Risco de 2026 e exige
-aviso temporal quando ativada. Não é a camada MapBiomas Fogo de 2026.
+O pacote recebido, rasters completos, SQLite, caches e checkpoints ficam ignorados.
+Os produtos web e setores são versionados. A sincronização npm inclui somente
+risco v6 de 2025/2026 e clima de 2025. A branch de arquivo preserva a v4; não há
+reescrita do histórico Git nem exclusão dos insumos locais.

@@ -27,7 +27,7 @@ GRID_SOURCE = BASE / "produtos/clima/v1/2025/grid.geojson"
 OUTPUT = BASE / "produtos/clima/v1/2025"
 YEAR = 2025
 DATES = [(date(YEAR, 1, 1) + timedelta(days=i)).isoformat() for i in range(365)]
-DATA_ROOT = BASE.parent / "entrega_professor_v4/4_bases_de_dados/novos"
+DATA_ROOT = BASE / "dados_locais/clima_2025"
 HUMIDITY = DATA_ROOT / "Umidade_Relativa_Diaria_Acre_2016_2026.tif"
 RAINFALL = DATA_ROOT / "Precipitacao_13h_Diaria_Acre_2016_2026.tif"
 SCARS = DATA_ROOT / "Cicatrizes_Acre_2006_2025.tif"

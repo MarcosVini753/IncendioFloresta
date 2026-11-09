@@ -1,67 +1,74 @@
 # Incêndios Florestais — Acre
 
-Aplicação React + MapLibre para explorar o Risco anual experimental de **2025 e 2026**
-da entrega do professor v4 e observações históricas de **2025**.
+Aplicação React + MapLibre para o **Risco anual experimental v6 de 2025 e 2026**,
+com **Random Forest**, cenário **F30C, sem clima**, e observações históricas de 2025.
 
-- Dois modelos: **Random Forest** (inicial) e XGBoost.
-- Cenário recebido: AB30C, treinado com MapBiomas Fogo, com clima suavizado.
-- Seletor de ano: 2026 inicialmente, com alternância para 2025.
-- Risco 2025: treino 2016–2024 e clima de 2024. Risco 2026: treino 2016–2025 e clima de 2025. Nenhum treino ou previsão é executado pelo site.
-- Mapa afastado: grupos de 5 km, coloridos pela classe da média dos percentis.
-- Nove resumos selecionáveis dos grupos: média inicial, moda, mediana,
-  concentração ≥90 e cinco opções analíticas avançadas. Mediana e P75 exatos;
-  comparações entre modelos/anos continuam usando a média dos percentis.
-- Zoom a partir de 8,5: raster progressivo de aproximadamente 30 m; clique sempre consulta o pixel original.
-- Random Forest tem calibração temporal recebida; XGBoost tem correção de amostragem e não é calibrado.
-- Percentil é posição relativa no ranking, sem símbolo de porcentagem. A saída percentual do modelo aparece separadamente.
-- Avaliações de 2023–2025 são relatórios recebidos, contra MapBiomas Fogo em 30 m. Não há avaliação observada de 2026 na entrega.
-- Clima diário e cicatrizes de 2025 continuam independentes. As cicatrizes ficam ocultas inicialmente no Risco de 2026.
-- Perigo, Alerta e INPE não fazem parte desta entrega.
+- Abre em 2026 com média dos percentis; 2025 permanece disponível.
+- Treino recebido: 2016–2024 para 2025 e 2016–2025 para 2026. São 11 preditores
+  de paisagem e histórico de fogo, sem variáveis climáticas.
+- Cobertura científica: **185.661.783 pixels por ano**, recortados originalmente
+  pelo IBGE 2024, com pequenas lacunas NoData. Lacunas não são risco zero.
+- Visão agregada: **6.875 grupos de 5 km**, com nove resumos selecionáveis,
+  composição das classes e explicações técnicas. Mediana e P75 são exatos.
+- A partir do zoom 8,5: raster progressivo de aproximadamente 30 m; o clique
+  consulta sempre os valores Float32 originais, inclusive quando a imagem é reduzida.
+- O índice percentil é posição relativa, sem %. A banda 1 é a probabilidade anual
+  calibrada recebida, já em porcentagem, mostrada separadamente. Anos atípicos
+  podem ser superestimados ou subestimados; não é um sistema operacional de alertas.
+- A comparação anual usa somente médias dos percentis, cada ano com seu próprio ranking.
+- Avaliações de 2023–2025: relatórios recebidos contra MapBiomas Fogo de 30 m,
+  no mapa completo, separados das validações amostrais. Não há avaliação observada de 2026.
+- Clima e cicatrizes de 2025 são independentes e preservados. As cicatrizes ficam
+  inicialmente ocultas no risco; quando ativadas em 2026, há aviso temporal.
+- O produto web ativo contém somente Random Forest. Os GeoTIFFs XGBoost F30C
+  já estão disponíveis localmente; sua integração ao site permanece pendente.
+  Perigo, Alerta e INPE continuam fora do produto ativo.
 
-A versão v2 foi preservada em `archive/risk-v2-before-professor-v4`.
+O GeoTIFF de altitude recebido permanece local e fora da visualização. Seu uso
+foi adiado até conferir unidades, ausência de dados e correspondência espacial
+com a grade dos mapas de risco; não será adicionado como camada explicativa agora.
 
-## Preparar e executar
+A versão anterior está preservada em `archive/risk-v4-before-professor-v6`.
 
-Os dois GeoTIFFs finais de cada ano ficam em `entrega_professor_v4/mapas_geotiff`.
-O pacote recebido permanece local e ignorado pelo Git.
-Os **208 setores de cada ano são versionados**: 416 COGs de 2025 e 2026,
-totalizando cerca de 3,57 GB (3,33 GiB).
+## Executar o site
 
-~~~bash
-python3 -m venv incendio/.venv  # apenas se o ambiente ainda não existir
-incendio/.venv/bin/pip install -r incendio/risco_anual_v4/requirements.txt
-incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year 2025
-incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year 2026
+O checkout contém os produtos web prontos, incluindo os setores Float32 dos dois
+anos. **Nenhum treinamento, previsão ou calibração é executado pelo site ou build.**
+
+```bash
 cd frontend
 npm install
 npm run dev
-~~~
+# ou: npm run build
+```
 
-O importador só prepara resultados já calculados. Confere integralmente
-máscaras, domínios e cobertura; grava 208 setores COG sem alterar os valores
-e agrega 172.340.796 pixels em 6.393 grupos de 5 km. Checkpoints permitem
-retomada. O produto ativo só é substituído após a auditoria.
+`predev`/`prebuild` sincronizam exclusivamente Risco v6 e Clima de 2025. `public`
+e `dist` são cópias geradas e ignoradas. O modo raster padrão é `local`; os modos
+`remote` e `aggregated` continuam disponíveis por configuração explícita.
 
-O checkout inclui tudo que o frontend precisa: `npm install` e `npm run build`
-não executam Python nem precisam dos GeoTIFFs brutos. O build publica **2025 e
-2026 em 30 m**, inclusive na Vercel, além dos grupos de 5 km de ambos os anos.
+## Reproduzir a preparação local
 
-Os pipelines e produtos históricos de INPE, Perigo, Suscetibilidade e Risco v1/v2
-foram retirados da versão atual. O importador v4, o exportador do clima utilizado,
-as referências cartográficas e os produtos ativos permanecem. Produtos históricos
-locais são ignorados; o código removido pode ser recuperado pelo Git.
+O pacote `entrega_professor_v6/` permanece local e ignorado. A importação usa
+somente os GeoTIFFs completos Float32 e os relatórios; não usa os COGs recebidos
+com índices inteiros e probabilidades arredondadas.
 
-Para a Vercel, mantenha `RISK_RASTER_MODE=local` ou remova a variável para usar
-esse padrão. Remova uma eventual `RISK_RASTER_BASE_URL` se quiser os setores
-incluídos no próprio site. O modo `aggregated` permanece disponível como opção
-explícita para compilar sem rasters. Arquivos em `public` e `dist` são cópias
-geradas e não são versionados.
+```bash
+python3 -m venv incendio/.venv  # se o ambiente ainda não existir
+incendio/.venv/bin/pip install -r incendio/risco_anual_v6/requirements.txt
+incendio/.venv/bin/python incendio/importar_risco_professor_v6.py --year 2025
+incendio/.venv/bin/python incendio/risco_anual_v6/exportar_resumos.py --year 2025
+incendio/.venv/bin/python incendio/importar_risco_professor_v6.py --year 2026
+incendio/.venv/bin/python incendio/risco_anual_v6/exportar_resumos.py --year 2026
+```
 
-A limpeza reduz o conteúdo atual enviado e compilado; **não reescreve o histórico
-Git** nem remove deployments anteriores da Vercel.
+O importador verifica todos os pixels, preserva máscara e valores e permite
+retomada por checkpoints com hashes. Cada ano tem 222 setores de duas bandas
+Float32; apenas os produtos v6 são distribuídos no site. Artefatos anteriores
+permanecem recuperáveis pela branch de arquivo e pelo histórico, sem reescrita.
 
-Veja [produtos e proveniência](incendio/PRODUTOS_WEB.md) e
-[frontend e publicação](frontend/README.md).
+Veja [contratos e proveniência](incendio/PRODUTOS_WEB.md),
+[frontend e publicação](frontend/README.md) e
+[preparação científica](incendio/README.md).
 
 ## Planejamento de infraestrutura
 
@@ -77,6 +84,5 @@ Veja [fontes e instruções para gerar PDF e Word](docs/infraestrutura/LEIA-ME.m
 ## Representatividade dos grupos de 5 km
 
 O [estudo da agregação espacial](incendio/risco_anual_v4/analises/representatividade/relatorio.md)
-compara média, classe predominante, mediana e concentração de pixels altos nos
-produtos de 2025 e 2026. Inclui figuras, resumos estatísticos e instruções para
+é uma análise histórica da v4: compara média, classe predominante, mediana e concentração de pixels altos. Os números daquele relatório não descrevem os novos mapas v6. Inclui figuras, resumos estatísticos e instruções para
 reproduzir a análise e gerar o PDF localmente.

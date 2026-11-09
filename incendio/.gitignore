@@ -24,6 +24,7 @@ __pycache__/
 *.png
 CSVsF1Score/
 resultados/
+dados_locais/
 produtos/**/2025-previous/
 produtos/**/2025-staging/
 

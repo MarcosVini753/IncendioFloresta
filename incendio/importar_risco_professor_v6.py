@@ -638,7 +638,7 @@ def audit_samples(sources, affine, project, merged):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--source-root", type=Path, default=REPO / "entrega_professor_v6/entrega_professor_v6_geotiff"
+        "--source-root", type=Path, default=REPO / "entrega_professor_v6/mapas_geotiff/mapas_geotiff"
     )
     parser.add_argument(
         "--reports-root",

@@ -18,11 +18,13 @@ def calculate():
     p = {k: D(str(v)) if isinstance(v, (int, float)) else v for k, v in raw['premissas'].items()}
     t = {k: D(str(v)) for k, v in raw['tarifas_usd'].items()}
     fx = p['dolar_planejamento'] * (1 + p['margem_cambio_encargos'])
-    sources = ROOT / 'entrega_professor_v4/2_resultados/treino_MapBiomas_Fogo/tabelas'
+    # Evidências históricas da v4, preservadas localmente; não usar métricas v6
+    # para recalcular silenciosamente um estudo de outubro sobre outro modelo.
+    sources = ROOT / 'incendio/dados_locais/estudo_infraestrutura_v4'
     samples = list(csv.DictReader((sources / 'amostras_30m.csv').open()))
     m = sum(int(float(r['positivos'])) + int(float(r['negativos'])) for r in samples if r['tipo'] == 'treino')
     model_params = {r['modelo']: json.loads(r['parametros']) for r in csv.DictReader((sources / 'banco_vencedores.csv').open()) if r['cenario'] == 'AB30C'}
-    manifest = json.loads((ROOT / 'incendio/produtos/risco/v4/2026/manifest.json').read_text())
+    manifest = json.loads((sources / 'manifest.json').read_text())
     n = manifest['counts']['source_pixels']
     visits_per_pixel = sum(v['n_estimators'] * v['max_depth'] for v in model_params.values())
     work = n * 17 * visits_per_pixel

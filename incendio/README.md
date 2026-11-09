@@ -1,44 +1,41 @@
-# Produtos científicos da aplicação v4
+# Produtos científicos ativos — v6
 
-Esta pasta contém o código e os produtos necessários ao site atual:
+O site importa mapas finais; não executa modelos. A entrega recebida e os dados
+brutos ficam locais, ignorados pelo Git.
 
-- `importar_risco_professor_v4.py`: importa os mapas finais recebidos de
-  Random Forest e XGBoost, sem treinar ou recalibrar modelos.
-- `risco_anual_v4/`: requisitos, geometria do clima e registro das validações.
-- `exportar_clima_2025.py`: prepara o clima e as cicatrizes usados no site,
-  sem depender dos pipelines históricos.
-- `produtos/risco/v4/2025/`: resultados agregados, metadados e os 208 COGs
-  versionados para visualizar os pixels de 30 m.
-- `produtos/risco/v4/2026/`: resultados agregados, metadados e os 208 COGs
-  versionados para visualizar os pixels de 30 m.
-- `produtos/clima/v1/2025/`: produto observado ativo, preservado apesar da
-  versão de contrato diferente.
-- `recursos/limite_acre.geojson`: referência cartográfica.
+- `importar_risco_professor_v6.py`: importa Random Forest F30C, sem clima,
+  de 2025/2026. Não treina, prevê nem reaplica a calibração.
+- `risco_anual_v6/`: requisitos, exportador dos nove resumos e testes focados.
+- `produtos/risco/v6/<ano>/`: contrato 6.0, agregado, contorno IBGE 2024,
+  índice, estatísticas derivadas e 222 setores COG Float32 versionados por ano.
+- `produtos/clima/v1/2025/`: observações diárias e cicatrizes independentes,
+  preservadas. Sua cobertura e resolução não foram ampliadas pela troca do risco.
+- `exportar_clima_2025.py`: reprodução do produto observado, sem alteração nesta entrega.
 
-Códigos anteriores podem ser recuperados pelo histórico Git e branches de
-arquivo. Dados brutos, resultados locais, ambientes e caches não são enviados.
+Os importadores e estudos v4 são históricos e não alimentam a aplicação atual.
+A versão anterior está na branch `archive/risk-v4-before-professor-v6`.
+GeoTIFFs recebidos, SQLite, modelos, checkpoints e caches não são versionados.
 
-## Usar os produtos prontos
+Os insumos observados necessários ao exportador de Clima podem ser guardados
+em `dados_locais/clima_2025/`, ou indicados com `--sources-root`. A cicatriz
+original foi preservada nessa pasta antes de remover a entrega v4. Os rasters
+brutos de umidade e precipitação não estavam mais no pacote v4; continuam
+necessários apenas para regenerar o clima, não para executar o site pronto.
 
-O frontend não precisa executar Python para compilar ou visualizar os produtos
-versionados. Na pasta frontend, execute npm install e npm run dev/build.
-2025 e 2026 têm detalhe de 30 m e resumo agregado de 5 km.
+## Reproduzir os produtos
 
-## Reproduzir a importação
+```bash
+incendio/.venv/bin/pip install -r incendio/risco_anual_v6/requirements.txt
+incendio/.venv/bin/python incendio/importar_risco_professor_v6.py --year 2025
+incendio/.venv/bin/python incendio/risco_anual_v6/exportar_resumos.py --year 2025
+incendio/.venv/bin/python incendio/importar_risco_professor_v6.py --year 2026
+incendio/.venv/bin/python incendio/risco_anual_v6/exportar_resumos.py --year 2026
+incendio/.venv/bin/python -m unittest discover -s incendio/risco_anual_v6 -p 'test_*.py'
+```
 
-~~~bash
-python3 -m venv incendio/.venv
-incendio/.venv/bin/pip install -r incendio/risco_anual_v4/requirements.txt
-incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year 2025
-incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year 2026
-~~~
+Python >=3.11; Rasterio/GDAL com COG, NumPy, PyProj e Shapely. `--source-root`
+e `--reports-root` permitem localizar os GeoTIFFs e relatórios em outra pasta;
+os municípios recebidos permanecem na localização da entrega original.
+A preparação do frontend usa apenas os produtos prontos, sem Python.
 
-Requer GeoTIFFs e relatórios recebidos, mantidos localmente. O importador
-confere cobertura, valores e agregações e permite retomada por checkpoint.
-Para conferir o clima pronto sem ler rasters brutos:
-
-~~~bash
-incendio/.venv/bin/python incendio/exportar_clima_2025.py --validate-only
-~~~
-
-Veja [contratos, dados e proveniência](PRODUTOS_WEB.md).
+Veja [contrato, ciência e reprodução](PRODUTOS_WEB.md).
