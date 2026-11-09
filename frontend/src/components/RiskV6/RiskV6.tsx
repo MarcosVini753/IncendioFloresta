@@ -8,22 +8,21 @@ import {
   type RasterTileSource,
 } from 'maplibre-gl'
 import type { FeatureCollection } from 'geojson'
-import { loadRiskV4 } from '../../data/riskV4'
+import { loadRiskV6 } from '../../data/riskV6'
 import { RISK_DISPLAY_CLASSES } from '../../data/riskDisplayPalette'
-import { comparisonColorExpression, formatRankingDifference, rankingDifference } from '../../data/riskComparison'
 import { RiskRasterClient } from '../../data/riskRaster'
 import { loadScarProduct } from '../../data/climate'
 import {
-  type RiskV4Model,
-  type RiskV4Product,
-  type RiskV4Selection,
-  type RiskV4Values,
-} from '../../types/riskV4'
+  type RiskV6Model,
+  type RiskV6Product,
+  type RiskV6Selection,
+  type RiskV6Values,
+} from '../../types/riskV6'
 import type { ScarCollection } from '../../types/climate'
 import { MapLegend } from '../Legend/MapLegend'
 import { RiskYearComparison } from './RiskYearComparison'
 import { AggregationControl, Calculation, Composition, SummaryValue, summaryNumber } from './Aggregation'
-import { COVERAGE_STOPS, displayGrid, loadAggregationStats, needsStats, parseSummaryMethod, summaryDefinition, summarize, type AggregationStats, type SummaryMethod } from '../../data/riskAggregation'
+import { COVERAGE_STOPS, displayGrid, loadAggregationStats, needsStats, parseSummaryMethod, summaryDefinition, type AggregationStats, type SummaryMethod } from '../../data/riskAggregation'
 import { ACRE_MUNICIPALITY_SEATS } from '../../data/acreMunicipalities'
 import { addMunicipalBoundaryLayer, setMunicipalBoundaryVisibility } from '../../data/municipalBoundaries'
 
@@ -32,9 +31,9 @@ const decimal = (value: number, digits = 1) =>
   value.toLocaleString('pt-BR', { maximumFractionDigits: digits })
 const pct = (value: number) =>
   value > 0 && value < 0.000001 ? '<0,000001%' : `${decimal(value, 6)}%`
-const percentile = (values: RiskV4Values, model: RiskV4Model) =>
+const percentile = (values: RiskV6Values, model: RiskV6Model) =>
   values[`percentile_${model}`]
-const modelValue = (values: RiskV4Values, model: RiskV4Model) =>
+const modelValue = (values: RiskV6Values, model: RiskV6Model) =>
   values[`value_${model}`]
 let mapSerial = 0
 
@@ -48,22 +47,20 @@ function RiskMap({
   highlightClass,
   onHighlightClassChange,
   focusPoint,
-  comparisonMode,
   showMunicipalBoundaries,
   method,
   stats,
   onNativeChange,
 }: {
-  product: RiskV4Product
-  model: RiskV4Model
-  selected: RiskV4Selection | null
-  onSelect: (selection: RiskV4Selection | null) => void
+  product: RiskV6Product
+  model: RiskV6Model
+  selected: RiskV6Selection | null
+  onSelect: (selection: RiskV6Selection | null) => void
   scars: ScarCollection | null
   showScars: boolean
   highlightClass: string | null
   onHighlightClassChange: (id: string | null) => void
   focusPoint: [number, number] | null
-  comparisonMode: boolean
   showMunicipalBoundaries: boolean
   method: SummaryMethod
   stats: AggregationStats | null
@@ -81,14 +78,12 @@ function RiskMap({
     scarsRef = useRef(scars),
     showScarsRef = useRef(showScars),
     highlightRef = useRef(highlightClass),
-    comparisonRef = useRef(comparisonMode),
     boundariesRef = useRef(showMunicipalBoundaries)
   selectedRef.current = selected
   modelRef.current = model
   scarsRef.current = scars
   showScarsRef.current = showScars
   highlightRef.current = highlightClass
-  comparisonRef.current = comparisonMode
   boundariesRef.current = showMunicipalBoundaries
   const [mapReady, setMapReady] = useState(false)
   const [copyState, setCopyState] = useState('')
@@ -104,16 +99,16 @@ function RiskMap({
         ? null
         : new RiskRasterClient(product.index, product.rasterBase)
     clientRef.current = client
-    const protocol = `risk-v4-${++mapSerial}`
+    const protocol = `risk-v6-${++mapSerial}`
     if (client)
       addProtocol(protocol, async (request, controller) => {
         const match = request.url.match(
-          /:\/\/(random_forest|xgboost)\/(\d+)\/(\d+)\/(\d+)/,
+          /:\/\/(random_forest)\/(\d+)\/(\d+)\/(\d+)/,
         )
         if (!match) throw new Error('Endereço raster inválido.')
         return {
           data: await client.tile(
-            match[1] as RiskV4Model,
+            match[1] as RiskV6Model,
             Number(match[2]),
             Number(match[3]),
             Number(match[4]),
@@ -130,30 +125,30 @@ function RiskMap({
     mapRef.current = map
     map.addControl(new NavigationControl(), 'top-right')
     let query: AbortController | null = null
-    const tiles = (id: RiskV4Model) => [`${protocol}://${id}/{z}/{x}/{y}`]
+    const tiles = (id: RiskV6Model) => [`${protocol}://${id}/{z}/{x}/{y}`]
     let lastScars: ScarCollection | null = null
     let lastGrid: typeof grid | null = null
     const update = () => {
-      if (!map.getSource('risk-v4-grid')) return
-      const native = client !== null && map.getZoom() >= 8.5 && !comparisonRef.current
+      if (!map.getSource('risk-v6-grid')) return
+      const native = client !== null && map.getZoom() >= 8.5
       onNativeChange(native)
       if (lastGrid !== gridRef.current) {
         lastGrid = gridRef.current
-        ;(map.getSource('risk-v4-grid') as GeoJSONSource).setData(lastGrid)
+        ;(map.getSource('risk-v6-grid') as GeoJSONSource).setData(lastGrid)
       }
-      for (const layer of ['risk-v4-fill', 'risk-v4-lines'])
+      for (const layer of ['risk-v6-fill', 'risk-v6-lines'])
         map.setLayoutProperty(layer, 'visibility', native ? 'none' : 'visible')
       if (client)
-        for (const id of ['random_forest', 'xgboost'] as const)
+        for (const id of ['random_forest'] as const)
           map.setLayoutProperty(
-            `risk-v4-${id}`,
+            `risk-v6-${id}`,
             'visibility',
             native && id === modelRef.current ? 'visible' : 'none',
           )
       map.setPaintProperty(
-        'risk-v4-fill',
+        'risk-v6-fill',
         'fill-color',
-        comparisonRef.current ? comparisonColorExpression as never : methodRef.current === 'concentration' ? [
+        methodRef.current === 'concentration' ? [
           'interpolate', ['linear'], ['get', 'display_value'],
           ...COVERAGE_STOPS.flatMap((stop) => [stop.value, stop.color]),
         ] as never : [
@@ -166,14 +161,14 @@ function RiskMap({
           4, RISK_DISPLAY_CLASSES[4].color,
         ],
       )
-      const spotlight = comparisonRef.current || methodRef.current === 'concentration'
+      const spotlight = methodRef.current === 'concentration'
         ? undefined
         : RISK_DISPLAY_CLASSES.find((item) => item.id === highlightRef.current)
-      map.setPaintProperty('risk-v4-fill', 'fill-opacity', spotlight ? [
+      map.setPaintProperty('risk-v6-fill', 'fill-opacity', spotlight ? [
         'case',
         ['==', ['get', 'display_class'], RISK_DISPLAY_CLASSES.indexOf(spotlight)],
         0.91, 0.16,
-      ] as never : comparisonRef.current ? 0.94 : 0.85)
+      ] as never : 0.85)
       const choice = selectedRef.current
       const selection =
         choice?.kind === 'pixel'
@@ -209,13 +204,13 @@ function RiskMap({
                 ),
               }
             : EMPTY
-      ;(map.getSource('risk-v4-selected') as GeoJSONSource).setData(selection)
+      ;(map.getSource('risk-v6-selected') as GeoJSONSource).setData(selection)
       // Só publica o conjunto de cicatrizes quando ele muda, não a cada zoom.
       if (scarsRef.current !== lastScars) {
         lastScars = scarsRef.current
         const observed = scarsRef.current ?? EMPTY
-        ;(map.getSource('risk-v4-scars') as GeoJSONSource).setData(observed)
-        ;(map.getSource('risk-v4-scar-points') as GeoJSONSource).setData({
+        ;(map.getSource('risk-v6-scars') as GeoJSONSource).setData(observed)
+        ;(map.getSource('risk-v6-scar-points') as GeoJSONSource).setData({
           type: 'FeatureCollection',
           features:
             scarsRef.current?.features.map((feature) => ({
@@ -226,9 +221,9 @@ function RiskMap({
         })
       }
       for (const layer of [
-        'risk-v4-scar-fill',
-        'risk-v4-scar-line',
-        'risk-v4-scar-markers',
+        'risk-v6-scar-fill',
+        'risk-v6-scar-line',
+        'risk-v6-scar-markers',
       ])
         map.setLayoutProperty(
           layer,
@@ -238,32 +233,32 @@ function RiskMap({
     }
     updateRef.current = update
     map.on('style.load', () => {
-      map.addSource('risk-v4-grid', { type: 'geojson', data: gridRef.current })
-      map.addSource('risk-v4-boundary', {
+      map.addSource('risk-v6-grid', { type: 'geojson', data: gridRef.current })
+      map.addSource('risk-v6-boundary', {
         type: 'geojson',
         data: product.boundary,
       })
-      map.addSource('risk-v4-selected', { type: 'geojson', data: EMPTY })
-      map.addSource('risk-v4-scars', { type: 'geojson', data: EMPTY })
-      map.addSource('risk-v4-scar-points', { type: 'geojson', data: EMPTY })
+      map.addSource('risk-v6-selected', { type: 'geojson', data: EMPTY })
+      map.addSource('risk-v6-scars', { type: 'geojson', data: EMPTY })
+      map.addSource('risk-v6-scar-points', { type: 'geojson', data: EMPTY })
       // Os rótulos do mapa-base devem permanecer legíveis sobre o risco.
       const labelLayerId = map.getStyle().layers.find((layer) => layer.type === 'symbol')?.id
       map.addLayer({
-        id: 'risk-v4-fill',
+        id: 'risk-v6-fill',
         type: 'fill',
-        source: 'risk-v4-grid',
+        source: 'risk-v6-grid',
         paint: { 'fill-color': '#f1de84', 'fill-opacity': 0.85 },
       }, labelLayerId)
       map.addLayer({
-        id: 'risk-v4-lines',
+        id: 'risk-v6-lines',
         type: 'line',
-        source: 'risk-v4-grid',
+        source: 'risk-v6-grid',
         minzoom: 7.5,
         paint: { 'line-color': 'rgba(255,255,255,.28)', 'line-width': 0.4 },
       }, labelLayerId)
       if (client)
-        for (const id of ['random_forest', 'xgboost'] as const) {
-          map.addSource(`risk-v4-${id}`, {
+        for (const id of ['random_forest'] as const) {
+          map.addSource(`risk-v6-${id}`, {
             type: 'raster',
             tiles: tiles(id),
             tileSize: 256,
@@ -272,9 +267,9 @@ function RiskMap({
             bounds: product.manifest.bounds,
           })
           map.addLayer({
-            id: `risk-v4-${id}`,
+            id: `risk-v6-${id}`,
             type: 'raster',
-            source: `risk-v4-${id}`,
+            source: `risk-v6-${id}`,
             minzoom: 8.5,
             layout: { visibility: 'none' },
             paint: {
@@ -287,35 +282,35 @@ function RiskMap({
       // Traçados municipais sobre as cores do risco, abaixo dos rótulos do mapa-base.
       addMunicipalBoundaryLayer(map, boundariesRef.current, labelLayerId)
       map.addLayer({
-        id: 'risk-v4-outline',
+        id: 'risk-v6-outline',
         type: 'line',
-        source: 'risk-v4-boundary',
+        source: 'risk-v6-boundary',
         paint: { 'line-color': '#173f32', 'line-width': 2.2 },
       })
       map.addLayer({
-        id: 'risk-v4-selected-line',
+        id: 'risk-v6-selected-line',
         type: 'line',
-        source: 'risk-v4-selected',
+        source: 'risk-v6-selected',
         paint: { 'line-color': '#102a43', 'line-width': 3 },
       })
       map.addLayer({
-        id: 'risk-v4-scar-fill',
+        id: 'risk-v6-scar-fill',
         type: 'fill',
-        source: 'risk-v4-scars',
+        source: 'risk-v6-scars',
         minzoom: 8.5,
         paint: { 'fill-color': '#8e2b92', 'fill-opacity': 0.72 },
       })
       map.addLayer({
-        id: 'risk-v4-scar-line',
+        id: 'risk-v6-scar-line',
         type: 'line',
-        source: 'risk-v4-scars',
+        source: 'risk-v6-scars',
         minzoom: 8.5,
         paint: { 'line-color': '#48194e', 'line-width': 1.2 },
       })
       map.addLayer({
-        id: 'risk-v4-scar-markers',
+        id: 'risk-v6-scar-markers',
         type: 'circle',
-        source: 'risk-v4-scar-points',
+        source: 'risk-v6-scar-points',
         maxzoom: 8.5,
         paint: {
           'circle-color': '#8e2b92',
@@ -357,10 +352,10 @@ function RiskMap({
     map.on('click', (event) => {
       query?.abort()
       setError(null)
-      const show = (selection: RiskV4Selection) => onSelect(selection)
-      if (!client || map.getZoom() < 8.5 || comparisonRef.current) {
+      const show = (selection: RiskV6Selection) => onSelect(selection)
+      if (!client || map.getZoom() < 8.5) {
         const id = map.queryRenderedFeatures(event.point, {
-          layers: ['risk-v4-fill'],
+          layers: ['risk-v6-fill'],
         })[0]?.properties?.id
         const feature = product.cells.features.find(
           (item) => item.properties.id === id,
@@ -394,15 +389,15 @@ function RiskMap({
     map.on('error', (event) => {
       const sourceId = (event as unknown as { sourceId?: string }).sourceId
       if (
-        sourceId?.startsWith('risk-v4-') ||
+        sourceId?.startsWith('risk-v6-') ||
         event.error.message.includes('setor')
       )
         setError(event.error.message)
     })
-    map.on('mouseenter', 'risk-v4-fill', () => {
+    map.on('mouseenter', 'risk-v6-fill', () => {
       map.getCanvas().style.cursor = 'pointer'
     })
-    map.on('mouseleave', 'risk-v4-fill', () => {
+    map.on('mouseleave', 'risk-v6-fill', () => {
       map.getCanvas().style.cursor = ''
     })
     const observer = new ResizeObserver(() => {
@@ -424,7 +419,7 @@ function RiskMap({
 
   useEffect(() => {
     updateRef.current?.()
-  }, [model, selected, scars, showScars, highlightClass, comparisonMode, grid])
+  }, [model, selected, scars, showScars, highlightClass, grid])
   useEffect(() => {
     setMunicipalBoundaryVisibility(mapRef.current, showMunicipalBoundaries)
   }, [showMunicipalBoundaries])
@@ -436,8 +431,8 @@ function RiskMap({
   useEffect(() => {
     if (!retry) return
     setError(null)
-    for (const id of ['random_forest', 'xgboost'] as const) {
-      const source = mapRef.current?.getSource(`risk-v4-${id}`) as
+    for (const id of ['random_forest'] as const) {
+      const source = mapRef.current?.getSource(`risk-v6-${id}`) as
         | RasterTileSource
         | undefined
       if (source) source.setTiles(source.tiles!)
@@ -454,7 +449,7 @@ function RiskMap({
     link.searchParams.set('lat', lat.toFixed(5))
     link.searchParams.set('zoom', map.getZoom().toFixed(2))
     link.searchParams.set('view', 'risk')
-    link.searchParams.set('mode', comparisonMode ? 'compare' : 'risk')
+    link.searchParams.delete('mode')
     link.searchParams.set('summary', method)
     try {
       await navigator.clipboard.writeText(link.toString())
@@ -470,12 +465,12 @@ function RiskMap({
         modelLabel={
           product.manifest.models.find((item) => item.id === model)!.label
         }
-        aggregated={product.rasterBase === null || zoom < 8.5 || comparisonMode}
+        aggregated={product.rasterBase === null || zoom < 8.5}
         rasterReduced={product.rasterBase !== null && zoom >= 8.5 && zoom < 12}
         showScars={showScars && scars !== null}
         highlightClass={highlightClass}
         onHighlightClassChange={onHighlightClassChange}
-        comparisonMode={comparisonMode}
+
         summaryMethod={method}
       />
       <div className="risk-map-share">
@@ -495,8 +490,6 @@ function RiskMap({
               Tentar novamente
             </button>
           </>
-        ) : comparisonMode ? (
-          'Comparação de médias dos percentis · grupos de 5 km'
         ) : product.rasterBase === null ? (
           `Grupos de 5 km · ${summaryDefinition(method).label}`
         ) : (
@@ -517,15 +510,13 @@ function CellPanel({
   product,
   model,
   onClear,
-  comparisonMode,
   method,
   stats,
 }: {
-  selection: RiskV4Selection | null
-  product: RiskV4Product
-  model: RiskV4Model
+  selection: RiskV6Selection | null
+  product: RiskV6Product
+  model: RiskV6Model
   onClear: () => void
-  comparisonMode: boolean
   method: SummaryMethod
   stats: AggregationStats | null
 }) {
@@ -536,12 +527,11 @@ function CellPanel({
           <span className="eyebrow">Análise da localização</span>
           <h2>Selecione uma área do mapa</h2>
           <p>
-            Clique em uma área colorida para ver sua classificação e comparar
-            os resultados dos modelos.
+            Clique em uma área colorida para ver seu índice, sua composição e como o resumo foi calculado.
           </p>
           <div className="risk-panel-placeholder-guide">
             <strong>Como explorar</strong>
-            <span>1. Escolha o ano e o modelo acima.</span>
+            <span>1. Escolha o ano e o resumo acima.</span>
             <span>2. Clique em um quadrado colorido.</span>
             <span>3. Veja os resultados aqui, sem sair do mapa.</span>
           </div>
@@ -557,7 +547,6 @@ function CellPanel({
     aggregate = selection.kind === 'aggregated'
   const active = product.manifest.models.find((item) => item.id === model)!
   const currentPercentile = percentile(p, model)
-  const rankDelta = rankingDifference(p)
   // Mesmos limites científicos do mapa: classificação apenas visual.
   const currentClass = RISK_DISPLAY_CLASSES.find(
     (item) => currentPercentile >= item.lower && (
@@ -576,21 +565,7 @@ function CellPanel({
           <button type="button" className="clear-selection" onClick={onClear} aria-label="Limpar seleção atual">Limpar</button>
         </div>
       </div>
-      {comparisonMode && (
-        <div className="risk-model-delta">
-          <span className="eyebrow">Diferença entre médias dos percentis</span>
-          <strong>{formatRankingDifference(rankDelta)}</strong>
-          <p>
-            O valor compara as médias das posições dos pixels no estado,
-            atribuídas pelos dois modelos. Não mede a mudança do risco nem a chance de incêndio.
-          </p>
-          <div className="risk-delta-pair" role="group" aria-label="Posição dos dois modelos">
-            <div><span>Random Forest</span><strong>{summaryNumber(p.percentile_random_forest)}</strong></div>
-            <div><span>XGBoost</span><strong>{summaryNumber(p.percentile_xgboost)}</strong></div>
-          </div>
-        </div>
-      )}
-      {!comparisonMode && <div className="active-score">
+      <div className="active-score">
         <span className="risk-score-caption">{active.label} · mapa de {product.manifest.year}</span>
         {selection.kind === 'aggregated' ? <>
           <small>{method === 'mean' ? 'Percentil médio dos pixels' : summaryDefinition(method).label}</small>
@@ -603,40 +578,18 @@ function CellPanel({
         <small>O percentil indica a posição do pixel perante o estado, não a chance de um incêndio.</small></>}
         <details className="risk-score-technical">
           <summary>Valor calculado pelo modelo</summary>
-          <p>{active.value_label}: {pct(modelValue(p, model))}. {aggregate ? 'Média dos pixels do grupo.' : 'Valor do pixel consultado.'} Valores de modelos diferentes não devem ser comparados como probabilidades equivalentes.</p>
+          <p>{active.value_label}: {pct(modelValue(p, model))}. {aggregate ? 'Média dos pixels do grupo.' : 'Valor do pixel consultado.'} A calibração foi recebida da equipe científica e pode superestimar ou subestimar anos atípicos.</p>
         </details>
-      </div>}
-      {!comparisonMode && <dl className="model-score-list">
-        {product.manifest.models.map((item) => (
-          <div
-            key={item.id}
-            className={item.id === model ? 'active' : undefined}
-          >
-            <dt>{item.label}</dt>
-            <dd>
-              <strong>{selection.kind === 'aggregated' ? (() => {
-                const r = summarize(selection.properties, item.id, method, stats)
-                return method === 'mode' ? RISK_DISPLAY_CLASSES[r.classIndex!].label : r.value === null ? 'Indisponível' : `${summaryNumber(r.value)}${method === 'concentration' ? '%' : ''}`
-              })() : decimal(percentile(p, item.id), 2)}</strong>
-              <small>
-                {aggregate ? summaryDefinition(method).label : 'Posição no ranking'}
-              </small>
-              <small>{aggregate ? 'Resumo espacial dos pixels' : 'Índice percentil recebido'}</small>
-            </dd>
-          </div>
-        ))}
-      </dl>}
+      </div>
       {selection.kind === 'aggregated' && <>
         <Composition cell={selection.properties} model={model} />
-        {!comparisonMode && <Calculation cell={selection.properties} model={model} method={method} stats={stats} year={product.manifest.year} />}
+        <Calculation cell={selection.properties} model={model} method={method} stats={stats} year={product.manifest.year} />
       </>}
-      {!comparisonMode && (
-        <RiskYearComparison
+      <RiskYearComparison
           year={product.manifest.year}
           selection={selection}
           model={model}
-        />
-      )}
+      />
       <details className="risk-panel-extra">
         <summary>Informações técnicas desta área</summary>
       <dl className="cell-metrics">
@@ -646,11 +599,11 @@ function CellPanel({
         </div>
         <div>
           <dt>Clima do modelo</dt>
-          <dd>{product.manifest.training.climate_year} · suavizado</dd>
+          <dd>Não utilizado · F30C</dd>
         </div>
         <div>
           <dt>Histórico e rótulo</dt>
-          <dd>MapBiomas Fogo · AB30C</dd>
+          <dd>MapBiomas Fogo · F30C</dd>
         </div>
         {selection.kind === 'pixel' ? (
           <>
@@ -684,7 +637,7 @@ function CellPanel({
       </dl>
       <p className="cell-details-note">
         {aggregate
-          ? 'A cor representa o resumo escolhido dos pixels originais. Na comparação de modelos, são usadas exclusivamente médias dos percentis.'
+          ? 'A cor representa o resumo escolhido dos pixels originais. A comparação entre anos usa exclusivamente médias dos percentis.'
           : 'Consulta feita na resolução original, mesmo quando o raster desenhado usa uma versão reduzida.'}{' '}
         Os percentis estaduais do professor são preservados.
       </p>
@@ -697,8 +650,8 @@ function Evaluation({
   product,
   model,
 }: {
-  product: RiskV4Product
-  model: RiskV4Model
+  product: RiskV6Product
+  model: RiskV6Model
 }) {
   const active = product.manifest.models.find((item) => item.id === model)!
   return (
@@ -721,7 +674,7 @@ function Evaluation({
         </p>
         <div className="evaluation-table-wrapper">
           <table className="evaluation-priority-table">
-            <caption>Resultados históricos para todo o Acre</caption>
+            <caption>Mapas completos · cobertura válida v6 · MapBiomas Fogo 30 m</caption>
             <thead>
               <tr>
                 <th>Ano</th>
@@ -754,7 +707,7 @@ function Evaluation({
           <p><strong>Encontrados no topo de 5%:</strong> indica quantos dos pixels queimados estavam entre os 5% do território que o modelo colocou mais alto na classificação.</p>
         </details>
         <p className="risk-evaluation-limit">
-          Resultados recebidos da equipe de pesquisa, sem recálculo neste site.
+          Resultados dos mapas completos recebidos da equipe de pesquisa, sem recálculo neste site; não são as métricas da amostra de validação.
           Áreas queimadas mapeadas não são incêndios individuais confirmados.
         </p>
       </div>
@@ -762,7 +715,7 @@ function Evaluation({
   )
 }
 
-export function RiskV4({
+export function RiskV6({
   year,
   onYearChange,
   showMunicipalBoundaries,
@@ -773,7 +726,7 @@ export function RiskV4({
   showMunicipalBoundaries: boolean
   onMunicipalBoundariesChange: (next: boolean) => void
 }) {
-  const cache = useRef(new Map<number, RiskV4Product>())
+  const cache = useRef(new Map<number, RiskV6Product>())
   const statsCache = useRef(new Map<number, AggregationStats>())
   const [method, setMethod] = useState<SummaryMethod>(() => parseSummaryMethod(new URLSearchParams(window.location.search).get('summary')))
   const [stats, setStats] = useState<AggregationStats | null>(null)
@@ -784,19 +737,13 @@ export function RiskV4({
   const [native, setNative] = useState(false)
   const methodRef = useRef(method)
   methodRef.current = method
-  const [product, setProduct] = useState<RiskV4Product | null>(null)
+  const [product, setProduct] = useState<RiskV6Product | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
-  const [model, setModel] = useState<RiskV4Model>(() => {
-    const saved = new URLSearchParams(window.location.search).get('model')
-    return saved === 'xgboost' ? 'xgboost' : 'random_forest'
-  })
-  const [comparisonMode, setComparisonMode] = useState(
-    () => new URLSearchParams(window.location.search).get('mode') === 'compare',
-  )
-  const [selection, setSelection] = useState<RiskV4Selection | null>(null)
+  const model: RiskV6Model = 'random_forest'
+  const [selection, setSelection] = useState<RiskV6Selection | null>(null)
   // Callback estável: não reinicializa o mapa a cada seleção.
-  const handleMapSelection = useCallback((next: RiskV4Selection | null) => {
+  const handleMapSelection = useCallback((next: RiskV6Selection | null) => {
     setSelection(next)
   }, [])
   const [highlightClass, setHighlightClass] = useState<string | null>(null)
@@ -844,7 +791,7 @@ export function RiskV4({
     setSelection(null)
     setProduct(cache.current.get(year) ?? null)
     if (cache.current.has(year)) return () => controller.abort()
-    void loadRiskV4(year, controller.signal)
+    void loadRiskV6(year, controller.signal)
       .then((result) => {
         if (controller.signal.aborted) return
         cache.current.set(year, result)
@@ -855,7 +802,7 @@ export function RiskV4({
           setError(
             reason instanceof Error
               ? reason.message
-              : 'Falha ao carregar o Risco v4.',
+              : 'Falha ao carregar o Risco v6.',
           )
       })
     return () => controller.abort()
@@ -944,25 +891,13 @@ export function RiskV4({
   const effectiveMethod = needsStats(method) && !activeStats ? 'mean' : method
   return (
     <>
-      <div className="risk-v4-toolbar" aria-label="Configuração do mapa de risco">
+      <div className="risk-v6-toolbar" aria-label="Configuração do mapa de risco">
         <div className="risk-toolbar-primary">
           {yearControl}
           <section className="control-group risk-model-control">
             <span className="control-label">Modelo de risco</span>
-            <div className="layer-selector" role="group" aria-label="Modelo de risco">
-              {product.manifest.models.map((item) => (
-                <button
-                  type="button"
-                  key={item.id}
-                  className={model === item.id ? 'active' : undefined}
-                  aria-pressed={model === item.id}
-                  disabled={comparisonMode}
-                  onClick={() => setModel(item.id)}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+            <strong className="risk-fixed-model">Random Forest · F30C</strong>
+            <small>Modelo sem clima · entrega v6</small>
           </section>
           <section className="control-group risk-scar-control">
             <span className="control-label">Camada histórica</span>
@@ -995,31 +930,10 @@ export function RiskV4({
         </div>
         <details className="risk-toolbar-tools">
           <summary>
-            <span>Explorar e comparar</span>
-            <small>{comparisonMode ? 'Comparação entre modelos ativa' : 'Municípios, coordenadas e comparação de modelos'}</small>
+            <span>Explorar o território</span>
+            <small>Municípios e busca por coordenadas</small>
           </summary>
           <div className="risk-toolbar-secondary">
-            <section className="control-group risk-compare-control">
-              <span className="control-label">Como mostrar os resultados</span>
-              <div className="risk-view-toggle" role="group" aria-label="Como mostrar os modelos">
-                <button
-                  type="button"
-                  aria-pressed={!comparisonMode}
-                  className={!comparisonMode ? 'active' : undefined}
-                  onClick={() => setComparisonMode(false)}
-                >Mapa de risco</button>
-                <button
-                  type="button"
-                  aria-pressed={comparisonMode}
-                  className={comparisonMode ? 'active' : undefined}
-                  onClick={() => {
-                    setHighlightClass(null)
-                    if (selection?.kind === 'pixel') setSelection(null)
-                    setComparisonMode(true)
-                  }}
-                >Comparar modelos</button>
-              </div>
-            </section>
             <div className="risk-municipality-control">
               <label htmlFor="risk-municipality-select">Ir para município</label>
               <select
@@ -1067,7 +981,7 @@ export function RiskV4({
         </details>
       </div>
       <AggregationControl method={method} onChange={(next) => { setMethod(next); setSummaryNotice('') }}
-        native={native} comparison={comparisonMode} available={activeStats !== null}
+        native={native} available={activeStats !== null}
         loading={statsLoading} error={statsError} retry={() => setStatsAttempt((v) => v + 1)}
         notice={needsStats(method) && !activeStats ? 'Carregando o resumo escolhido; exibindo a média provisoriamente.' : summaryNotice} />
       {showScars && year !== 2025 && (
@@ -1078,7 +992,7 @@ export function RiskV4({
           {!scars && !scarError ? ' Carregando as observações…' : ''}
         </p>
       )}
-      <section className="map-workspace risk-v4-workspace" aria-label="Mapa e análise do local selecionado">
+      <section className="map-workspace risk-v6-workspace" aria-label="Mapa e análise do local selecionado">
         <div className="map-section risk-map-section">
           <RiskMap
             key={year}
@@ -1091,7 +1005,7 @@ export function RiskV4({
             highlightClass={highlightClass}
             onHighlightClassChange={setHighlightClass}
             focusPoint={focusPoint}
-            comparisonMode={comparisonMode}
+
             showMunicipalBoundaries={showMunicipalBoundaries}
             method={effectiveMethod}
             stats={activeStats}
@@ -1102,29 +1016,19 @@ export function RiskV4({
           product={product}
           model={model}
           selection={selection}
-          comparisonMode={comparisonMode}
+
           onClear={() => setSelection(null)}
           method={effectiveMethod}
           stats={activeStats}
         />
       </section>
-      {comparisonMode && (
-        <div className="risk-comparison-explainer">
-          <strong>Como interpretar a comparação</strong>
-          <p>Azul: XGBoost colocou a área mais acima em seu ranking. Terracota:
-          Random Forest colocou a área mais acima. Tons claros: classificações próximas.
-          A comparação usa exclusivamente médias dos percentis nos grupos de 5 km do mesmo ano e não indica qual modelo acertou.</p>
-        </div>
-      )}
       <Evaluation product={product} model={model} />
       <section className="risk-science-summary" aria-label="Sobre este mapa">
         <div className="risk-science-intro">
           <span className="eyebrow">Sobre este mapa</span>
           <strong>O que as cores mostram?</strong>
           <p>
-            {comparisonMode
-              ? 'Nesta visualização, as cores mostram diferenças entre o ranking do Random Forest e o do XGBoost para o mesmo ano. Elas não representam probabilidades nem evolução do risco.'
-              : !native && effectiveMethod === 'concentration'
+            {!native && effectiveMethod === 'concentration'
                 ? 'As cores mostram a fração dos pixels válidos em Alto ou Muito alto. A porcentagem aproxima a cobertura da área, sem representar a chance de um incêndio.'
                 : 'Na visão de 5 km, as cores mostram o resumo espacial escolhido. Ao aproximar, mostram os índices dos pixels recebidos. Tons quentes indicam classes mais altas; não significam que um incêndio acontecerá.'}
           </p>
@@ -1134,8 +1038,7 @@ export function RiskV4({
           <p>
             Pesquisadores analisaram dados ambientais e o histórico de áreas
             queimadas para estimar o risco anual. O modelo {active.label} usou
-            informações de {product.manifest.training.years.join(' a ')} e dados
-            climáticos de {product.manifest.training.climate_year}.
+            informações de {product.manifest.training.years.join(' a ')}. O cenário F30C usa 11 preditores de paisagem e histórico de fogo, sem variáveis climáticas.
           </p>
           <p>
             O estudo reúne {decimal(product.manifest.counts.source_pixels, 0)}
@@ -1151,9 +1054,7 @@ export function RiskV4({
             <p>
               Os arquivos GeoTIFF finais foram publicados sem recalcular as
               estimativas nem os percentis. O Random Forest recebeu calibração
-              temporal da equipe científica; o XGBoost recebeu correção de
-              amostragem e não tem calibração equivalente. O cenário é AB30C,
-              com suavização climática. Este produto é experimental e não
+              temporal da equipe científica. O cenário é F30C, sem clima, com cobertura pelo limite do IBGE de 2024. Este produto é experimental e não
               oferece alertas operacionais de incêndio.
             </p>
           </details>

@@ -1,4 +1,4 @@
-import type { RiskV4Index, RiskV4Model, RiskV4Pixel } from '../types/riskV4'
+import type { RiskV6Index, RiskV6Model, RiskV6Pixel } from '../types/riskV6'
 
 export class RiskRasterClient {
   private worker = new Worker(
@@ -15,7 +15,7 @@ export class RiskRasterClient {
     }
   >()
 
-  constructor(index: RiskV4Index, base: string) {
+  constructor(index: RiskV6Index, base: string) {
     this.worker.postMessage({
       type: 'init',
       index,
@@ -65,7 +65,7 @@ export class RiskRasterClient {
   }
 
   tile(
-    model: RiskV4Model,
+    model: RiskV6Model,
     z: number,
     x: number,
     y: number,
@@ -75,7 +75,7 @@ export class RiskRasterClient {
   }
 
   query(lon: number, lat: number, signal: AbortSignal) {
-    return this.request<RiskV4Pixel | null>({ type: 'query', lon, lat }, signal)
+    return this.request<RiskV6Pixel | null>({ type: 'query', lon, lat }, signal)
   }
 
   private failAll(error: Error) {

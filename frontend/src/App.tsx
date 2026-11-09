@@ -3,7 +3,7 @@ import { ClimateSeries } from './components/Chart/ClimateSeries'
 import { ClimateDetails } from './components/ClimateDetails/ClimateDetails'
 import { ClimateMap } from './components/Map/ClimateMap'
 import { TimeSlider } from './components/Timeline/TimeSlider'
-import { RiskV4 } from './components/RiskV4/RiskV4'
+import { RiskV6 } from './components/RiskV6/RiskV6'
 import { loadClimateProduct } from './data/climate'
 import type { ClimateProduct, ClimateVariable } from './types/climate'
 
@@ -74,7 +74,7 @@ export default function App() {
         >
           <span className="product-tab-title">Risco anual <span className="tab-year">{riskYear}</span></span>
           <span className="product-tab-description">
-            Explore e compare os modelos
+            Random Forest · paisagem e histórico de fogo
           </span>
         </button>
         <button
@@ -90,7 +90,7 @@ export default function App() {
         </button>
       </nav>
       <div hidden={section !== 'risk'}>
-        <RiskV4
+        <RiskV6
           year={riskYear}
           onYearChange={setRiskYear}
           showMunicipalBoundaries={showMunicipalBoundaries}

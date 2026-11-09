@@ -1,6 +1,6 @@
-import { RISK_V4_CLASSES } from '../types/riskV4'
+import { RISK_V6_CLASSES } from '../types/riskV6'
 
-// Paleta exclusiva do frontend: não altera os limites, dados ou o contrato v4.
+// Paleta exclusiva do frontend: não altera os limites, dados ou o contrato v6.
 const DISPLAY_COLORS = [
   '#238677',
   '#8cc89a',
@@ -9,7 +9,7 @@ const DISPLAY_COLORS = [
   '#cb5c52',
 ] as const
 
-export const RISK_DISPLAY_CLASSES = RISK_V4_CLASSES.map((item, index) => ({
+export const RISK_DISPLAY_CLASSES = RISK_V6_CLASSES.map((item, index) => ({
   ...item,
   color: DISPLAY_COLORS[index],
 }))

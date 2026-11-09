@@ -78,6 +78,6 @@ describe('limites municipais de referência do Acre', () => {
   it('registra a URL e as IDs da camada separada do risco', () => {
     expect(MUNICIPAL_GEOJSON_URL).toBe('/data/reference/acre-municipalities.geojson')
     expect(MUNICIPAL_LINE_ID).not.toBe(MUNICIPAL_SOURCE_ID)
-    expect(MUNICIPAL_LINE_ID).not.toMatch(/^risk-v4-/)
+    expect(MUNICIPAL_LINE_ID).not.toMatch(/^risk-v6-/)
   })
 })

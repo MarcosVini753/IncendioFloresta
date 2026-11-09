@@ -35,14 +35,14 @@ const remoteYearBase = (year) =>
   new URL(`${year}/`, `${remoteBase.replace(/\/+$/, '')}/`).href
 const products = [
   {
-    source: '../incendio/produtos/risco/v4/2025',
-    target: 'public/data/risk/v4/2025',
-    label: 'risco anual 2025 · professor v4',
+    source: '../incendio/produtos/risco/v6/2025',
+    target: 'public/data/risk/v6/2025',
+    label: 'risco anual 2025 · professor v6',
   },
   {
-    source: '../incendio/produtos/risco/v4/2026',
-    target: 'public/data/risk/v4/2026',
-    label: 'risco anual 2026 · professor v4',
+    source: '../incendio/produtos/risco/v6/2026',
+    target: 'public/data/risk/v6/2026',
+    label: 'risco anual 2026 · professor v6',
   },
   {
     source: '../incendio/produtos/clima/v1/2025',
@@ -78,7 +78,7 @@ for (const product of products.filter((item) =>
       await readFile(path.join(riskRoot, 'index.json'), 'utf8'),
     )
     if (
-      manifest.schema_version !== '4.0' ||
+      manifest.schema_version !== '6.0' ||
       manifest.year !== Number(path.basename(riskRoot)) ||
       index.year !== manifest.year ||
       !Array.isArray(index.sectors) ||
@@ -87,7 +87,7 @@ for (const product of products.filter((item) =>
       throw new Error('manifesto/índice inválido')
     const summaries = JSON.parse(await readFile(path.join(riskRoot, 'aggregation-stats.json'), 'utf8'))
     const grid = JSON.parse(await readFile(path.join(riskRoot, 'grid.geojson'), 'utf8'))
-    if (summaries.schema_version !== '1.0' || summaries.product !== 'risk_v4_aggregation_stats' ||
+    if (summaries.schema_version !== '1.0' || summaries.product !== 'risk_v6_aggregation_stats' ||
         summaries.year !== manifest.year || summaries.source_identity !== manifest.provenance?.identity ||
         summaries.counts?.groups !== grid.features.length || summaries.counts?.source_pixels !== index.valid_pixels ||
         !summaries.groups || Object.keys(summaries.groups).length !== grid.features.length ||
@@ -100,7 +100,7 @@ for (const product of products.filter((item) =>
     for (const entry of index.sectors) {
       if (
         typeof entry.id !== 'string' ||
-        !/^AC-V4-R\d{3}C\d{3}$/.test(entry.id) ||
+        !/^AC-V6-R\d{3}C\d{3}$/.test(entry.id) ||
         entry.url !== `sectors/${entry.id}.tif`
       )
         throw new Error('URL de setor inválida')
@@ -112,7 +112,7 @@ for (const product of products.filter((item) =>
     }
   } catch (error) {
     throw new Error(
-      `Produto v4 ausente, inválido ou incompleto em ${riskRoot}. Para pixels locais, execute incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year ${path.basename(riskRoot)} com os GeoTIFFs finais. Para gerar/atualizar os resumos, execute incendio/.venv/bin/python incendio/risco_anual_v4/exportar_resumos.py --year ${path.basename(riskRoot)}. Para publicar sem COGs locais, use RISK_RASTER_MODE=aggregated; para COGs externos, configure RISK_RASTER_BASE_URL (veja frontend/README.md).`,
+      `Produto v6 ausente, inválido ou incompleto em ${riskRoot}. Para pixels locais, execute incendio/.venv/bin/python incendio/importar_risco_professor_v6.py --year ${path.basename(riskRoot)} com os GeoTIFFs finais. Para gerar/atualizar os resumos, execute incendio/.venv/bin/python incendio/risco_anual_v6/exportar_resumos.py --year ${path.basename(riskRoot)}. Para publicar sem COGs locais, use RISK_RASTER_MODE=aggregated; para COGs externos, configure RISK_RASTER_BASE_URL (veja frontend/README.md).`,
       { cause: error },
     )
   }
@@ -161,7 +161,7 @@ for (const product of products) {
           raster_mode: productMode,
           raster_base_url:
             productMode === 'local'
-              ? `/data/risk/v4/${year}/`
+              ? `/data/risk/v6/${year}/`
               : productMode === 'remote'
                 ? remoteYearBase(year)
                 : null,
@@ -179,5 +179,5 @@ if (rasterMode === 'aggregated')
   )
 else
   console.log(
-    `Raster de 30 m em 2025 e 2026: ${rasterMode === 'remote' ? 'servido externamente; confira CORS e HTTP Range na origem' : '208 setores versionados por ano incluídos'}.`,
+    `Raster de 30 m em 2025 e 2026: ${rasterMode === 'remote' ? 'servido externamente; confira CORS e HTTP Range na origem' : 'setores Float32 versionados dos dois anos incluídos'}.`,
   )

@@ -4,9 +4,9 @@ export const MUNICIPAL_SOURCE_ID = 'acre-municipality-boundaries'
 export const MUNICIPAL_LINE_ID = 'acre-municipality-outline'
 export const MUNICIPAL_GEOJSON_URL = '/data/reference/acre-municipalities.geojson'
 
-// Os 22 polígonos foram compilados a partir das malhas municipais do IBGE.
+// Os 22 polígonos foram recebidos na entrega v6, a partir da malha IBGE 2024.
 // Usados exclusivamente como referência cartográfica, sem alterar os dados de risco.
-// Fonte preparada para web: https://github.com/henriquemalvar/br-geojson
+// Fonte local: entrega_professor_v6/4_bases_de_dados/municipios_acre_IBGE_2024_simplificado.geojson
 export function addMunicipalBoundaryLayer(
   map: MapLibreMap,
   visible: boolean,

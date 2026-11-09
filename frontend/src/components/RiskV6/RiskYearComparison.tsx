@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react'
-import { loadRiskV4 } from '../../data/riskV4'
-import type { RiskV4Model, RiskV4Selection, RiskV4Product } from '../../types/riskV4'
+import { loadRiskV6 } from '../../data/riskV6'
+import type { RiskV6Model, RiskV6Selection, RiskV6Product } from '../../types/riskV6'
 
 interface Props {
   year: 2025 | 2026
-  selection: RiskV4Selection
-  model: RiskV4Model
+  selection: RiskV6Selection
+  model: RiskV6Model
 }
 
 export function RiskYearComparison({ year, selection, model }: Props) {
   const [open, setOpen] = useState(false)
-  const [other, setOther] = useState<RiskV4Product | null>(null)
+  const [other, setOther] = useState<RiskV6Product | null>(null)
   const [error, setError] = useState('')
   const comparisonYear = year === 2025 ? 2026 : 2025
   const id = selection.properties.id
@@ -21,7 +21,7 @@ export function RiskYearComparison({ year, selection, model }: Props) {
     if (!open || selection.kind !== 'aggregated' || other?.manifest.year === comparisonYear) return
     const controller = new AbortController()
     setError('')
-    void loadRiskV4(comparisonYear, controller.signal)
+    void loadRiskV6(comparisonYear, controller.signal)
       .then((value) => { if (!controller.signal.aborted) setOther(value) })
       .catch((reason: unknown) => {
         if (!controller.signal.aborted) setError(
@@ -69,8 +69,7 @@ export function RiskYearComparison({ year, selection, model }: Props) {
                 : `A média de ${year} está ${Math.abs(gap).toLocaleString('pt-BR', { maximumFractionDigits: 2 })} pontos ${gap > 0 ? 'acima' : 'abaixo'} da média de ${comparisonYear}.`}
             </p>
             <p className="risk-year-compare-note">
-              São mapas de anos diferentes, com treinamentos e referências climáticas
-              diferentes. A diferença é entre índices relativos, não uma medição de
+              Cada ano tem seu próprio ranking estadual e período de treinamento. O modelo não utiliza clima. A diferença é entre índices relativos, não uma medição de
               aumento ou redução do risco real.
             </p>
           </>

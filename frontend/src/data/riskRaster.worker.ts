@@ -5,11 +5,11 @@ import {
   type GeoTIFFImage,
 } from 'geotiff'
 import {
-  type RiskV4Index,
-  type RiskV4Model,
-  type RiskV4Pixel,
-  type RiskV4Sector,
-} from '../types/riskV4'
+  type RiskV6Index,
+  type RiskV6Model,
+  type RiskV6Pixel,
+  type RiskV6Sector,
+} from '../types/riskV6'
 import { RISK_DISPLAY_CLASSES } from './riskDisplayPalette'
 
 // O limite também vale para os subpedidos HTTP que o leitor TIFF faz ao
@@ -66,7 +66,7 @@ type Job =
   | {
       id: number
       type: 'tile'
-      model: RiskV4Model
+      model: RiskV6Model
       z: number
       x: number
       y: number
@@ -74,15 +74,15 @@ type Job =
   | { id: number; type: 'query'; lon: number; lat: number }
 type Command =
   | Job
-  | { type: 'init'; index: RiskV4Index; base: string }
+  | { type: 'init'; index: RiskV6Index; base: string }
   | { type: 'cancel'; id: number }
 const channel = globalThis as unknown as {
   postMessage: (value: unknown, transfer?: Transferable[]) => void
   onmessage: (event: MessageEvent<Command>) => void
 }
-let index: RiskV4Index
+let index: RiskV6Index
 let base = ''
-const sectorByWindow = new Map<string, RiskV4Sector>()
+const sectorByWindow = new Map<string, RiskV6Sector>()
 const readers = new Map<string, Promise<GeoTIFF>>()
 const blocks = new Map<string, Float32Array>()
 let cacheBytes = 0
@@ -97,10 +97,10 @@ function aborted(signal: AbortSignal) {
   signal.throwIfAborted()
 }
 
-async function reader(entry: RiskV4Sector) {
+async function reader(entry: RiskV6Sector) {
   let pending = readers.get(entry.id)
   if (!pending) {
-    // Os setores têm no máximo 1024² × 4 Float32. Servidores sem Range podem
+    // Os setores têm no máximo 1024² × 2 Float32. Servidores sem Range podem
     // responder com o setor completo, nunca com um GeoTIFF de todo o estado.
     pending = (async () => {
       const url = new URL(entry.url, base).href
@@ -140,7 +140,7 @@ async function reader(entry: RiskV4Sector) {
 }
 
 async function block(
-  entry: RiskV4Sector,
+  entry: RiskV6Sector,
   level: number,
   image: GeoTIFFImage,
   bx: number,
@@ -163,7 +163,7 @@ async function block(
   ]
   const pixels = (await image.readRasters({
     window,
-    samples: [0, 1, 2, 3],
+    samples: [0, 1],
     interleave: true,
     signal,
   })) as Float32Array
@@ -202,7 +202,7 @@ async function query(
   lon: number,
   lat: number,
   signal: AbortSignal,
-): Promise<RiskV4Pixel | null> {
+): Promise<RiskV6Pixel | null> {
   const position = locate(lon, lat)
   if (!position) return null
   const { entry, row, column } = position
@@ -215,10 +215,10 @@ async function query(
     by = Math.floor(y / 256)
   const pixels = await block(entry, 0, image, bx, by, signal)
   const width = Math.min(256, image.getWidth() - bx * 256)
-  const offset = ((y - by * 256) * width + x - bx * 256) * 4
-  const values = Array.from(pixels.subarray(offset, offset + 4))
+  const offset = ((y - by * 256) * width + x - bx * 256) * 2
+  const values = Array.from(pixels.subarray(offset, offset + 2))
   if (
-    values.length !== 4 ||
+    values.length !== 2 ||
     values.some((v) => !Number.isFinite(v) || v < 0 || v > 100)
   )
     return null
@@ -229,15 +229,13 @@ async function query(
     north = f + row * e,
     south = north + e
   return {
-    id: `AC-V4-Y${row}-X${column}`,
+    id: `AC-V6-Y${row}-X${column}`,
     row,
     column,
     centroid: [(west + east) / 2, (south + north) / 2],
     bbox: [west, south, east, north],
     value_random_forest: values[0],
     percentile_random_forest: values[1],
-    value_xgboost: values[2],
-    percentile_xgboost: values[3],
   }
 }
 
@@ -245,7 +243,7 @@ const tileLat = (y: number, n: number) =>
   (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))) * 180) / Math.PI
 
 async function tile(job: Extract<Job, { type: 'tile' }>, signal: AbortSignal) {
-  const { z, x, y, model } = job
+  const { z, x, y } = job
   const n = 2 ** z,
     west = (x / n) * 360 - 180,
     east = ((x + 1) / n) * 360 - 180
@@ -254,7 +252,7 @@ async function tile(job: Extract<Job, { type: 'tile' }>, signal: AbortSignal) {
   const rgba = new Uint8ClampedArray(256 * 256 * 4)
   const groups = new Map<
     string,
-    { entry: RiskV4Sector; pixels: [number, number, number][] }
+    { entry: RiskV6Sector; pixels: [number, number, number][] }
   >()
   for (let py = 0; py < 256; py++) {
     // Cada linha é convertida de Web Mercator para latitude. Uma interpolação
@@ -312,8 +310,8 @@ async function tile(job: Extract<Job, { type: 'tile' }>, signal: AbortSignal) {
       const data = await block(entry, level, image, piece.bx, piece.by, signal)
       const width = Math.min(256, image.getWidth() - piece.bx * 256)
       for (const [target, sx, sy] of piece.pixels) {
-        const source = ((sy - piece.by * 256) * width + sx - piece.bx * 256) * 4
-        const value = data[source + (model === 'random_forest' ? 1 : 3)]
+        const source = ((sy - piece.by * 256) * width + sx - piece.bx * 256) * 2
+        const value = data[source + 1]
         if (!Number.isFinite(value) || value < 0 || value > 100) continue
         const category =
           value < 50 ? 0 : value < 70 ? 1 : value < 90 ? 2 : value < 95 ? 3 : 4

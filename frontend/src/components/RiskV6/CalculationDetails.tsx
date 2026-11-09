@@ -1,7 +1,7 @@
 import { AGGREGATION_HELP } from '../../data/riskAggregationHelp'
 import { summaryDefinition, summarize, type AggregationStats, type SummaryMethod } from '../../data/riskAggregation'
 import { RISK_DISPLAY_CLASSES } from '../../data/riskDisplayPalette'
-import type { RiskV4Cell, RiskV4Model } from '../../types/riskV4'
+import type { RiskV6Cell, RiskV6Model } from '../../types/riskV6'
 
 const number = (n: number, digits = 6) => n.toLocaleString('pt-BR', { maximumFractionDigits: digits })
 const fixed = (n: number) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -22,7 +22,7 @@ export function MethodExplanation({ method }: { method: SummaryMethod }) {
 }
 
 export function Calculation({ cell, model, method, stats, year }: {
-  cell: RiskV4Cell; model: RiskV4Model; method: SummaryMethod; stats: AggregationStats | null; year: 2025 | 2026
+  cell: RiskV6Cell; model: RiskV6Model; method: SummaryMethod; stats: AggregationStats | null; year: 2025 | 2026
 }) {
   const definition = summaryDefinition(method), result = summarize(cell, model, method, stats)
   const group = stats?.groups[cell.id], extra = group?.models[model]
@@ -41,7 +41,7 @@ export function Calculation({ cell, model, method, stats, year }: {
     <p>{definition.description}</p>
     <dl className="aggregation-context">
       <div><dt>Área</dt><dd>{cell.id}</dd></div>
-      <div><dt>Modelo e ano</dt><dd>{model === 'random_forest' ? 'Random Forest' : 'XGBoost'} · {year}</dd></div>
+      <div><dt>Modelo e ano</dt><dd>Random Forest · {year}</dd></div>
       <div><dt>Pixels válidos do grupo (n)</dt><dd>{number(n, 0)}</dd></div>
       {stats && <div><dt>Pixels válidos do estado (N)</dt><dd>{number(stats.counts.source_pixels, 0)}</dd></div>}
     </dl>
@@ -113,7 +113,7 @@ export function Calculation({ cell, model, method, stats, year }: {
       </>}
 
       {method === 'state_rarity' && extra && <>
-        <p>As frequências f_c da tabela são calculadas sobre {number(stats!.counts.source_pixels, 0)} pixels de {year}, modelo {model === 'random_forest' ? 'Random Forest' : 'XGBoost'}. São frações, não somente contagens da área selecionada.</p>
+        <p>As frequências f_c da tabela são calculadas sobre {number(stats!.counts.source_pixels, 0)} pixels de {year}, modelo Random Forest. São frações, não somente contagens da área selecionada.</p>
         <code>Z = Σ n_c/f_c = {number(totalWeight, 8)}{'\n'}Σ n_c μ_c/f_c = {number(weightedSum, 8)}{'\n'}R_estado = {number(weightedSum, 8)} / {number(totalWeight, 8)} = {number(result.value!, 8)}</code>
       </>}
 
@@ -129,13 +129,13 @@ export function Calculation({ cell, model, method, stats, year }: {
     <details className="aggregation-common-method">
       <summary>Origem dos dados, NoData e formação dos grupos</summary>
       <h4>Índice e valor do modelo são variáveis distintas</h4>
-      <p>A banda 1 recebida contém o valor do modelo em escala percentual; a banda 2 contém o índice percentil estadual, rᵢ, entre 0 e 100. Os resumos operam sobre rᵢ, exceto a CDF estadual, que consulta a distribuição dos valores da banda 1. Não se multiplica a banda 1 novamente por 100.</p>
+      <p>A banda 1 recebida contém a probabilidade anual calibrada do Random Forest em porcentagem; a banda 2 contém o índice percentil estadual, rᵢ, entre 0 e 100. Os resumos operam sobre rᵢ, exceto a CDF estadual, que consulta a distribuição dos valores da banda 1. Não se multiplica a banda 1 novamente por 100. A calibração temporal é da equipe científica, não é refeita pelo site e pode errar a frequência de anos atípicos.</p>
       <p>O professor construiu o índice com um histograma de 28.000 intervalos no logito, entre −20 e 8, largura 0,001. A posição de um pixel usa o ponto médio da massa de seu intervalo:</p>
       <p>O logito é ln(p/(1 − p)), em que p é a saída interna na escala 0–1, antes de gravar a porcentagem da banda 1. A rotina protege o logaritmo limitando p a [10⁻¹², 1 − 10⁻¹²] e limita o número do intervalo aos extremos do histograma.</p>
       <code>rᵢ = 100 × (B_b + 0,5 × H_b) / N</code>
       <p>H_b é a contagem do intervalo do pixel e B_b é a contagem acumulada dos intervalos inferiores. Pixels do mesmo intervalo recebem o mesmo índice. Esse índice é preservado; o navegador não recalcula o ranking nem ajusta uma distribuição teórica.</p>
       <h4>Máscara válida e suporte espacial</h4>
-      <p>NoData = −9999 é excluído das somas, contagens, quantis e pesos. Zero é um valor válido e continua no cálculo. As máscaras das quatro bandas dos COGs devem coincidir; valores não finitos ou fora de [0,100] invalidam a geração, em vez de virarem zero.</p>
+      <p>NoData = −9999 é excluído das somas, contagens, quantis e pesos. Zero é um valor válido e continua no cálculo. As máscaras das duas bandas dos COGs devem coincidir; valores não finitos ou fora de [0,100] invalidam a geração, em vez de virarem zero. A v6 utiliza a cobertura recebida sobre o Acre do IBGE 2024, com pequenas lacunas onde não há dados; elas não representam risco zero.</p>
       <p>O centro de cada pixel é reprojetado de EPSG:4326 para EPSG:31979 (UTM 19S). O grupo é definido por floor(X/5000) e floor(Y/5000). Um pixel que cruza uma borda é atribuído integralmente ao grupo de seu centro. O recorte cartográfico do polígono serve à visualização; os pesos se baseiam nos pixels científicos válidos.</p>
       <p>Grupos nas bordas ou com máscara parcial podem conter menos pixels. Todas as médias e proporções usam o n válido daquele grupo, não uma quantidade fixa de pixels nem a área nominal do quadrado.</p>
       <h4>Resolução e precisão numérica</h4>
@@ -149,7 +149,7 @@ export function Calculation({ cell, model, method, stats, year }: {
         : method === 'mode' ? <p>A categoria escolhida pela maior contagem determina diretamente a cor. As faixas abaixo definem as classes dos pixels que foram contados; não se calcula um percentil numérico para a moda.</p>
           : <p>O resultado numérico, antes do arredondamento de exibição, é comparado com os cortes fixos abaixo. Isso produz a classe deste resumo. Para ponderações experimentais, a aplicação desses cortes é uma regra visual, não um ranking estadual recalculado.</p>}
       {method !== 'concentration' && <ul>{ranges.map((range) => <li key={range}>{range}</li>)}</ul>}
-      <p>A notação [a,b) inclui o limite inferior e exclui o superior; o último intervalo inclui 100. As comparações entre modelos e entre anos continuam usando exclusivamente médias dos percentis.</p>
+      <p>A notação [a,b) inclui o limite inferior e exclui o superior; o último intervalo inclui 100. A comparação entre anos usa exclusivamente médias dos percentis, cada ano com seu próprio ranking estadual.</p>
     </details>
 
     <details className="aggregation-provenance">
@@ -158,7 +158,7 @@ export function Calculation({ cell, model, method, stats, year }: {
         <p>Produto derivado: contrato {stats.schema_version}, ano {stats.year}; {number(stats.counts.groups, 0)} grupos e {number(stats.counts.source_pixels, 0)} pixels válidos por modelo. A identidade abaixo vincula os resumos ao produto científico recebido.</p>
         <code>{stats.source_identity}</code>
         <dl className="aggregation-input-hashes">{Object.entries(stats.input_sha256).map(([name, hash]) => <div key={name}><dt>{name} · SHA-256</dt><dd><code>{hash}</code></dd></div>)}</dl>
-        <p><a href={`/data/risk/v4/${year}/aggregation-stats.json`} target="_blank" rel="noreferrer">Abrir o JSON de estatísticas de {year}</a>. Ele também registra os hashes dos setores e do exportador executado.</p>
+        <p><a href={`/data/risk/v6/${year}/aggregation-stats.json`} target="_blank" rel="noreferrer">Abrir o JSON de estatísticas de {year}</a>. Ele também registra os hashes dos setores e do exportador executado.</p>
       </> : <p>As estatísticas adicionais não estão disponíveis. Média, moda e concentração usam os valores e proporções da grade publicada; seus exemplos continuam disponíveis acima.</p>}
       <p>As definições e a auditoria vinculam cada resumo ao ano e ao modelo. Esses resumos descrevem resultados recebidos; não constituem uma nova validação da capacidade de prever queimadas.</p>
       <ul>

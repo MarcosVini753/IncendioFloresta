@@ -10,5 +10,5 @@ for (const name of ['danger', 'inpe', 'susceptibility']) {
   await rm(generated, { recursive: true, force: true })
 }
 console.log(
-  'Build limitado ao Risco v4 de 2025/2026 e Clima de 2025; arquivos locais de Perigo preservados.',
+  'Build limitado ao Risco v6 de 2025/2026 e Clima de 2025; arquivos locais de Perigo preservados.',
 )

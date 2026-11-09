@@ -21,11 +21,11 @@ async function fixture(t, { sectors = false } = {}) {
   await mkdir(path.dirname(script), { recursive: true })
   await cp(new URL('./sync-products.mjs', import.meta.url), script)
   for (const year of [2025, 2026]) {
-    const dir = path.join(root, `incendio/produtos/risco/v4/${year}`)
+    const dir = path.join(root, `incendio/produtos/risco/v6/${year}`)
     await mkdir(dir, { recursive: true })
     await writeFile(
       path.join(dir, 'manifest.json'),
-      JSON.stringify({ schema_version: '4.0', year, provenance: { identity: `fixture-${year}` } }),
+      JSON.stringify({ schema_version: '6.0', year, provenance: { identity: `fixture-${year}` } }),
     )
     await writeFile(
       path.join(dir, 'index.json'),
@@ -33,17 +33,17 @@ async function fixture(t, { sectors = false } = {}) {
         year,
         valid_pixels: 1,
         sectors: [
-          { id: 'AC-V4-R000C000', url: 'sectors/AC-V4-R000C000.tif', bytes: 4 },
+          { id: 'AC-V6-R000C000', url: 'sectors/AC-V6-R000C000.tif', bytes: 4 },
         ],
       }),
     )
     await writeFile(path.join(dir, 'grid.geojson'), JSON.stringify({type:'FeatureCollection',features:[{properties:{id:'sample',n_source_pixels:1}}]}))
     const hashes = {}
     for (const name of ['manifest.json','index.json','grid.geojson']) hashes[name] = createHash('sha256').update(await readFile(path.join(dir,name))).digest('hex')
-    await writeFile(path.join(dir,'aggregation-stats.json'),JSON.stringify({schema_version:'1.0',product:'risk_v4_aggregation_stats',year,source_identity:`fixture-${year}`,input_sha256:hashes,counts:{groups:1,source_pixels:1},groups:{sample:{n_source_pixels:1}}}))
+    await writeFile(path.join(dir,'aggregation-stats.json'),JSON.stringify({schema_version:'1.0',product:'risk_v6_aggregation_stats',year,source_identity:`fixture-${year}`,input_sha256:hashes,counts:{groups:1,source_pixels:1},groups:{sample:{n_source_pixels:1}}}))
     if (sectors) {
       await mkdir(path.join(dir, 'sectors'))
-      await writeFile(path.join(dir, 'sectors/AC-V4-R000C000.tif'), 'COG!')
+      await writeFile(path.join(dir, 'sectors/AC-V6-R000C000.tif'), 'COG!')
     }
   }
   await mkdir(path.join(root, 'incendio/produtos/clima/v1/2025'), {
@@ -63,13 +63,13 @@ async function fixture(t, { sectors = false } = {}) {
     },
     deployment: (year) =>
       readFile(
-        path.join(root, `frontend/public/data/risk/v4/${year}/deployment.json`),
+        path.join(root, `frontend/public/data/risk/v6/${year}/deployment.json`),
         'utf8',
       ).then(JSON.parse),
     sector: (year) =>
       path.join(
         root,
-        `frontend/public/data/risk/v4/${year}/sectors/AC-V4-R000C000.tif`,
+        `frontend/public/data/risk/v6/${year}/sectors/AC-V6-R000C000.tif`,
       ),
   }
 }
@@ -90,11 +90,11 @@ test('explicit aggregate mode does not require TIFFs on Vercel', async (t) => {
 
 test('remote mode excludes even locally available sectors and preserves year paths', async (t) => {
   const f = await fixture(t, { sectors: true })
-  f.run({ VERCEL: '1', RISK_RASTER_BASE_URL: 'https://assets.example/risk/v4' })
+  f.run({ VERCEL: '1', RISK_RASTER_BASE_URL: 'https://assets.example/risk/v6' })
   for (const year of [2025, 2026]) {
     assert.equal(
       (await f.deployment(year)).raster_base_url,
-      `https://assets.example/risk/v4/${year}/`,
+      `https://assets.example/risk/v6/${year}/`,
     )
     assert.equal((await f.deployment(year)).raster_mode, 'remote')
     await assert.rejects(stat(f.sector(year)), { code: 'ENOENT' })
@@ -103,22 +103,22 @@ test('remote mode excludes even locally available sectors and preserves year pat
 
 test('local mode still requires every COG', async (t) => {
   const f = await fixture(t)
-  assert.throws(() => f.run(), /Produto v4 ausente/)
+  assert.throws(() => f.run(), /Produto v6 ausente/)
 })
 
 test('missing or stale summary product fails preflight in aggregate mode too', async (t) => {
   const f = await fixture(t)
-  const file = path.join(f.root, 'incendio/produtos/risco/v4/2025/aggregation-stats.json')
+  const file = path.join(f.root, 'incendio/produtos/risco/v6/2025/aggregation-stats.json')
   const original = await readFile(file, 'utf8')
   await rm(file)
   assert.throws(() => f.run({ RISK_RASTER_MODE: 'aggregated' }), /exportar_resumos/)
   const invalid = JSON.parse(original)
   invalid.year = 2026
   await writeFile(file, JSON.stringify(invalid))
-  assert.throws(() => f.run({ RISK_RASTER_MODE: 'aggregated' }), /Produto v4 ausente/)
+  assert.throws(() => f.run({ RISK_RASTER_MODE: 'aggregated' }), /Produto v6 ausente/)
   await writeFile(file, original)
-  await writeFile(path.join(f.root, 'incendio/produtos/risco/v4/2025/grid.geojson'), '{}')
-  assert.throws(() => f.run({ RISK_RASTER_MODE: 'aggregated' }), /Produto v4 ausente/)
+  await writeFile(path.join(f.root, 'incendio/produtos/risco/v6/2025/grid.geojson'), '{}')
+  assert.throws(() => f.run({ RISK_RASTER_MODE: 'aggregated' }), /Produto v6 ausente/)
 })
 
 test('local mode copies and validates sectors', async (t) => {
@@ -126,7 +126,7 @@ test('local mode copies and validates sectors', async (t) => {
   f.run()
   for (const year of [2025, 2026]) {
     assert.equal(await readFile(f.sector(year), 'utf8'), 'COG!')
-    assert.equal((await f.deployment(year)).raster_base_url, `/data/risk/v4/${year}/`)
+    assert.equal((await f.deployment(year)).raster_base_url, `/data/risk/v6/${year}/`)
     assert.equal((await f.deployment(year)).raster_mode, 'local')
   }
 })
@@ -143,8 +143,8 @@ test('Vercel defaults to local sectors for both years', async (t) => {
 test('missing 2025 sector fails before replacing generated copies', async (t) => {
   const f = await fixture(t, { sectors: true })
   f.run()
-  await rm(path.join(f.root, 'incendio/produtos/risco/v4/2025/sectors'), { recursive: true })
-  assert.throws(() => f.run({ VERCEL: '1' }), /Produto v4 ausente/)
+  await rm(path.join(f.root, 'incendio/produtos/risco/v6/2025/sectors'), { recursive: true })
+  assert.throws(() => f.run({ VERCEL: '1' }), /Produto v6 ausente/)
   for (const year of [2025, 2026]) {
     assert.equal(await readFile(f.sector(year), 'utf8'), 'COG!')
     assert.equal((await f.deployment(year)).raster_mode, 'local')
@@ -180,7 +180,7 @@ test('switching from local to aggregated removes only generated raster copies', 
         await stat(
           path.join(
             f.root,
-            `incendio/produtos/risco/v4/${year}/sectors/AC-V4-R000C000.tif`,
+            `incendio/produtos/risco/v6/${year}/sectors/AC-V6-R000C000.tif`,
           ),
         )
       ).size,

@@ -1,11 +1,11 @@
 import {
-  RISK_V4_CLASSES,
-  RISK_V4_MODELS,
-  type RiskV4Manifest,
-  type RiskV4Product,
-} from '../types/riskV4'
+  RISK_V6_CLASSES,
+  RISK_V6_MODELS,
+  type RiskV6Manifest,
+  type RiskV6Product,
+} from '../types/riskV6'
 
-export const riskV4Base = (year: 2025 | 2026) => `/data/risk/v4/${year}/`
+export const riskV6Base = (year: 2025 | 2026) => `/data/risk/v6/${year}/`
 const record = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v)
 const number = (v: unknown): v is number =>
@@ -24,34 +24,44 @@ const bbox = (v: unknown): v is number[] =>
 const safeFile = (v: unknown): v is string =>
   typeof v === 'string' && /^[a-z-]+\.(json|geojson)$/.test(v)
 
-export function validateRiskV4Manifest(v: unknown): RiskV4Manifest {
+export function validateRiskV6Manifest(v: unknown): RiskV6Manifest {
   if (
     !record(v) ||
-    v.schema_version !== '4.0' ||
+    v.schema_version !== '6.0' ||
     v.product !== 'wildfire_annual_risk' ||
     (v.year !== 2025 && v.year !== 2026) ||
     v.default_model !== 'random_forest' ||
-    v.scenario !== 'AB30C_suave' ||
+    v.scenario !== 'F30C' ||
     typeof v.label !== 'string' ||
     typeof v.generated_at !== 'string' ||
     !Number.isFinite(Date.parse(v.generated_at))
   )
-    throw new Error('Manifesto do Risco v4 inválido.')
+    throw new Error('Manifesto do Risco v6 inválido.')
   if (
     !record(v.training) ||
     JSON.stringify(v.training.years) !==
       JSON.stringify([2016, Number(v.year) - 1]) ||
-    v.training.climate_year !== Number(v.year) - 1 ||
-    v.training.climate_smoothing !== true ||
+    v.training.climate_year !== null ||
+    v.training.landcover_year !== Number(v.year) - 1 ||
+    v.training.uses_climate !== false ||
+    v.training.climate_smoothing !== false ||
+    v.training.seed !== 42 ||
     !Array.isArray(v.training.predictors) ||
-    v.training.predictors.length !== 13
+    JSON.stringify(v.training.predictors) !== JSON.stringify([
+      'veg', 'dist_agua', 'dist_estrada', 'altitude', 'anos_desde_fogo30',
+      'historico_fogo30', 'queimou_ano_anterior_fogo30', 'entorno_fogo30',
+      'desmatamento_recente', 'frac_desmatamento_1km', 'frac_agropecuaria_1km',
+    ]) ||
+    !record(v.territory) || v.territory.source !== 'IBGE' || v.territory.year !== 2024 ||
+    v.territory.mask !== 'received_geotiff_valid_pixels' || v.territory.boundary_simplified !== true ||
+    !/^[a-f0-9]{64}$/.test(String(v.territory.boundary_sha256))
   )
-    throw new Error('Protocolo científico v4 incompatível.')
+    throw new Error('Protocolo científico v6 incompatível.')
   const models = v.models
   if (
     !Array.isArray(models) ||
-    models.length !== 2 ||
-    !RISK_V4_MODELS.every((id) => {
+    models.length !== 1 ||
+    !RISK_V6_MODELS.every((id) => {
       const model = models.find((m) => record(m) && m.id === id)
       return (
         record(model) &&
@@ -67,7 +77,7 @@ export function validateRiskV4Manifest(v: unknown): RiskV4Manifest {
       )
     })
   )
-    throw new Error('Modelos ou calibração v4 incompatíveis.')
+    throw new Error('Modelos ou calibração v6 incompatíveis.')
   if (
     !record(v.percentile) ||
     v.percentile.origin !== 'received_histogram_statewide' ||
@@ -82,9 +92,9 @@ export function validateRiskV4Manifest(v: unknown): RiskV4Manifest {
     v.representation.native_zoom !== 8.5 ||
     v.representation.native_resolution_m !== 30 ||
     v.representation.aggregation !== 'mean' ||
-    JSON.stringify(v.classes) !== JSON.stringify(RISK_V4_CLASSES)
+    JSON.stringify(v.classes) !== JSON.stringify(RISK_V6_CLASSES)
   )
-    throw new Error('Resolução ou classes v4 incompatíveis.')
+    throw new Error('Resolução ou classes v6 incompatíveis.')
   const files = v.files
   if (
     !record(v.counts) ||
@@ -95,7 +105,7 @@ export function validateRiskV4Manifest(v: unknown): RiskV4Manifest {
     !record(files) ||
     !['grid', 'boundary', 'index'].every((key) => safeFile(files[key]))
   )
-    throw new Error('Arquivos ou cobertura v4 inválidos.')
+    throw new Error('Arquivos ou cobertura v6 inválidos.')
   if (
     !record(v.provenance) ||
     typeof v.provenance.identity !== 'string' ||
@@ -110,7 +120,7 @@ export function validateRiskV4Manifest(v: unknown): RiskV4Manifest {
     !record(v.evaluation.historical)
   )
     throw new Error('Avaliação recebida incompatível.')
-  for (const model of RISK_V4_MODELS) {
+  for (const model of RISK_V6_MODELS) {
     const rows = v.evaluation.historical[model]
     if (
       !Array.isArray(rows) ||
@@ -144,17 +154,17 @@ export function validateRiskV4Manifest(v: unknown): RiskV4Manifest {
         )
       })
     )
-      throw new Error('Série histórica v4 incompleta.')
+      throw new Error('Série histórica v6 incompleta.')
   }
-  return v as unknown as RiskV4Manifest
+  return v as unknown as RiskV6Manifest
 }
 
-export function validateRiskV4Product(
-  manifest: RiskV4Manifest,
+export function validateRiskV6Product(
+  manifest: RiskV6Manifest,
   cells: unknown,
   boundary: unknown,
   index: unknown,
-): RiskV4Product {
+): RiskV6Product {
   if (
     !record(cells) ||
     cells.type !== 'FeatureCollection' ||
@@ -182,11 +192,11 @@ export function validateRiskV4Product(
       !positive(p.n_source_pixels)
     )
       throw new Error('Propriedades agregadas inválidas.')
-    for (const model of RISK_V4_MODELS) {
+    for (const model of RISK_V6_MODELS) {
       if (!score(p[`value_${model}`]) || !score(p[`percentile_${model}`]))
         throw new Error('Valor agregado fora de [0,100].')
       let sum = 0
-      for (const category of RISK_V4_CLASSES) {
+      for (const category of RISK_V6_CLASSES) {
         const share = p[`share_${model}_${category.id}`]
         if (!number(share) || share < 0 || share > 1)
           throw new Error('Distribuição de classes inválida.')
@@ -209,7 +219,7 @@ export function validateRiskV4Product(
     throw new Error('Limite do Acre inválido.')
   if (
     !record(index) ||
-    index.schema_version !== '4.0' ||
+    index.schema_version !== '6.0' ||
     index.year !== manifest.year ||
     index.crs !== 'EPSG:4326' ||
     index.sector_size !== 1024 ||
@@ -226,14 +236,12 @@ export function validateRiskV4Product(
       JSON.stringify([
         'value_random_forest',
         'percentile_random_forest',
-        'value_xgboost',
-        'percentile_xgboost',
       ]) ||
     index.valid_pixels !== count ||
     !Array.isArray(index.sectors) ||
     index.sectors.length !== manifest.counts.sectors
   )
-    throw new Error('Índice raster v4 inválido.')
+    throw new Error('Índice raster v6 inválido.')
   let sourceCount = 0
   const sectorIds = new Set<string>(),
     windows = new Set<string>()
@@ -243,7 +251,7 @@ export function validateRiskV4Product(
       typeof sector.id !== 'string' ||
       sectorIds.has(sector.id) ||
       sector.url !== `sectors/${sector.id}.tif` ||
-      !/^AC-V4-R\d{3}C\d{3}$/.test(sector.id) ||
+      !/^AC-V6-R\d{3}C\d{3}$/.test(sector.id) ||
       !bbox(sector.bbox) ||
       !positive(sector.valid_pixels) ||
       !positive(sector.bytes) ||
@@ -281,18 +289,18 @@ export function validateRiskV4Product(
     cells,
     boundary,
     index,
-    rasterBase: riskV4Base(manifest.year),
-  } as unknown as RiskV4Product
+    rasterBase: riskV6Base(manifest.year),
+  } as unknown as RiskV6Product
 }
 
-export function validateRiskV4Deployment(
+export function validateRiskV6Deployment(
   v: unknown,
   year: 2025 | 2026,
 ): string | null {
   if (!record(v) || v.schema_version !== '1.0' || v.year !== year)
-    throw new Error('Configuração de publicação do Risco v4 inválida.')
+    throw new Error('Configuração de publicação do Risco v6 inválida.')
   if (v.raster_mode === 'aggregated' && v.raster_base_url === null) return null
-  if (v.raster_mode === 'local' && v.raster_base_url === riskV4Base(year))
+  if (v.raster_mode === 'local' && v.raster_base_url === riskV6Base(year))
     return v.raster_base_url
   if (v.raster_mode === 'remote' && typeof v.raster_base_url === 'string') {
     const url = new URL(v.raster_base_url)
@@ -315,17 +323,17 @@ async function json(url: string, signal?: AbortSignal): Promise<unknown> {
   const response = await fetch(url, { signal })
   if (!response.ok || !response.headers.get('content-type')?.includes('json'))
     throw new Error(
-      `Produto v4 ausente ou resposta inválida: ${url}. Confira a URL e a sincronização dos produtos no build.`,
+      `Produto v6 ausente ou resposta inválida: ${url}. Confira a URL e a sincronização dos produtos no build.`,
     )
   return response.json()
 }
 
-export async function loadRiskV4(
+export async function loadRiskV6(
   year: 2025 | 2026,
   signal?: AbortSignal,
-): Promise<RiskV4Product> {
-  const base = riskV4Base(year)
-  const manifest = validateRiskV4Manifest(
+): Promise<RiskV6Product> {
+  const base = riskV6Base(year)
+  const manifest = validateRiskV6Manifest(
     await json(`${base}manifest.json`, signal),
   )
   if (manifest.year !== year)
@@ -339,7 +347,7 @@ export async function loadRiskV4(
     ].map((file) => json(base + file, signal)),
   )
   return {
-    ...validateRiskV4Product(manifest, cells, boundary, index),
-    rasterBase: validateRiskV4Deployment(deployment, year),
+    ...validateRiskV6Product(manifest, cells, boundary, index),
+    rasterBase: validateRiskV6Deployment(deployment, year),
   }
 }

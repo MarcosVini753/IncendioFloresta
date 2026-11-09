@@ -1,181 +1,80 @@
-# Frontend — Risco professor v4 de 2025/2026 e Clima de 2025
+# Frontend — Risco v6 e Clima de 2025
 
-O site abre em Random Forest, cenário AB30C com clima suavizado e treino com
-MapBiomas Fogo. Random Forest e XGBoost de **2025 e 2026** são disponibilizados.
-O seletor **Ano do risco** abre em 2026. Ao trocar, o mapa, a consulta,
-o período de treino e a avaliação acompanham o ano escolhido. Produtos já
-carregados ficam em memória; leitores raster são recriados para impedir mistura
-de setores entre anos. A seleção antiga é limpa; o modelo escolhido permanece.
-Não há seletor de cenários nem carregamento dos setores da v2.
+React + MapLibre + GeoTIFF.js. Abre no **Random Forest F30C de 2026**, sem clima,
+com média dos percentis como resumo. 2025 também está disponível. Não há mapas
+XGBoost no produto web ativo; seletor/comparação entre modelos foram removidos.
+Os GeoTIFFs XGBoost F30C foram recebidos posteriormente e ainda não foram
+integrados ao site. O arquivo de altitude também não é uma camada da interface.
 
-## Ler e consultar o mapa
+## Leitura do mapa
 
-A cor representa o índice percentil recebido, de 0 a 100 sem %. As classes
-são fixas: Muito baixo [0,50), Baixo [50,70), Moderado [70,90), Alto [90,95)
-e Muito alto [95,100]. Percentil não é chance de incêndio.
+- Até zoom 8,5: grupos de 5 km. Nove resumos: média, moda, mediana, concentração
+  >=90, P75, média por área, raridade local, raridade estadual e CDF do valor médio.
+- A partir de 8,5: setores raster progressivos. O seletor de resumo é desativado,
+  mas sua escolha é preservada para o retorno ao agregado.
+- O clique no raster consulta sempre o pixel Float32 original, não uma overview.
+  Mostra linha/coluna, centro, índice e probabilidade calibrada recebida.
+- Percentil: escala 0–100 sem `%`, posição relativa entre os pixels do ano.
+  Probabilidade calibrada: banda distinta, já percentual, apresentada separadamente.
+- Classes: [0,50), [50,70), [70,90), [90,95), [95,100]. Concentração tem escala
+  própria contínua de 0–100% dos pixels válidos, não de chance de fogo.
+- O painel mostra composição, contagens, fórmula, variáveis, memória de cálculo,
+  precisão e proveniência. Quantis são exatos, sem interpolação. Moda mostra
+  classe/proporção e sinaliza empate ou ausência de maioria absoluta.
+- Comparação anual usa somente médias dos percentis, cada ano com seu próprio
+  ranking. Não indica aumento absoluto do risco. Trocar ano preserva o resumo,
+  limpa seleção e recria leitores para não misturar setores.
+- Falha nas estatísticas adicionais preserva média/moda/concentração. Um resumo
+  indisponível volta à média com aviso e opção de tentar novamente.
 
-Até zoom 8,5: grupos de 5 km, com média dos percentis inicialmente selecionada.
-O controle **Como resumir os grupos de 5 km?** muda apenas o resumo espacial,
-separadamente da escolha de modelo. O clique mostra o resumo de ambos os modelos
-e a composição original das classes, sempre visível.
-
-### Resumos dos grupos
-
-- Uso principal: média, moda das classes, mediana e concentração de índices ≥90.
-- Análise avançada experimental: P75, média ponderada por área, raridade local,
-  raridade estadual e CDF estadual do valor médio da banda 1.
-
-A média continua como padrão. Moda exibe uma categoria e sua proporção, nunca
-um percentil inventado; empates usam a menor classe. Sem maioria absoluta, o
-painel avisa que o grupo é misto. Concentração tem legenda contínua própria de
-0–100% dos pixels válidos, uma aproximação da cobertura da área.
-
-Mediana e P75 são exatos em relação aos valores recebidos, usando `inverted_cdf`
-(posição `ceil(q*n)`, sem interpolação). Os demais resumos seguem as definições
-do estudo de representatividade. As ponderações não recalibram probabilidades.
-A CDF estadual usa `<=` sobre todos os pixels do ano/modelo; não ranqueia grupos.
-
-O método é mantido ao trocar de ano/modelo e guardado no link `summary=`.
-O seletor oferece uma explicação técnica mesmo sem seleção. No painel do grupo,
-**Como este resultado foi calculado?** reúne definições, notação, procedimento,
-memória numérica da área, pesos e contribuições por classe, tratamento de NoData,
-regra de atribuição espacial, convenções de quantis/empates, classificação da cor
-e proveniência com hashes e referências metodológicas. Essas seções são
-expansíveis; os valores publicados e os nove métodos permanecem os mesmos.
-Ao entrar no raster, o seletor é desativado, preservando a escolha para o retorno
-à visão agregada. Comparações entre modelos e entre anos continuam usando
-exclusivamente médias dos percentis, com identificação explícita.
-
-O produto adicional `aggregation-stats.json` é carregado uma vez por ano e validado
-contra identidade, cobertura, grupos e modelos do produto científico. Sua falha
-mantém média, moda e concentração utilizáveis. Métodos indisponíveis voltam à
-média com aviso e botão para tentar novamente.
-
-A partir de zoom 8,5: o raster é lido por setores COG. Enquanto afastado,
-usa overviews por média; ao aproximar, usa os dados originais de cerca de 30 m.
-O clique **sempre consulta a imagem original**, retornando linha, coluna,
-centro, contorno e valores dos dois modelos. A seleção permanece ao trocar modelo.
-Essa transição só é habilitada quando os setores estão disponíveis na publicação.
-Sem eles, a malha de 5 km permanece em todos os níveis de zoom, com aviso visível;
-o clique retorna médias, nunca um pixel apresentado como original.
-
-A banda percentual recebida já está multiplicada por 100. Random Forest tem
-calibração temporal recebida; XGBoost tem correção de amostragem e não é calibrado.
-Os dois valores são rotulados distintamente e não são previsão operacional.
-
-Para 2025: treino 2016–2024 e clima de 2024. Para 2026: treino 2016–2025,
-clima de 2025. Ambos usam 13 preditores. Avaliações históricas de
-2023–2025 são recebidas do professor e correspondem à variante exibida e
-ao nível 30m_fogo. Não há avaliação observada de 2026 na entrega.
-
-## Contornos dos municípios do Acre
-
-A interface exibe, **por padrão**, as divisas dos 22 municípios do Acre sobre o
-mapa de risco anual e o mapa histórico de clima. A opção **Divisas municipais**
-nas barras de controles permite ocultar ou restaurar o traçado sem recarregar os
-modelos; a preferência é mantida ao trocar de aba.
-
-A camada é carregada localmente de
-`frontend/public/data/reference/acre-municipalities.geojson` (aproximadamente
-30 KiB). Foi preparada a partir dos polígonos publicados pelo projeto
-[br-geojson](https://github.com/henriquemalvar/br-geojson), que utiliza a
-[API de Malhas do IBGE](https://servicodados.ibge.gov.br/api/docs/malhas)
-em resolução simplificada. A
-[Malha Municipal do IBGE](https://www.ibge.gov.br/geociencias/organizacao-do-territorio/malhas-territoriais/15774-malhas.html)
-é a referência territorial. O GeoJSON contém o nome e o código IBGE de cada
-município. Trata-se de uma **referência cartográfica simplificada** para
-visualização web, não de limites jurídicos de precisão cadastral nem de uma
-máscara de cálculo dos modelos científicos.
-
-O traçado não altera `grid.geojson`, GeoTIFFs, COGs, percentis,
-cobertura NoData, unidades administrativas dos relatórios ou a camada original
-de limites estaduais. Uma diferença entre o contorno municipal e o contorno
-estadual usado nos produtos científicos pode ocorrer porque as fontes foram
-simplificadas e produzidas em momentos diferentes. A busca por município
-continua levando à sede urbana, não à média do município.
-
-## Raster no navegador
-
-GeoTIFF.js roda em Web Worker, com até quatro tarefas concorrentes, leitores
-de até 32 setores e LRU de até 128 MiB de blocos decodificados. As coordenadas
-Web Mercator de cada linha de tile são convertidas para latitude antes de
-amostrar a grade original EPSG:4326; não há interpolação linear incorreta
-entre as latitudes extremas do tile.
-
-Requisições obsoletas são canceladas. COGs permitem HTTP Range; se o servidor
-não oferecer Range, a leitura integral é limitada a um setor pequeno, nunca
-ao GeoTIFF do estado inteiro. Os setores atuais têm menos de 15 MiB cada.
-
-O worker é emitido como módulo ES para permitir os decodificadores carregados
-sob demanda do GeoTIFF.js. A exclusão de MapLibre do prebundle Vite permanece.
-
-## Clima e cicatrizes
-
-A aba Clima mantém os 365 dias de 2025 e inicia em 25/08/2025. Estatísticas são
-espaciais por dia; não são extremos horários. A duração de acumulação da
-precipitação continua não documentada.
-
-As cicatrizes de 2025 ficam inicialmente ocultas no Risco de 2026. Quando
-ativadas, os dois anos e a diferença temporal são mostrados. Essa sobreposição
-não valida a previsão de 2026 e não conta incêndios confirmados.
+A cobertura v6 segue a máscara recebida sobre o Acre IBGE 2024. Os 22 municípios
+simplificados recebidos também fornecem as divisas de referência, compartilhadas
+com a aba Clima; trocar esse contorno não amplia dados observados nem sua grade.
+NoData é ausência de estimativa, não risco zero.
 
 ## Executar e compilar
 
-~~~bash
-# Opcional, na raiz: regenerar setores a partir dos mapas finais recebidos.
-python3 -m venv incendio/.venv  # apenas se o ambiente ainda não existir
-incendio/.venv/bin/pip install -r incendio/risco_anual_v4/requirements.txt
-incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year 2025
-incendio/.venv/bin/python incendio/importar_risco_professor_v4.py --year 2026
-
-cd frontend
+```bash
 npm install
 npm run dev
+npm test
+npm run test:sync
 npm run build
 npm run preview
-~~~
+```
 
-Predev/prebuild conferem e sincronizam somente Risco v4/2025, Risco v4/2026 e Clima v1/2025.
-Também verificam os dois produtos de resumos e os hashes de seus metadados de origem.
-Os COGs de 2025 e 2026 são versionados; as cópias public/dist continuam
-ignoradas. Código, manifesto, índice e GeoJSON agregado são versionados. Consulte
-[geração e proveniência](../incendio/PRODUTOS_WEB.md).
+`predev` e `prebuild` verificam/sincronizam os produtos canônicos em
+`incendio/produtos/risco/v6/{2025,2026}` e `incendio/produtos/clima/v1/2025`.
+São 222 setores de duas bandas Float32 por ano, gerados dos GeoTIFFs completos.
+O build nunca executa Python ou modelos. Public/dist são gerados e ignorados.
+A sincronização valida os dois anos antes de substituir as cópias geradas.
 
-## Build na Vercel e distribuição dos pixels de 30 m
+Modos raster:
 
-O GitHub inclui **208 COGs de cada ano**, 416 arquivos de 2025 e 2026,
-aproximadamente 3,57 GB (3,33 GiB) ao todo, com menos de 15 MiB por arquivo.
-O checkout fornece tudo para publicar o detalhe de 30 m dos dois anos sem
-treinamento nem geração científica no build.
+- `RISK_RASTER_MODE=local` (padrão): inclui setores versionados nos dois anos.
+- `RISK_RASTER_MODE=aggregated`: exclui setores por escolha explícita.
+- `RISK_RASTER_MODE=remote`, com `RISK_RASTER_BASE_URL=https://…/v6`:
+  setores externos em `<base>/<ano>/sectors/…`; exige HTTP público e CORS.
 
-A comparação anual, a consulta agregada e o Clima de 2025 continuam disponíveis.
-Ao aproximar o mapa em qualquer ano, a publicação padrão permite consultar
-os pixels originais.
+O worker suporta HTTP Range. Sem Range, lê somente um setor de no máximo
+1024² × 2 Float32, nunca o GeoTIFF completo do estado. Mantém quatro transferências
+simultâneas, LRU de até 32 setores e teto de 128 MiB para blocos decodificados.
+Pan/zoom cancela trabalhos obsoletos. Tiles Web Mercator são convertidos para a
+grade EPSG:4326 antes da amostragem. As cores são aplicadas depois da leitura.
+A exclusão de MapLibre do prebundle do Vite é preservada para WSL/Windows.
 
-| Modo dos dois anos | Configuração antes do build | Resultado |
-| --- | --- | --- |
-| Local, padrão também na Vercel | Sem variáveis, ou `RISK_RASTER_MODE=local` | Inclui os setores versionados de 2025 e 2026. |
-| Apenas agregado | `RISK_RASTER_MODE=aggregated` | Não copia TIFFs de nenhum ano. |
-| Origem externa | `RISK_RASTER_BASE_URL=https://seu-host.example/risk/v4/` | Busca os setores em `2025/` e `2026/` na origem externa; não copia TIFFs. |
+Links antigos preservam ano, câmera e resumo. `model=xgboost` e `mode=compare`
+são ignorados; links novos identificam Random Forest e não incluem comparação.
 
-Se o painel da Vercel tiver `RISK_RASTER_MODE=aggregated`, remova a variável ou
-troque para `local` para habilitar os setores incluídos. Remova
-`RISK_RASTER_BASE_URL` ao usar o modo local. URLs externas precisam ser públicas,
-sem credenciais/query/fragmento, com CORS e preferencialmente HTTP Range.
+## Clima e avaliações
 
-Cada sincronização gera `deployment.json` por ano, sem alterar o manifesto
-científico. O ano agregado não cria worker raster, não solicita TIFFs e mantém
-a malha visível ao aproximar. O modo local confere presença e tamanho dos COGs
-de ambos os anos antes de tocar nas cópias geradas.
+Clima e cicatrizes de 2025 são produtos observados independentes, com calendário
+diário preservado. As cicatrizes ficam inicialmente ocultas no risco; ativá-las
+em 2026 mostra aviso temporal. Sua origem/cobertura não é a mesma da avaliação
+MapBiomas Fogo de 30 m. O risco F30C não utiliza clima.
 
-Verificações focadas: `npm run test:sync`, `npm test` e `npm run build`.
-Os testes de sincronização conferem os dois anos na publicação padrão da Vercel
-e falha antes de substituir as cópias quando falta um setor de 2025.
-A exceção do MapLibre no prebundle do Vite permanece.
+A avaliação mostra os mapas completos RandomForest_F30C de 2023–2025 contra
+`30m_fogo`, recebidos do professor, sem substituir por métricas amostrais.
+Não há avaliação observada de 2026 nem contagem de incêndios confirmados.
 
-## Código mantido
-
-A árvore atual contém a interface v4, seus controles, comparação anual,
-referências municipais, Clima e produtos ativos. Componentes e loaders dos
-protótipos antigos foram removidos. O código anterior continua recuperável pelo
-histórico Git e pelas branches de arquivo, sem reescrever commits remotos.
+Veja [contratos e preparação](../incendio/PRODUTOS_WEB.md).

@@ -1,6 +1,6 @@
-import type { RiskV4Cell, RiskV4Model, RiskV4Product } from '../types/riskV4'
-import { RISK_V4_CLASSES, RISK_V4_MODELS } from '../types/riskV4'
-import { riskV4Base } from './riskV4'
+import type { RiskV6Cell, RiskV6Model, RiskV6Product } from '../types/riskV6'
+import { RISK_V6_CLASSES, RISK_V6_MODELS } from '../types/riskV6'
+import { riskV6Base } from './riskV6'
 
 export const SUMMARY_METHODS = [
   { id: 'mean', label: 'Média dos percentis', advanced: false, description: 'Cada pixel válido tem o mesmo peso. O número é a média das posições dos pixels no estado.', formula: 'Σ índice do pixel / n' },
@@ -36,29 +36,29 @@ export interface GroupModelStats {
 }
 export interface AggregationStats {
   schema_version: '1.0'
-  product: 'risk_v4_aggregation_stats'
+  product: 'risk_v6_aggregation_stats'
   year: 2025 | 2026
   source_identity: string
   input_sha256: Record<string, string>
   counts: { groups: number; source_pixels: number }
-  state_class_counts: Record<RiskV4Model, number[]>
-  state_frequencies: Record<RiskV4Model, number[]>
+  state_class_counts: Record<RiskV6Model, number[]>
+  state_frequencies: Record<RiskV6Model, number[]>
   groups: Record<string, {
     n_source_pixels: number
     valid_area_m2: number
-    models: Record<RiskV4Model, GroupModelStats>
+    models: Record<RiskV6Model, GroupModelStats>
   }>
 }
 const record = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 const index = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100
 const integer = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v >= 0
 const close = (a: number, b: number) => Math.abs(a - b) <= 1e-7
-export function classCounts(cell: RiskV4Cell, model: RiskV4Model): number[] {
-  return RISK_V4_CLASSES.map((c) => Math.round(Number(cell[`share_${model}_${c.id}`]) * cell.n_source_pixels))
+export function classCounts(cell: RiskV6Cell, model: RiskV6Model): number[] {
+  return RISK_V6_CLASSES.map((c) => Math.round(Number(cell[`share_${model}_${c.id}`]) * cell.n_source_pixels))
 }
-export function validateAggregationStats(value: unknown, product: RiskV4Product): AggregationStats {
+export function validateAggregationStats(value: unknown, product: RiskV6Product): AggregationStats {
   const fail = (): never => { throw new Error('Estatísticas de resumo inválidas ou incompatíveis com este produto.') }
-  if (!record(value) || value.schema_version !== '1.0' || value.product !== 'risk_v4_aggregation_stats' ||
+  if (!record(value) || value.schema_version !== '1.0' || value.product !== 'risk_v6_aggregation_stats' ||
       value.year !== product.manifest.year || value.source_identity !== product.manifest.provenance.identity ||
       !record(value.counts) || value.counts.groups !== product.cells.features.length ||
       value.counts.source_pixels !== product.manifest.counts.source_pixels ||
@@ -68,7 +68,7 @@ export function validateAggregationStats(value: unknown, product: RiskV4Product)
       !record(value.input_sha256) || !['manifest.json', 'index.json', 'grid.geojson'].every((k) =>
         typeof value.input_sha256 === 'object' && /^[a-f0-9]{64}$/.test(String((value.input_sha256 as Record<string, unknown>)[k])))) fail()
   const stats = value as unknown as AggregationStats
-  for (const model of RISK_V4_MODELS) {
+  for (const model of RISK_V6_MODELS) {
     const frequency = stats.state_frequencies?.[model]
     const statewide = stats.state_class_counts?.[model]
     if (!Array.isArray(frequency) || frequency.length !== 5 || !Array.isArray(statewide) || statewide.length !== 5 ||
@@ -91,7 +91,7 @@ export function validateAggregationStats(value: unknown, product: RiskV4Product)
         const n = s.class_counts[i], mean = s.class_means[i]
         accumulated[i] += n
         if (!n) { if (mean !== null) fail(); continue }
-        const c = RISK_V4_CLASSES[i]
+        const c = RISK_V6_CLASSES[i]
         if (!index(mean) || mean < c.lower || (i < 4 ? mean >= c.upper : mean > c.upper) || frequency[i] === 0) fail()
         const m = mean as number
         sum += n * m; local += m; occupied++; weighted += n * m / frequency[i]; weight += n / frequency[i]
@@ -109,14 +109,14 @@ export function validateAggregationStats(value: unknown, product: RiskV4Product)
   }
   return stats
 }
-export async function loadAggregationStats(product: RiskV4Product, signal?: AbortSignal): Promise<AggregationStats> {
-  const response = await fetch(`${riskV4Base(product.manifest.year)}aggregation-stats.json`, { signal })
+export async function loadAggregationStats(product: RiskV6Product, signal?: AbortSignal): Promise<AggregationStats> {
+  const response = await fetch(`${riskV6Base(product.manifest.year)}aggregation-stats.json`, { signal })
   if (!response.ok || !response.headers.get('content-type')?.includes('json'))
     throw new Error('Não foi possível carregar as estatísticas adicionais deste ano.')
   return validateAggregationStats(await response.json(), product)
 }
-export const summaryClass = (value: number) => RISK_V4_CLASSES.findIndex((c, i) => value >= c.lower && (i === 4 || value < c.upper))
-export function summarize(cell: RiskV4Cell, model: RiskV4Model, method: SummaryMethod, stats: AggregationStats | null) {
+export const summaryClass = (value: number) => RISK_V6_CLASSES.findIndex((c, i) => value >= c.lower && (i === 4 || value < c.upper))
+export function summarize(cell: RiskV6Cell, model: RiskV6Model, method: SummaryMethod, stats: AggregationStats | null) {
   const counts = classCounts(cell, model), n = cell.n_source_pixels
   const maximum = Math.max(...counts), dominantClass = counts.indexOf(maximum)
   const concentration = 100 * (counts[3] + counts[4]) / n
@@ -127,7 +127,7 @@ export function summarize(cell: RiskV4Cell, model: RiskV4Model, method: SummaryM
     dominantShare: maximum / n, concentration, mixed: maximum <= n / 2,
     tied: counts.filter((v) => v === maximum).length > 1, counts }
 }
-export function displayGrid(product: RiskV4Product, model: RiskV4Model, method: SummaryMethod, stats: AggregationStats | null) {
+export function displayGrid(product: RiskV6Product, model: RiskV6Model, method: SummaryMethod, stats: AggregationStats | null) {
   return { ...product.cells, features: product.cells.features.map((feature) => {
     const result = summarize(feature.properties, model, method, stats)
     return { ...feature, properties: { ...feature.properties, display_value: result.value, display_class: result.classIndex } }
