@@ -1,4 +1,4 @@
-"""Geometria usada pelas observações climáticas da aplicação v4."""
+"""Geometria usada pelas observações climáticas da aplicação."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -106,4 +106,3 @@ def clip_boundary(geometry: dict[str, Any], bounds):
     if len(clipped) == 1:
         return {"type": "Polygon", "coordinates": clipped[0]}
     return {"type": "MultiPolygon", "coordinates": clipped}
-

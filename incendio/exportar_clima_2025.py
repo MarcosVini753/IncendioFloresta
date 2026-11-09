@@ -16,8 +16,8 @@ from pathlib import Path
 import numpy as np
 from pyproj import Geod
 
-from risco_anual_v4 import climate_geometry as geo
-from risco_anual_v4.climate_geometry import clip_boundary, clip_ring, geometry_bounds
+import climate_geometry as geo
+from climate_geometry import clip_boundary, clip_ring, geometry_bounds
 import rasterio
 import re
 from datetime import date, timedelta

@@ -3,7 +3,7 @@ import json
 import unittest
 import numpy as np
 import exportar_clima_2025 as climate
-from risco_anual_v4 import climate_geometry as geo
+import climate_geometry as geo
 
 class Climate2025Test(unittest.TestCase):
     @classmethod

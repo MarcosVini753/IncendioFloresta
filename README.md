@@ -70,19 +70,14 @@ Veja [contratos e proveniência](incendio/PRODUTOS_WEB.md),
 [frontend e publicação](frontend/README.md) e
 [preparação científica](incendio/README.md).
 
-## Planejamento de infraestrutura
+## Conteúdo necessário ao site
 
-O [estudo de contratação versus servidor próprio](docs/infraestrutura/estudo-servidor-risco-v4-2026-10-26.md)
-compara publicação direta dos COGs (opção B) e servidor de mapas (opção C),
-separando retreino anual, aplicação dos modelos e exposição dos resultados.
-Inclui dimensionamento, custos de três anos, limites das estimativas e
-[memória de cálculo reproduzível](docs/infraestrutura/calcular_cenarios.py).
+Esta árvore mantém o frontend, os produtos web ativos, os exportadores, testes e
+contratos de dados. Os estudos e exportadores históricos da v4 foram retirados;
+podem ser recuperados no histórico Git e permanecem arquivados localmente em
+`incendio/resultados/arquivo_historico_pre_publicacao_v6/`, fora do conteúdo enviado.
+Insumos brutos, modelos, caches e checkpoints também permanecem fora do Git.
 
-O estudo considera que não há equipamento institucional disponível.
-Veja [fontes e instruções para gerar PDF e Word](docs/infraestrutura/LEIA-ME.md).
-
-## Representatividade dos grupos de 5 km
-
-O [estudo da agregação espacial](incendio/risco_anual_v4/analises/representatividade/relatorio.md)
-é uma análise histórica da v4: compara média, classe predominante, mediana e concentração de pixels altos. Os números daquele relatório não descrevem os novos mapas v6. Inclui figuras, resumos estatísticos e instruções para
-reproduzir a análise e gerar o PDF localmente.
+A geometria ainda usada pelo Clima foi preservada em `incendio/climate_geometry.py`.
+As [definições dos resumos](incendio/PRODUTOS_WEB.md) e o
+[registro de validação](incendio/risco_anual_v6/VALIDACAO.md) acompanham os produtos atuais.

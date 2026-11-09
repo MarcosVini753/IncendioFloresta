@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - 'frontend/**'
+      - 'incendio/**'
       - '.github/workflows/frontend-checks.yml'
   push:
     branches:
       - main
     paths:
       - 'frontend/**'
+      - 'incendio/**'
       - '.github/workflows/frontend-checks.yml'
 
 jobs:

@@ -12,7 +12,9 @@ brutos ficam locais, ignorados pelo Git.
   preservadas. Sua cobertura e resolução não foram ampliadas pela troca do risco.
 - `exportar_clima_2025.py`: reprodução do produto observado, sem alteração nesta entrega.
 
-Os importadores e estudos v4 são históricos e não alimentam a aplicação atual.
+Os importadores e estudos v4 foram retirados da árvore ativa e preservados
+localmente em `resultados/arquivo_historico_pre_publicacao_v6/` e no histórico Git.
+`climate_geometry.py` preserva a geometria necessária ao exportador de Clima.
 A versão anterior está na branch `archive/risk-v4-before-professor-v6`.
 GeoTIFFs recebidos, SQLite, modelos, checkpoints e caches não são versionados.
 
