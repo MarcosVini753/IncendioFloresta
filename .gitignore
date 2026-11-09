@@ -51,11 +51,16 @@ incendio/resultados/risco_professor_v2/
 
 # Entrega v4: insumos recebidos e checkpoints permanecem locais.
 entrega_professor_v4/
+entrega_professor_v6/
+incendio/resultados/risco_professor_v6/
+incendio/resultados/aggregation_stats_v6/
+incendio/produtos/risco/v6/.*-staging/
 incendio/resultados/risco_professor_v4/
 incendio/produtos/risco/v4/.2025-staging/
 incendio/produtos/risco/v4/.2026-staging/
 
 # Produtos históricos retirados do conteúdo versionado, preservados localmente.
+/incendio/produtos/risco/v4/
 /data/raw/inpe/
 /incendio/produtos/clima/v1/2015/
 /incendio/produtos/risco/v1/

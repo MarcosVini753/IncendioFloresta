@@ -13,8 +13,8 @@ __pycache__/
 
 # Insumos cientificos locais e resultados intermediarios pesados
 *.tif
-!produtos/risco/v4/2025/sectors/*.tif
-!produtos/risco/v4/2026/sectors/*.tif
+!produtos/risco/v6/2025/sectors/*.tif
+!produtos/risco/v6/2026/sectors/*.tif
 *.tiff
 *.xlsx
 *.xls
